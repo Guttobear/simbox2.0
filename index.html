@@ -11506,41 +11506,230 @@ missile_fueltank: new Element(
   }
 
   if (cell._cooldown > 0) { cell._cooldown--; return; }
+const explodeMissile = () => {
+  cell._launched = false;
+  for (const part of activeDatasets) {
+    const px = x + part.ox, py = y + part.oy;
+    if (grid.isInside(px, py)) grid.set(px, py, ELEMENTS.empty);
+  }
+  grid.set(x, y, ELEMENTS.empty);
+  vfx.shake(35, 800);
+  const cx = x, cy = y;
 
-  const explodeMissile = () => {
-    cell._launched = false;
-    for (const part of activeDatasets) {
-      const px = x + part.ox, py = y + part.oy;
-      if (grid.isInside(px, py)) grid.set(px, py, ELEMENTS.empty);
+  const maxRadius = 22;
+  const steps = 18;
+  const delay = 8;
+  let step = 1;
+
+  const emberCount = Math.floor(maxRadius * 4);
+  const embers = Array.from({ length: emberCount }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    speed: 0.5 + Math.random() * 0.8,
+  }));
+
+  // Secondary debris chunks — heavier, slower, farther
+  const debrisCount = 14;
+  const debris = Array.from({ length: debrisCount }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    speed: 0.3 + Math.random() * 0.5,
+    size: 1 + Math.floor(Math.random() * 2),
+  }));
+
+  function tick() {
+    const t = step / steps;
+    const radius = Math.floor(t * maxRadius);
+    const ringRadius = radius + 6;
+
+    // ── 1. MAIN FIREBALL ──────────────────────────────────────────────────
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const ex = cx + dx, ey = cy + dy;
+        if (!grid.isInside(ex, ey)) continue;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > radius) continue;
+
+        const cell = grid.get(ex, ey);
+        if (cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx) continue;
+
+        grid.set(ex, ey, ELEMENTS.vfx);
+        const v = grid.get(ex, ey);
+        const norm = d / radius;
+
+        // Add turbulent noise to break up the perfect sphere
+        const noiseShift = (Math.random() - 0.5) * 0.18;
+        const n = Math.min(1, Math.max(0, norm + noiseShift));
+
+        if      (n < 0.10) { v.color = "#FFFFFF"; v.age = -2; }
+        else if (n < 0.22) { v.color = "#FFF5D0"; v.age = -3; }
+        else if (n < 0.38) { v.color = "#FFE000"; v.age = -4; }
+        else if (n < 0.55) { v.color = "#FF7700"; v.age = -5; }
+        else if (n < 0.72) { v.color = "#DD2200"; v.age = -6; }
+        else if (n < 0.87) { v.color = "#881100"; v.age = -8; }
+        else               { v.color = "#3A0D00"; v.age = -10; }
+
+        if (n > 0.55 && Math.random() < 0.35) {
+          v.color = Math.random() < 0.5 ? "#FF5500" : "#2A0A00";
+        }
+      }
     }
-    grid.set(x, y, ELEMENTS.empty);
-    vfx.shake(20, 500);
-    const cx = x, cy = y;
-    let step = 1;
-    const maxRadius = 8, steps = 10;
-    function tick() {
-      const radius = Math.floor((step / steps) * maxRadius);
-      for (let edy = -(radius+2); edy <= radius+2; edy++)
-        for (let edx = -(radius+2); edx <= radius+2; edx++) {
-          const ex = cx+edx, ey = cy+edy;
+
+    // ── 2. SHOCKWAVE RING — double ring for oomf ──────────────────────────
+    for (const [ringR, ringW, hot] of [
+      [radius + 1, 3, true],
+      [radius + 5, 1.5, false],
+    ]) {
+      for (let dy = -ringRadius; dy <= ringRadius; dy++) {
+        for (let dx = -ringRadius; dx <= ringRadius; dx++) {
+          const ex = cx + dx, ey = cy + dy;
           if (!grid.isInside(ex, ey)) continue;
-          const d = Math.sqrt(edx*edx+edy*edy);
-          if (d <= radius) {
-            grid.set(ex, ey, ELEMENTS.vfx);
-            const v = grid.get(ex, ey);
-            v.age = -6;
-            v.color = d/radius < 0.3 ? "#FFF3B0" : d/radius < 0.6 ? "#FF8C1A" : "#C62800";
-          }
-          if (d > 0 && d <= radius+5) {
-            const c = grid.get(ex, ey);
-            c.temperature = Math.max(c.temperature??0, 600*(1-(d-radius)/5));
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d >= ringR && d <= ringR + ringW) {
+            const cell = grid.get(ex, ey);
+            if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+              grid.set(ex, ey, ELEMENTS.vfx);
+              const v = grid.get(ex, ey);
+              v.color = hot
+                ? (Math.random() < 0.6 ? "#FFE580" : "#FFBB00")
+                : (Math.random() < 0.5 ? "#FFCC44" : "#FF8800");
+              v.age = hot ? -3 : -5;
+            }
           }
         }
-      step++;
-      if (step <= steps) setTimeout(tick, 5);
+      }
     }
-    tick();
-  };
+
+    // ── 3. EMBERS ─────────────────────────────────────────────────────────
+    embers.forEach(ember => {
+      const dist = ember.speed * maxRadius * t * 1.6;
+      const scatter = (Math.random() - 0.5) * 3.5;
+      const ex = cx + Math.round(Math.cos(ember.angle) * dist + scatter);
+      const ey = cy + Math.round(Math.sin(ember.angle) * dist + scatter);
+      if (!grid.isInside(ex, ey)) return;
+      const cell = grid.get(ex, ey);
+      if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+        grid.set(ex, ey, ELEMENTS.vfx);
+        const v = grid.get(ex, ey);
+        v.age = -4;
+        const r = Math.random();
+        v.color = r < 0.33 ? "#FFFF88" : r < 0.66 ? "#FF8800" : "#FF3300";
+      }
+    });
+
+    // ── 4. DEBRIS CHUNKS — big slow-moving clumps ─────────────────────────
+    debris.forEach(chunk => {
+      const dist = chunk.speed * maxRadius * t * 1.2;
+      const cx2 = cx + Math.round(Math.cos(chunk.angle) * dist);
+      const cy2 = cy + Math.round(Math.sin(chunk.angle) * dist);
+      for (let oy = -chunk.size; oy <= chunk.size; oy++) {
+        for (let ox = -chunk.size; ox <= chunk.size; ox++) {
+          const ex = cx2 + ox, ey = cy2 + oy;
+          if (!grid.isInside(ex, ey)) continue;
+          const cell = grid.get(ex, ey);
+          if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+            grid.set(ex, ey, ELEMENTS.vfx);
+            const v = grid.get(ex, ey);
+            v.age = -7;
+            v.color = Math.random() < 0.5 ? "#CC4400" : "#661100";
+          }
+        }
+      }
+    });
+
+    // ── 5. RISING SMOKE PLUME — thicker, taller ───────────────────────────
+    if (t > 0.25) {
+      const smokeRadius = Math.floor(radius * 0.7);
+      const plumeHeight = radius * 1.4;
+      for (let i = 0; i < 14; i++) {
+        const sx = cx + Math.round((Math.random() - 0.5) * smokeRadius * 1.5);
+        const sy = cy - Math.round(plumeHeight * 0.4 + Math.random() * plumeHeight * (t - 0.25) * 3);
+        if (!grid.isInside(sx, sy)) continue;
+        const cell = grid.get(sx, sy);
+        if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+          grid.set(sx, sy, ELEMENTS.vfx);
+          const v = grid.get(sx, sy);
+          v.age = -12;
+          const grey = Math.floor(25 + Math.random() * 55);
+          v.color = `rgb(${grey},${grey},${grey})`;
+        }
+      }
+    }
+
+    // ── 6. HEAT HALO ──────────────────────────────────────────────────────
+    const heatRange = 10;
+    const maxTemp = 1200;
+    for (let dy = -(radius + heatRange); dy <= radius + heatRange; dy++) {
+      for (let dx = -(radius + heatRange); dx <= radius + heatRange; dx++) {
+        const ex = cx + dx, ey = cy + dy;
+        if (!grid.isInside(ex, ey)) continue;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > 0 && d <= radius + heatRange) {
+          const cell = grid.get(ex, ey);
+          const falloff = 1 - Math.max(0, (d - radius) / heatRange);
+          const addedTemp = maxTemp * falloff * falloff;
+          if (cell.temperature === undefined) cell.temperature = 0;
+          cell.temperature += addedTemp;
+        }
+      }
+    }
+
+    // ── 7. DESTRUCTION — larger kill zone ────────────────────────────────
+    const destroyR = radius * 0.6;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const ex = cx + dx, ey = cy + dy;
+        if (!grid.isInside(ex, ey)) continue;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d <= 0) continue;
+
+        const cell = grid.get(ex, ey);
+        if (cell.element === ELEMENTS.vfx || cell.element === ELEMENTS.empty) continue;
+
+        if (d <= destroyR) {
+          const br = cell.element?.properties?.blastResistance ?? 99;
+          if (br < 2 && Math.random() < 0.85) {
+            grid.set(ex, ey, ELEMENTS.empty);
+            continue;
+          }
+        }
+
+        if (d <= radius && cell.element !== ELEMENTS.missile) {
+          const nx = dx / d, ny = dy / d;
+          const pushDist = Math.ceil((radius - d + 2) / 1.5); // harder push
+          const tx = ex + Math.round(nx * pushDist);
+          const ty = ey + Math.round(ny * pushDist);
+          if (grid.isInside(tx, ty) && grid.get(tx, ty).element === ELEMENTS.empty) {
+            grid.swap(ex, ey, tx, ty);
+          }
+        }
+      }
+    }
+
+    // ── 8. STREAK LINES ───────────────────────────────────────────────────
+    if (step < steps * 0.65) {
+      const streakAngles = Array.from({ length: 16 }, (_, i) => (i * Math.PI * 2) / 16);
+      const streakLen = Math.floor(t * maxRadius * 2.0);
+      streakAngles.forEach(angle => {
+        for (let r = 1; r <= streakLen; r++) {
+          const sx = cx + Math.round(Math.cos(angle) * r);
+          const sy = cy + Math.round(Math.sin(angle) * r);
+          if (!grid.isInside(sx, sy)) continue;
+          const cell = grid.get(sx, sy);
+          if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+            grid.set(sx, sy, ELEMENTS.vfx);
+            const v = grid.get(sx, sy);
+            v.age = -4;
+            v.color = r < streakLen * 0.4 ? "#FFFFFF" : r < streakLen * 0.7 ? "#FFEE44" : "#FF6600";
+          }
+        }
+      });
+    }
+
+    step++;
+    if (step <= steps) setTimeout(tick, delay);
+  }
+
+  tick();
+};
 
   const moveMissile = (dx, dy, datasets) => {
     const allParts = [
@@ -11853,7 +12042,33 @@ p.maxLife = p.life;
       // where the explosion happens
 
     }
+  ),
+  missile: new Element(
+    "missile",
+    "#4F171F",
+    "Tool",
+    {},
+    (grid,x,y) => {
+      const cell = grid.get(x,y);
+
+      function p(dx,dy, e){
+        const cx = x+dx;
+        const cy = y-3+dy;
+
+        if(!grid.isInside(cx,cy)) return;
+        grid.set(cx,cy, e);
+        
+      }
+      p(0, -2, ELEMENTS.missile_guidance_dome);
+      p(0, -1, ELEMENTS.missile_warhead);
+      p(0, 0, ELEMENTS.missile_control_section);
+      p(0, 1, ELEMENTS.missile_fueltank);
+      p(-1, 2, ELEMENTS.missile_flap); p(0, 2, ELEMENTS.missile_fueltank); p(1, 2, ELEMENTS.missile_flap);
+     p(-1, 3, ELEMENTS.missile_flap); p(0, 3, ELEMENTS.missile_thruster); p(1, 3, ELEMENTS.missile_flap);
+
+    }
   )
+
 
     };
     
