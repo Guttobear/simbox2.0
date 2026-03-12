@@ -1615,6 +1615,9 @@ for (const [dx, dy] of directions) {
   { temperature: 110, density: 0.8, conductivity: 1 },
   (grid, x, y) => {
     const cell = grid.get(x, y);
+    if(cell.temperature > 1000){
+      grid.set(x,y,ELEMENTS.empty);
+    } 
     // temp
   
     if (cell.temperature < 50) {
@@ -2113,10 +2116,17 @@ obsidian: new Element(
   "obsidian",
   "#0D0D0D",
   "Solids",
-  {shiny: true},
+  {shiny: {
+    stripeSize: 10,
+    intensity: 0.03
+  }},
   (grid,x,y) => {
     const cell = grid.get(x,y);
-
+    if(cell.temperature > 3000){
+      if(Math.random() < 0.3){
+      grid.set(x,y,ELEMENTS.lava);
+      }
+    }
   }
 ),
 co2: new Element(
@@ -3801,92 +3811,135 @@ if (!below || below.element.name === "empty") return;
 
   }
 ),
-
 humantop: new Element(
   "humantop",
   "#E1E8A9",
   "hidden",
   {conductivity: 1, flammable: true},
-  (grid,x,y) => {
-    const cell = grid.get(x,y);
-    if(cell.temperature > 100){
-      grid.set(x,y+1,ELEMENTS.fire);
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (cell.temperature > 100) {
+      grid.set(x, y + 1, ELEMENTS.fire);
     }
-    if(!grid.isInside(x,y+1)) return grid.set(x,y,ELEMENTS.empty);
-      if(grid.get(x,y+1).element !== ELEMENTS.human){
-      grid.set(x,y,ELEMENTS.empty);
+
+    if (!grid.isInside(x, y + 1)) return grid.set(x, y, ELEMENTS.empty);
+
+    const below = grid.get(x, y + 1);
+
+    if (below.element !== ELEMENTS.human) {
+      // Only bleed if this head wasn't cleared by the human itself
+      if (!cell.selfCleared) {
+        grid.set(x, y, ELEMENTS.blood);
+        grid.set(x, y + 1, ELEMENTS.blood);
+      } else {
+        grid.set(x, y, ELEMENTS.empty);
       }
+      return;
+    }
 
-    
-
+    cell.ownedByHuman = true;
   }
 ),
+
 human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true}, (grid, x, y) => {
-    const cell = grid.get(x, y);
-    if (cell.temperature > 100) return grid.set(x, y, ELEMENTS.fire);
+  const cell = grid.get(x, y);
+  if (cell.temperature > 100) return grid.set(x, y, ELEMENTS.fire);
 
-    // Initialize state with pathfinding memory
-    if (!cell.state) cell.state = { 
-        age: 0, 
-        moveCooldown: 0, 
-        jumpCooldown: 0, 
-        path: [], 
-        targetX: x 
-    };
-    const s = cell.state;
-    s.age++;
+  if (!cell.state) cell.state = {
+    age: 0,
+    moveCooldown: 0,
+    jumpCooldown: 0,
+    targetX: x,
+    headWasPresent: false
+  };
+  const s = cell.state;
+  s.age++;
 
-    // Maintain head
-    if (grid.isInside(x, y - 1)) grid.set(x, y - 1, ELEMENTS.humantop);
+  // ----------------------------
+  // Head death check (before we place a new head)
+  // ----------------------------
+  if (grid.isInside(x, y - 1)) {
+    const above = grid.get(x, y - 1);
+    const headPresent = above.element === ELEMENTS.humantop;
 
-    // Gravity & Cooldowns
-    if (s.moveCooldown > 0) s.moveCooldown--;
-    if (s.jumpCooldown > 0) s.jumpCooldown--;
-    if (grid.isInside(x, y + 1) && grid.get(x, y + 1).element === ELEMENTS.empty && s.jumpCooldown < 5) {
-        grid.swap(x, y, x, y + 1);
-        grid.set(x,y, ELEMENTS.humantop);
-        return;
+    if (s.headWasPresent && !headPresent) {
+      // Head gone and we didn't clear it ourselves — death
+      grid.set(x, y, ELEMENTS.blood);
+      return;
     }
+  }
 
-    if (s.moveCooldown > 0) return;
-
-    // --- SIMPLE PATHFINDING LOGIC ---
-    // 1. Find a target if we don't have one (Scan 10 pixels around)
-    if (Math.abs(s.targetX - x) < 2 || Math.random() < 0.05) {
-        s.targetX = x + (Math.floor(Math.random() * 20) - 10);
+  // ----------------------------
+  // Helper: clear head at a position safely (marks selfCleared)
+  // ----------------------------
+  const clearHead = (hx, hy) => {
+    if (!grid.isInside(hx, hy)) return;
+    const t = grid.get(hx, hy);
+    if (t.element === ELEMENTS.humantop) {
+      t.selfCleared = true;
+      grid.set(hx, hy, ELEMENTS.empty);
     }
+  };
 
-    const dir = s.targetX > x ? 1 : -1;
-    const nx = x + dir;
+  // Gravity & cooldowns
+  if (s.moveCooldown > 0) s.moveCooldown--;
+  if (s.jumpCooldown > 0) s.jumpCooldown--;
 
-    // 2. Obstacle & Temperature Evaluation
-    const checkSafety = (tx, ty) => {
-        if (!grid.isInside(tx, ty)) return false;
-        const target = grid.get(tx, ty);
-        // Avoid "Hot" (>100) and "Cold" (e.g., < 0)
-        if (target.temperature > 100 || target.temperature < 0) return false;
-        return target.element === ELEMENTS.empty;
-    };
+  if (grid.isInside(x, y + 1) && grid.get(x, y + 1).element === ELEMENTS.empty && s.jumpCooldown < 5) {
+    clearHead(x, y - 1);
+    grid.swap(x, y, x, y + 1);
+    grid.set(x, y, ELEMENTS.humantop);
+    s.headWasPresent = false;
+    return;
+  }
 
-    const canWalk = checkSafety(nx, y) && checkSafety(nx, y - 1);
-    const canStepUp = !checkSafety(nx, y) && checkSafety(nx, y - 1) && checkSafety(nx, y - 2);
+  if (s.moveCooldown > 0) {
+    // Stationary — maintain head
+    grid.set(x, y - 1, ELEMENTS.humantop);
+    s.headWasPresent = true;
+    return;
+  }
 
-    // 3. Execution
-    if (canStepUp && s.jumpCooldown === 0) {
-        // Jump over 1-block obstacle
-        grid.swap(x, y, nx, y - 1);
-        grid.set(nx,y-2,ELEMENTS.humantop);
-        s.jumpCooldown = 15;
-        s.moveCooldown = 8;
-    } else if (canWalk) {
-        // Normal path following
-        grid.swap(x, y, nx, y);
-        grid.set(nx,y-1,ELEMENTS.humantop);
-        s.moveCooldown = 5;
-    } else {
-        // Path blocked or dangerous: Change target
-        s.targetX = x - dir * 5; 
-    }
+  // ----------------------------
+  // Pathfinding
+  // ----------------------------
+  if (Math.abs(s.targetX - x) < 2 || Math.random() < 0.05) {
+    s.targetX = x + (Math.floor(Math.random() * 20) - 10);
+  }
+
+  const dir = s.targetX > x ? 1 : -1;
+  const nx = x + dir;
+
+  const checkSafety = (tx, ty) => {
+    if (!grid.isInside(tx, ty)) return false;
+    const target = grid.get(tx, ty);
+    if (target.temperature > 100 || target.temperature < 0) return false;
+    return target.element === ELEMENTS.empty;
+  };
+
+  const canWalk   = checkSafety(nx, y) && checkSafety(nx, y - 1);
+  const canStepUp = !checkSafety(nx, y) && checkSafety(nx, y - 1) && checkSafety(nx, y - 2);
+
+  if (canStepUp && s.jumpCooldown === 0) {
+    clearHead(x, y - 1);
+    grid.swap(x, y, nx, y - 1);
+    grid.set(nx, y - 2, ELEMENTS.humantop);
+    s.headWasPresent = true;
+    s.jumpCooldown = 15;
+    s.moveCooldown = 8;
+  } else if (canWalk) {
+    clearHead(x, y - 1);
+    grid.swap(x, y, nx, y);
+    grid.set(nx, y - 1, ELEMENTS.humantop);
+    s.headWasPresent = true;
+    s.moveCooldown = 5;
+  } else {
+    // Stuck — maintain head
+    grid.set(x, y - 1, ELEMENTS.humantop);
+    s.headWasPresent = true;
+    s.targetX = x - dir * 5;
+  }
 }),
 
 blackhole: new Element(
@@ -9772,7 +9825,7 @@ piston_body: new Element(
   // =====================================================
   // UPDATE
   // =====================================================
- (grid, x, y) => {
+(grid, x, y) => {
 
   const cell = grid.get(x, y);
   if (!cell) return;
@@ -9857,6 +9910,20 @@ piston_body: new Element(
       return;
     }
 
+    // humantop in direct path → convert to blood, then extend
+    if (startCell.element === ELEMENTS.humantop) {
+      grid.set(startX, startY, ELEMENTS.blood);
+      grid.swap(headX, headY, startX, startY);
+      cell.distance++;
+      return;
+    }
+
+    // blood in direct path → randomly clear it, then extend
+    if (startCell.element === ELEMENTS.blood) {
+      if (Math.random() < 0.05) grid.set(startX, startY, ELEMENTS.empty);
+      return;
+    }
+
     // 🚫 If first cell is NOT glued → stop completely
     if (startCell.glued !== true) {
       return;
@@ -9883,6 +9950,18 @@ piston_body: new Element(
 
       const c = grid.get(cx, cy);
       if (!c || c.element === ELEMENTS.empty) continue;
+
+      // humantop in glued cluster → convert to blood in place
+      if (c.element === ELEMENTS.humantop) {
+        grid.set(cx, cy, ELEMENTS.blood);
+        continue;
+      }
+
+      // blood in glued cluster → randomly clear it
+      if (c.element === ELEMENTS.blood) {
+        if (Math.random() < 0.05) grid.set(cx, cy, ELEMENTS.empty);
+        continue;
+      }
 
       // 🚫 Only allow glued cells
       if (c.glued !== true) continue;
@@ -9974,6 +10053,18 @@ piston_body: new Element(
       const c = grid.get(cx, cy);
       if (!c || c.element === ELEMENTS.empty) continue;
 
+      // humantop in pull cluster → convert to blood in place
+      if (c.element === ELEMENTS.humantop) {
+        grid.set(cx, cy, ELEMENTS.blood);
+        continue;
+      }
+
+      // blood in pull cluster → randomly clear it
+      if (c.element === ELEMENTS.blood) {
+        if (Math.random() < 0.05) grid.set(cx, cy, ELEMENTS.empty);
+        continue;
+      }
+
       // 🚫 Only pull glued cells
       if (c.glued !== true) continue;
 
@@ -10018,6 +10109,7 @@ piston_body: new Element(
 
     cell.distance--;
   }
+
 }
 
 ),
@@ -10523,110 +10615,132 @@ for (let i = 0; i < trailSteps; i++) {
     grid.set(x, y, ELEMENTS.empty);
     return;
   }
-
 function explode(grid, cx, cy, maxRadius) {
-   vfx.shake(20, 500);
-  const steps = 10;              // ~0.5s at 16ms
-  const delay = 5;
-  let step = 1;
+  const radius = Math.max(6, Math.abs(maxRadius));
+
+  vfx.shake(Math.min(radius * 3, 60), 600);
+
+  const STEPS = 16;
+  const DELAY = 16;
+  let step = 0;
+
+  function setVfx(x, y, color, life) {
+    if (!grid.isInside(x, y)) return;
+    const c = grid.get(x, y);
+    if (c.element === ELEMENTS.empty || c.element === ELEMENTS.vfx) {
+      c.element = ELEMENTS.vfx;
+      c.color = color;
+      c.age = -life;
+    }
+  }
+
+  // Pre-generate noise offsets for organic edge
+  const edgeNoise = [];
+  for (let a = 0; a < 64; a++) {
+    edgeNoise.push(0.8 + Math.random() * 0.4);
+  }
+
+  function getNoise(dx, dy) {
+    const angle = Math.atan2(dy, dx);
+    const idx = Math.floor(((angle + Math.PI) / (2 * Math.PI)) * 64) % 64;
+    return edgeNoise[idx];
+  }
 
   function tick() {
-    const radius = Math.floor((step / steps) * maxRadius);
-    const ringRadius = radius + 2;
+    const t = step / STEPS;
 
-    for (let dy = -ringRadius; dy <= ringRadius; dy++) {
-      for (let dx = -ringRadius; dx <= ringRadius; dx++) {
+    const currentRadius = t < 0.5
+      ? radius * (t / 0.5)           // expand first half
+      : radius * (1 - (t - 0.5));    // contract second half (smoke shrinks inward)
 
-        const x = cx + dx;
-        const y = cy + dy;
-        if (!grid.isInside(x, y)) continue;
+    for (let dy = -(radius + 3); dy <= (radius + 3); dy++) {
+      for (let dx = -(radius + 3); dx <= (radius + 3); dx++) {
+        const px = cx + dx;
+        const py = cy + dy;
+        if (!grid.isInside(px, py)) continue;
 
         const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > radius + 3) continue;
 
-        // 🔥 MAIN EXPLOSION BODY
-        if (d <= radius) {
-          if(grid.get(x,y).element === ELEMENTS.empty || grid.get(x,y).element === ELEMENTS.vfx){
-          grid.set(x, y, ELEMENTS.vfx);
-          const v = grid.get(x, y);
-          v.age = -6;
+        const noise = getNoise(dx, dy);
+        const noisyRadius = currentRadius * noise;
 
-          const t = d / radius;
-          if (t < 0.3) v.color = "#FFF3B0";      // yellow
-          else if (t < 0.6) v.color = "#FF8C1A"; // orange
-          else v.color = "#C62800";        
-          }      
+        // ── DESTRUCTION (early steps only) ──
+        if (step <= 3 && d <= radius * 0.55) {
+          const c = grid.get(px, py);
+          if (c.element !== ELEMENTS.vfx && c.element !== ELEMENTS.empty) {
+            if (Math.random() < 0.65) grid.set(px, py, ELEMENTS.empty);
+          }
         }
 
-      // 🌡 HEAT HALO (5 cells outward)
-const heatRange = 5;
-const maxTemp = 600; // adjust for balance
-
-if (d > 0 && d <= radius + heatRange) {
-  const cell = grid.get(x, y);
-
-  // falloff: 1 near explosion → 0 at edge
-  const falloff = 1 - (d - radius) / heatRange;
-
-  const addedTemp = maxTemp * falloff;
-
-  if (cell.temperature === undefined) cell.temperature = 0;
-  cell.temperature = Math.max(cell.temperature, addedTemp);
-}
-if(d>0 && d<= radius/3){
-  if(grid.get(x,y).element !== ELEMENTS.vfx){
-  if(Math.random() < 0.5){
-    grid.set(x,y,ELEMENTS.empty);
-  }
-  }
-}
- if (d > 0 && d <= radius) {
-          const cell = grid.get(x, y);
-          if (cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx && cell.element!== ELEMENTS.grenade) {
-            // normalize direction vector
-            const nx = dx / d;
-            const ny = dy / d;
-
-            // push distance (falloff stronger closer to center)
+        // ── BLAST PUSH ──
+        if (step <= 5 && d > 0 && d <= radius) {
+          const c = grid.get(px, py);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) {
+            const nx = dx / d, ny = dy / d;
             const pushDist = Math.ceil((radius - d + 1) / 2);
-
-            let targetX = x + Math.round(nx * pushDist);
-            let targetY = y + Math.round(ny * pushDist);
-
-            if (grid.isInside(targetX, targetY)) {
-              // only move if target is empty
-              if (grid.get(targetX, targetY).element === ELEMENTS.empty) {
-                grid.swap(x, y, targetX, targetY);
-              }
+            const tx = px + Math.round(nx * pushDist);
+            const ty = py + Math.round(ny * pushDist);
+            if (grid.isInside(tx, ty) && grid.get(tx, ty).element === ELEMENTS.empty) {
+              grid.swap(px, py, tx, ty);
             }
           }
         }
 
-      
+        // ── HEAT ──
+        if (d <= radius + 5) {
+          const c = grid.get(px, py);
+          const falloff = Math.max(0, 1 - d / (radius + 5));
+          c.temperature = Math.max(c.temperature ?? 0, 900 * falloff);
+        }
+
+        // ── VISUALS ──
+        if (t < 0.3) {
+          // === PHASE 1: Bright expanding flash core ===
+          if (d < noisyRadius * 0.3) {
+            setVfx(px, py, "#FFFDE0", 5); // near-white hot center
+          } else if (d < noisyRadius * 0.6) {
+            setVfx(px, py, "#FFD060", 4); // bright yellow
+          } else if (d < noisyRadius * 0.85) {
+            setVfx(px, py, "#FF8800", 3); // orange
+          } else if (d < noisyRadius) {
+            if (Math.random() < 0.8) setVfx(px, py, "#CC4400", 2); // ragged outer edge
+          }
+
+        } else if (t < 0.6) {
+          // === PHASE 2: Fireball — deep oranges and reds ===
+          if (d < noisyRadius * 0.25) {
+            setVfx(px, py, Math.random() < 0.5 ? "#FF6600" : "#FF4400", 4);
+          } else if (d < noisyRadius * 0.55) {
+            setVfx(px, py, Math.random() < 0.5 ? "#DD3300" : "#BB2200", 3);
+          } else if (d < noisyRadius * 0.8) {
+            if (Math.random() < 0.75) setVfx(px, py, "#881100", 2);
+          } else if (d < noisyRadius) {
+            if (Math.random() < 0.5) setVfx(px, py, "#550800", 2);
+          }
+
+          // Scattered sparks flying outside main ball
+          if (d >= noisyRadius && d < noisyRadius + 2) {
+            if (Math.random() < 0.15) setVfx(px, py, "#FF9900", 2);
+          }
+
+        } else {
+          // === PHASE 3: Decay — dark smoke, embers ===
+          if (d < noisyRadius * 0.4) {
+            if (Math.random() < 0.5) setVfx(px, py, Math.random() < 0.3 ? "#331100" : "#1A1A1A", 3);
+            // Rare glowing ember
+            if (Math.random() < 0.07) setVfx(px, py, "#FF5500", 4);
+          } else if (d < noisyRadius * 0.75) {
+            if (Math.random() < 0.4) setVfx(px, py, "#222222", 2);
+          } else if (d < noisyRadius) {
+            if (Math.random() < 0.25) setVfx(px, py, "#111111", 1);
+          }
+        }
       }
     }
-    // ─── HORIZONTAL SHOCK LINE ───
-const lineMax = 12;
-const lineLen = Math.floor((step / steps) * lineMax);
-
-for (let dx = -lineLen; dx <= lineLen; dx++) {
-  const x = cx + dx;
-  const y = cy; // 1 cell tall
-  if (!grid.isInside(x, y)) continue;
-
-  if (grid.get(x, y).element === ELEMENTS.empty ||
-      grid.get(x, y).element === ELEMENTS.vfx) {
-
-    grid.set(x, y, ELEMENTS.vfx);
-    const v = grid.get(x, y);
-    v.age = -8;
-    v.color = "#FFD36A"; // bright shock line
-  }
-}
 
     step++;
-    if (step <= steps) {
-      setTimeout(tick, delay);
-    }
+    if (step <= STEPS) schedule(tick, DELAY);
   }
 
   tick();
@@ -10984,7 +11098,7 @@ laser_particle: new Element(
   // STRONG STRAIGHTENING
   // =========================
   const straighten = 0.25;
-
+  
   cell.vx += (cell.baseVX - cell.vx) * straighten;
   cell.vy += (cell.baseVY - cell.vy) * straighten;
 
@@ -11023,8 +11137,8 @@ laser_particle: new Element(
     cell.px += stepX;
     cell.py += stepY;
 
-    let nx = Math.floor(cell.px);
-    let ny = Math.floor(cell.py);
+    let nx = Math.round(cell.px);
+let ny = Math.round(cell.py);
 
     // =========================
     // EDGE BOUNCE
@@ -11656,7 +11770,7 @@ const explodeMissile = () => {
 
     // ── 6. HEAT HALO ──────────────────────────────────────────────────────
     const heatRange = 10;
-    const maxTemp = 1200;
+    const maxTemp = 800;
     for (let dy = -(radius + heatRange); dy <= radius + heatRange; dy++) {
       for (let dx = -(radius + heatRange); dx <= radius + heatRange; dx++) {
         const ex = cx + dx, ey = cy + dy;
@@ -12046,7 +12160,7 @@ p.maxLife = p.life;
   missile: new Element(
     "missile",
     "#4F171F",
-    "Tool",
+    "Explosive",
     {},
     (grid,x,y) => {
       const cell = grid.get(x,y);
@@ -12059,6 +12173,7 @@ p.maxLife = p.life;
         grid.set(cx,cy, e);
         
       }
+      grid.set(x,y,ELEMENTS.empty);
       p(0, -2, ELEMENTS.missile_guidance_dome);
       p(0, -1, ELEMENTS.missile_warhead);
       p(0, 0, ELEMENTS.missile_control_section);
@@ -12067,7 +12182,394 @@ p.maxLife = p.life;
      p(-1, 3, ELEMENTS.missile_flap); p(0, 3, ELEMENTS.missile_thruster); p(1, 3, ELEMENTS.missile_flap);
 
     }
-  )
+  ),
+ blood: new Element(
+  "blood",
+  "#6B0B17",
+  "Liquids",
+  {
+    conductivity: 1,
+    shiny: {
+      stripeSize: 10,
+      intensity: 0.015
+    }
+  },
+
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+   
+    if(cell.temperature > 100){
+      grid.set(x,y,ELEMENTS.steam);
+      return;
+    }
+    //movement
+    const belowDirs = [
+      [0, 1],
+      [Math.random() < 0.5 ? -1 : 1, 1],
+      [Math.random() < 0.5 ? -1 : 1, 0],
+    ];
+
+   
+    for (let [dx, dy] of belowDirs) {
+      const nx = x + dx, ny = y + dy;
+      if (!grid.isInside(nx, ny)) continue;
+      // Only block TRUE diagonals (when x changes AND y changes)
+if (dx !== 0 && dy !== 0) {
+  if (!grid.canMoveDiagonal(x, y, dx, dy)) continue;
+}
+
+
+      const target = grid.get(nx, ny);
+      const targetType = target.element.category;
+      const targetDensity = target.element.properties.density ?? Infinity;
+
+      // ✅ Water can move into:
+      // 1. Empty cells or gases
+      // 2. Less dense liquids/gases
+      // 3. Powders that are lighter (to sink below them)
+      if (
+        target.element.name === "empty" ||
+        targetType === "Gas" ||
+        ((targetType === "Liquids" || targetType === "Gas" || targetType === "Powders") &&
+          targetDensity < cell.element.properties.density)
+      ) {
+        grid.swap(x, y, nx, ny);
+        return;
+      }
+
+      // 💦 Sink below lighter powders
+      if (
+        targetType === "Powders" &&
+        targetDensity < cell.element.properties.density
+      ) {
+        grid.swap(x, y, nx, ny);
+        return;
+      }
+    }
+
+    // 🌊 Sideways spreading (slow)
+    if (Math.random() < 0.5) {
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const nx = x + dir;
+
+  if (!grid.isInside(nx, y)) return;
+    
+  const target = grid.get(nx, y);
+  const targetType = target.element.category;
+  const targetDensity = target.element.properties.density ?? Infinity;
+
+  if (
+    target.element.name === "empty" ||
+    targetType === "Gas" ||
+    ((targetType === "Liquids" || targetType === "Gas") &&
+      targetDensity < cell.element.properties.density)
+  ) {
+    grid.swap(x, y, nx, y);
+  }
+}
+  }
+),
+// =============================================
+// CONVEYOR BELT ELEMENT
+// =============================================
+// Paste this into the ELEMENTS object (before the closing "};")
+// in the Simbox 2.0 HTML file.
+// =============================================
+
+conveyor: new Element(
+  "conveyor",
+  "#555555",
+  "Machine",
+  {
+    blastResistance: 3,
+    conductivity: 0.1,
+
+    optionMenu: (cell, menu, grid, x, y) => {
+
+      if (cell.conveyorDir == null) cell.conveyorDir = 1;
+      if (cell.on == null) cell.on = true;
+
+      const dirLabels = { 1: "→ Right", "-1": "← Left", 0: "↑ Up", 2: "↓ Down" };
+      const onColor  = "#22cc55";
+      const offColor = "#cc2222";
+
+      menu.innerHTML = `
+        <div style="font-family:monospace;min-width:170px;">
+          <div style="text-align:center;font-size:12px;letter-spacing:2px;color:#888;margin-bottom:8px;">CONVEYOR</div>
+          <div style="text-align:center;margin-bottom:10px;">
+            <button id="cvToggle" style="
+              padding:6px 18px;
+              background:${cell.on ? onColor : offColor};
+              border:none;color:white;cursor:pointer;
+              border-radius:6px;font-size:13px;font-family:monospace;font-weight:bold;
+            ">${cell.on ? "ON ▶" : "OFF ■"}</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;width:120px;margin:0 auto 10px auto;">
+            <div></div>
+            <button id="cvUp"    style="padding:6px;background:#333;border:1px solid #555;color:white;cursor:pointer;border-radius:4px;">↑</button>
+            <div></div>
+            <button id="cvLeft"  style="padding:6px;background:#333;border:1px solid #555;color:white;cursor:pointer;border-radius:4px;">←</button>
+            <div style="background:#222;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#888;">DIR</div>
+            <button id="cvRight" style="padding:6px;background:#333;border:1px solid #555;color:white;cursor:pointer;border-radius:4px;">→</button>
+            <div></div>
+            <button id="cvDown"  style="padding:6px;background:#333;border:1px solid #555;color:white;cursor:pointer;border-radius:4px;">↓</button>
+            <div></div>
+          </div>
+          <div style="text-align:center;font-size:13px;color:#aaa;" id="cvCurrentLabel">Dir: ${dirLabels[cell.conveyorDir]}</div>
+          <div style="margin-top:8px;text-align:center;">
+            <label style="font-size:12px;color:#aaa;">
+              <input type="checkbox" id="cvFloodFill" ${cell.conveyorFloodFill !== false ? "checked" : ""}> Flood-fill connected
+            </label>
+          </div>
+        </div>
+      `;
+
+      function bfsConveyors(callback) {
+        const visited = new Set();
+        const stack   = [[x, y]];
+        const key     = (cx, cy) => `${cx},${cy}`;
+        while (stack.length > 0) {
+          const [cx, cy] = stack.pop();
+          const k = key(cx, cy);
+          if (visited.has(k)) continue;
+          visited.add(k);
+          if (!grid.isInside(cx, cy)) continue;
+          const c = grid.get(cx, cy);
+          if (c.element.name !== "conveyor") continue;
+          callback(c);
+          for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+            const nx2 = cx + dx, ny2 = cy + dy;
+            if (grid.isInside(nx2, ny2) && !visited.has(key(nx2, ny2)))
+              stack.push([nx2, ny2]);
+          }
+        }
+      }
+
+      const useFloodFill = () => menu.querySelector("#cvFloodFill").checked;
+
+      menu.querySelector("#cvToggle").onclick = () => {
+        const newOn = !cell.on;
+        if (useFloodFill()) bfsConveyors(c => { c.on = newOn; });
+        else cell.on = newOn;
+        const btn = menu.querySelector("#cvToggle");
+        btn.style.background = newOn ? onColor : offColor;
+        btn.textContent      = newOn ? "ON ▶" : "OFF ■";
+      };
+
+      function applyDir(newDir) {
+        if (useFloodFill()) bfsConveyors(c => { c.conveyorDir = newDir; });
+        else cell.conveyorDir = newDir;
+        menu.querySelector("#cvCurrentLabel").textContent = "Dir: " + dirLabels[newDir];
+      }
+
+      menu.querySelector("#cvUp").onclick    = () => applyDir(0);
+      menu.querySelector("#cvDown").onclick  = () => applyDir(2);
+      menu.querySelector("#cvLeft").onclick  = () => applyDir(-1);
+      menu.querySelector("#cvRight").onclick = () => applyDir(1);
+      menu.querySelector("#cvFloodFill").onchange = (e) => {
+        cell.conveyorFloodFill = e.target.checked;
+      };
+    }
+  },
+
+  // =====================
+  // BEHAVIOR
+  // =====================
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (cell.conveyorDir == null)   cell.conveyorDir   = 1;
+    if (cell.on == null)            cell.on            = true;
+
+    // Phase: stagger each conveyor's firing time based on position along
+    // the belt direction so the belt fires back-to-front (upstream last).
+    // This means when conveyor A at x=0 fires, conveyor B at x=1 has already
+    // fired and WON'T fire again this cycle, so the particle only moves once.
+    //
+    // We use a phase offset derived from x+y so adjacent tiles fire at
+    // different times within the SPEED window.
+    const SPEED = 3; // ticks per belt step (lower = faster)
+    if (cell.conveyorPhase == null) {
+      // Phase based on position in belt direction so upstream fires AFTER downstream
+      const dirVecPhase = { 1: 1, "-1": -1, 0: 1, 2: 1 };
+      const posAlongBelt = (cell.conveyorDir === 1 || cell.conveyorDir === 2)
+        ? (x + y)
+        : (-(x + y));
+      cell.conveyorPhase = ((posAlongBelt % SPEED) + SPEED) % SPEED;
+      cell.conveyorTimer = cell.conveyorPhase;
+    }
+
+    // Color
+    const dirColors = { 1: "#886633", "-1": "#336688", 0: "#558844", 2: "#884444" };
+    cell.color = cell.on ? (dirColors[cell.conveyorDir] || "#555555") : "#333333";
+
+    if (!cell.on) return;
+
+    cell.conveyorTimer = (cell.conveyorTimer + 1) % SPEED;
+    if (cell.conveyorTimer !== 0) return; // only fire on rollover
+
+    // Direction vector
+    const dirVec = { 1: {dx:1,dy:0}, "-1": {dx:-1,dy:0}, 0: {dx:0,dy:-1}, 2: {dx:0,dy:1} };
+    const dir = dirVec[cell.conveyorDir];
+    if (!dir) return;
+
+    // Surface cell = directly above the conveyor tile
+    const surfaceX = x;
+    const surfaceY = y - 1;
+    if (!grid.isInside(surfaceX, surfaceY)) return;
+
+    const surfaceCell = grid.get(surfaceX, surfaceY);
+    if (!surfaceCell) return;
+    const elem = surfaceCell.element;
+
+    if (
+      elem.name === "empty" ||
+      elem.name === "conveyor" ||
+      elem.catergory === "Solids" ||
+      elem.category === "hidden"
+    ) return;
+
+    const targetX = surfaceX + dir.dx;
+    const targetY = surfaceY + dir.dy;
+    if (!grid.isInside(targetX, targetY)) return;
+
+    const targetCell = grid.get(targetX, targetY);
+    if (!targetCell) return;
+
+    const tName = targetCell.element.name;
+    const tCat  = targetCell.element.category;
+    const tDens = targetCell.element.properties?.density ?? Infinity;
+    const sDens = surfaceCell.element.properties?.density ?? 1;
+
+   // NEW
+const canMove =
+  tName === "empty" &&
+  (elem.name === "human" || elem.category === "Powders");
+    if (!canMove) return;
+
+    // Special case: move human + head together
+    if (elem.name === "human") {
+      const headX    = surfaceX, headY    = surfaceY - 1;
+      const newHeadX = targetX,  newHeadY = targetY  - 1;
+      grid.get(surfaceX, surfaceY).moveCooldown = 5;
+      const hasHead  =
+        grid.isInside(headX, headY) &&
+        grid.get(headX, headY).element.name === "humantop";
+
+      if (hasHead) {
+        const headTargetOk =
+          grid.isInside(newHeadX, newHeadY) &&
+          (grid.get(newHeadX, newHeadY).element.name === "empty" ||
+           grid.get(newHeadX, newHeadY).element.category === "Gas");
+
+        if (headTargetOk) {
+          grid.get(headX, headY).selfCleared = true;
+          grid.swap(headX, headY, newHeadX, newHeadY);
+          grid.swap(surfaceX, surfaceY, targetX, targetY);
+        }
+        return;
+      }
+    }
+
+    grid.swap(surfaceX, surfaceY, targetX, targetY);
+  },
+
+  // onplace
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (cell.conveyorDir == null)   cell.conveyorDir   = 1;
+    if (cell.on == null)            cell.on            = true;
+    cell.conveyorPhase = null; // will be computed on first tick
+    cell.conveyorTimer = 0;
+    cell.color = "#886633";
+  }
+),
+activation_loop: new Element(
+  "activation_loop",
+  "#1D3D1D",
+  "Machine",
+  {
+ optionMenu: (cell, menu) => {
+  if (cell.interval == null) cell.interval = 60;
+
+  menu.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:150px;">
+      <label style="color:#aaa;font-size:12px;">Interval (ticks)</label>
+      <input type="number" min="1" max="10000" value="${cell.interval}" id="intervalInput"
+        style="background:#222;color:white;border:1px solid #555;border-radius:4px;padding:4px 6px;width:100%;box-sizing:border-box;">
+    </div>
+  `;
+
+  const input = menu.querySelector("#intervalInput");
+
+  input.oninput = () => {
+    const val = parseInt(input.value);
+    if (!isNaN(val) && val >= 1) {
+      cell.interval = val;
+    }
+  };
+}
+  },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell) return;
+
+    if (cell.on == null) cell.on = false;
+    if (cell.cooldown == null) cell.cooldown = false;
+    if (cell.interval == null) cell.interval = 60;
+    if (cell.loopScheduled == null) cell.loopScheduled = false;
+
+    cell.color = cell.on
+      ? "#00DB00"
+      : ELEMENTS.activation_loop.color;
+
+    if (!cell.loopScheduled) {
+      cell.loopScheduled = true;
+
+      const tick = () => {
+        const c = grid.get(x, y);
+        if (!c || c.element.name !== "activation_loop") return;
+
+        c.on = !c.on;
+
+        schedule(tick, c.interval);
+      };
+
+      schedule(tick, cell.interval);
+    }
+
+    if (!cell.on || cell.cooldown) return;
+
+    cell.cooldown = true;
+
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+
+    for (const [dx, dy] of dirs) {
+      const neighbor = grid.get(x + dx, y + dy);
+      if (!neighbor) continue;
+
+      if (neighbor.element.name === "activation_wire") {
+        if (!neighbor.cooldown) {
+          neighbor.activated = true;
+          neighbor.delay = cell.interval;
+        }
+      }
+      if (neighbor.element.name === "motor") {
+        if (!neighbor.cooldown) neighbor.pushToggle = true;
+      }
+      if (neighbor.element.name === "cannon") {
+        if (!neighbor.cooldown) neighbor.on = true;
+      }
+      if (neighbor.element.name === "piston_body") {
+        neighbor.pushToggle = true;
+      }
+    }
+
+    schedule(() => {
+      cell.cooldown = false;
+    }, cell.interval);
+  }
+),
 
 
     };
@@ -12649,8 +13151,8 @@ addLight(x, y, color, level) {
 
         // ✨ Shiny diagonal effect
         if (cell.element.properties?.shiny || cell.shiny === true) {
-          const stripeSize = 20;
-          const intensity = 0.2;
+          const stripeSize = cell.shiny.stripeSize || 20;
+          const intensity = cell.shiny.intensity || 0.2;
           const stripeTime = performance.now() * 0.0002;
 
           const stripe = ((x + y) / stripeSize + stripeTime) % 1;
