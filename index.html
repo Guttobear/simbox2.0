@@ -106,7 +106,7 @@ canvas {
 }
  #hoverInfo {
     position: fixed;
-    bottom: 8px;
+    bottom: 30px;
     right: 8px;
     background: rgba(0,0,0,0.6);
     padding: 6px 10px;
@@ -223,82 +223,68 @@ canvas {
   text-align: center;
   margin-bottom: 6px;
 }
-.gamehelp-search {
-display:block; 
-width: 90%; 
-height: 30px; 
-background-color: rgba(39, 39, 39, 0.86); 
-border-radius: 5px;
-font-size: 25px;
-padding-left: 5px;
-font-family: "Times New Roman", serif;
-color: rgb(202, 202, 202);
-}
-.gamehelp-content {
-  margin-top: 20px;
- height: 300px;
+.catalog-container {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 500px;
+  height: 500px;
+  border-radius: 10px;
+  transform: translate(-50%, -50%);
   overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 equal columns */
-  gap: 8px;
-  padding: 10px;
-  background-color: rgb(58, 57, 57);
-  border-radius: 4px;
-  border: 3px solid rgb(41, 40, 40);
-
-
+  display: none;
+  flex-direction: column;
+  background-color: rgba(28, 28, 28, 0.7);
+  z-index: 200;  /* ← add this, higher than 130 */
 }
-.gamehelp-button {
-  padding: 12px 16px;
-  height: 80px;
-  width: 180px;
-  cursor: pointer;
-  background-color: rgb(29, 29, 29);
-  border: 3px solid rgb(27, 27, 27);
-  border-radius: 5px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgb(194, 190, 190);
-  font-family: Inconsolata;
+.catalog-entry {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 0;
+  margin-left: 10px;
+}
+
+
+
+.catalog-entry-content {
+  font-size: 14px;
+  color: rgb(180, 180, 180);
+}
+.catalog-entry-version {
+  font-size: 30px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 6px;
+}
+
+.catalog-category {
   font-size: 20px;
-  
+  font-weight: bold;
+  color: rgb(180, 180, 180);
+  margin-top: 6px;
+  margin-bottom: 2px;
+  letter-spacing: 0.05em;
 }
 
-.gamehelp-button:hover {
-  border: 3px solid #000000;
+.catalog-item {
+  font-size: 16px;
+  color: rgb(210, 210, 210);
+  padding-left: 10px;
+  border-left: 2px solid rgba(255,255,255,0.2);
+  margin: 3px 0;
 }
-
-.gamehelp-detail {
-  transform: scale(0.2);
-  opacity: 0;
-  pointer-events: none;
-  margin-top: 20px;
-  height: 350px;
-  overflow: hidden;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  background-color: rgb(58, 57, 57);
+#gridDisplay {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  z-index: 99;
+  background: rgba(0,0,0,0.5);
+  padding: 4px 8px;
   border-radius: 4px;
-  border: 3px solid rgb(41, 40, 40);
-  padding: 0px;
+  font-family: monospace;
+  font-size: 13px;
+  color: white;
+  pointer-events: none;
 }
-
-.gamehelp-detail.open {
-  transform: scale(1);
-  opacity: 1;
-  pointer-events: all;
-}
-.gamehelp-back{
-  background-color: rgb(117, 117, 117);
-  position:absolute;
-}
-.helptab-button{
-  width: 75px;
-  height: 20px;
-   background-color: rgb(117, 117, 117);
-}
-
  .cmd { color: #7bf; }
   .result { color: #0f0; }
   .log { color: #ccc; }
@@ -312,9 +298,77 @@ color: rgb(202, 202, 202);
   <div class="toolbar">
   <button onclick="openWindow()" style="background:none;color:white;border:none;cursor:pointer;  text-decoration: underline;">Terminal</button>
     <button onclick="grid.initGrid()" style="background:none;color:white;border:none;cursor:pointer;  text-decoration: underline;">Clear</button>
-   
+     <button onclick="toggleCatalog()" style="background:none;color:white;border:none;cursor:pointer;  text-decoration: underline;">Catalog</button>
+   <button onclick=" window.open('https://github.com/Guttobear/simbox2.0/wiki');" style="background:none;color:white;border:none;cursor:pointer;  text-decoration: underline;">Wiki</button>
    
 </div>
+
+<div style="position:absolute; right: 0px; bottom: 0px; ">Va1.1</div>
+
+<div id="catalog-container" class="catalog-container">
+  <button id="catalog-close-button" style="
+    background-color: rgb(82, 82, 82);
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    width: 50px;
+    height: 20px;
+    cursor: pointer;" onclick="toggleCatalog()">Close</button>
+
+  <div style="font-size: 40px; margin: 10px; color: white; font-weight: bold;">Catalog</div>
+<div class="catalog-scroll">
+  <div class="catalog-entry">
+   <div class="catalog-entry-version">Va1.1 - The First Canopy</div>
+
+<div class="catalog-entry-content">
+  <div class="catalog-category">System</div>
+  <div class="catalog-item">Added Catalog</div>
+</div>
+
+<div class="catalog-entry-content">
+  <div class="catalog-category">Elements</div>
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px;">FLORA</div>
+  <div class="catalog-item">Flower Seed, Flower Stem, Flower Petal, Flower Leaf</div>
+  <div class="catalog-item">Mushroom Spore, Mushroom Stem, Mushroom Cap</div>
+  <div class="catalog-item">Oak Sapling, Oak Leaf</div>
+  <div class="catalog-item">Bamboo, Tumbleweed</div>
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-top:6px; margin-bottom:2px;">CARNIVOROUS PLANTS</div>
+  <div class="catalog-item">Pitcher Plant Seed, Pitcher Plant Stem, Pitcher Plant Leaf, Pitcher Plant Pitcher</div>
+  <div class="catalog-item">Drosera Capensis Seed, Drosera Capensis Stem, Drosera Capensis Leaf, Drosera Capensis Tentacle <em style="color:#666; font-size:0.85em;">(hidden)</em></div>
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-top:6px; margin-bottom:2px;">INSECTS</div>
+  <div class="catalog-item">Fly</div>
+  <div class="catalog-item">Ant Egg, Ant Larva, Ant, Ant Head <em style="color:#666; font-size:0.85em;">(hidden)</em>, Ant Abdomen <em style="color:#666; font-size:0.85em;">(hidden)</em></div>
+  <div class="catalog-item">Bee, Honeycomb, Honeycomb Outer <em style="color:#666; font-size:0.85em;">(variant)</em>, Hive Wall</div>
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-top:6px; margin-bottom:2px;">FAUNA</div>
+  <div class="catalog-item">Frog, Frog Tongue <em style="color:#666; font-size:0.85em;">(hidden)</em></div>
+</div>
+
+<div class="catalog-entry-content">
+  <div class="catalog-category">Q.O.L.</div>
+  <div class="catalog-item">Added Wiki link to toolbar</div>
+  <div class="catalog-item">Added X and Y coordinates to hover info</div>
+  <div class="catalog-item">Added grid display to top left</div>
+</div>
+  </div>
+
+  <div class="catalog-entry">
+    <div class="catalog-entry-version">Va1.0</div>
+    <div class="catalog-entry-content">
+      <div class="catalog-category">Initial Alpha Release!</div>
+    </div>
+  </div>
+</div>
+ 
+
+  </div>
+
 
 
 <div id="toolMenu">
@@ -367,8 +421,10 @@ color: rgb(202, 202, 202);
     <div id="elements"></div>
   </div>
 
+  <div style="position: relative; width: 800px; height: 600px; margin: auto;">
   <canvas id="sim" width="800" height="600"></canvas>
-
+  <div id="gridDisplay">grid: normal</div>
+</div>
   <script>
 
     // canvas
@@ -429,8 +485,7 @@ color: rgb(202, 202, 202);
 
     const hoverInfo = document.getElementById("hoverInfo");
 
-    let brushSize = 3; // radius in cells (you can make a UI slider later)
-
+  
     // <==== inputs ====>
 
     // time stepping
@@ -552,26 +607,24 @@ color: rgb(202, 202, 202);
 
       const name = elem.name;
       const category = elem.category;
-      const tags = elem.tags?.length ? elem.tags.join(", ") : "none";
+     
       const temp = cell.temperature.toFixed(1);
       const energy = cell.e.toFixed(1);
-
-    const lightLevel = cell.lightLevel
-      ? Number(cell.lightLevel.toFixed(1))
-      : 0;
+      const pos = {x: mouse.x, y: mouse.y};
+ 
 
       const variant = elem.tags?.length ? elem.tags[elem.tags.length - 1] : "base";
 
       hoverInfo.innerHTML = `
         <b>${name}</b><br>
+      
         Class: ${category}<br>
         Variant: ${variant}<br>
         Energy: ${energy}<br>
-          
-
-          L: ${lightLevel}<br>
         Temp: ${temp}°C<br>
-        Tags: ${tags}
+          X: ${pos.x}, 
+        Y: ${pos.y} <br>
+       
       `;
     });
 
@@ -589,7 +642,27 @@ color: rgb(202, 202, 202);
     
 
 
+const CURRENT_VERSION = "Va1.1";
 
+function toggleCatalog(){
+  const catalog = document.getElementById("catalog-container");
+
+  if(catalog.style.display === "flex"){
+    catalog.style.display = "none";
+    // Mark this version as seen when user closes the catalog
+    localStorage.setItem("simbox_seen_version", CURRENT_VERSION);
+  } else{
+    catalog.style.display = "flex";
+  }
+}
+
+// Auto-show catalog if user hasn't seen this version yet
+(function checkFirstLaunch() {
+  const seenVersion = localStorage.getItem("simbox_seen_version");
+  if (seenVersion !== CURRENT_VERSION) {
+    document.getElementById("catalog-container").style.display = "flex";
+  }
+})();
 
 
 function escapeHTML(str) {
@@ -987,26 +1060,36 @@ function impactFrame(duration = 120) {
   const sim = document.getElementById("sim");
   if (!sim) return console.error("No canvas with id='sim' found.");
 
-  const overlay = document.createElement("canvas");
-  Object.assign(overlay.style, {
-    position: "fixed",
-    zIndex: 999999,
-    pointerEvents: "none",
-  });
-  document.body.appendChild(overlay);
-  const ctx = overlay.getContext("2d");
+  if (!impactFrame._overlay) {
+    impactFrame._overlay = document.createElement("canvas");
+    Object.assign(impactFrame._overlay.style, {
+      position: "fixed",
+      zIndex: 999999,
+      pointerEvents: "none",
+    });
+    document.body.appendChild(impactFrame._overlay);
+  }
 
+  if (impactFrame._unsub) {
+    offTick(impactFrame._unsub);
+    impactFrame._unsub = null;
+  }
+
+  const overlay = impactFrame._overlay;
+  const ctx = overlay.getContext("2d");
   const total = Math.max(1, Math.round(duration / TICK_MS));
   let t = 0;
 
-  const unsub = onTick(() => {
+  impactFrame._unsub = onTick(() => {
     t++;
     if (t >= total) {
-      overlay.remove();
-      offTick(unsub);
+      overlay.style.display = "none";
+      offTick(impactFrame._unsub);
+      impactFrame._unsub = null;
       return;
     }
 
+    overlay.style.display = "";
     const rect = sim.getBoundingClientRect();
     overlay.style.left = rect.left + "px";
     overlay.style.top = rect.top + "px";
@@ -1107,6 +1190,9 @@ const vfx = new VFX("sim");
   }
   hasTag(tag) {
   return this.tags.includes(tag);
+}
+doesNotHaveTag(tag) {
+  return !this.tags.includes(tag);
 }
 
 }
@@ -1326,6 +1412,7 @@ if (side.element.name !== "empty") return;
      variants: {
       dirty: {
         color: "rgb(64, 125, 125)",
+        hidden: true
      
       }
     }
@@ -1562,29 +1649,93 @@ if (!moved) {
   { density: 0.7, flammable: true, conductivity: 0.15 },
   (grid, x, y) => {
     const cell = grid.get(x, y);
-    // temp
-    if (cell.temperature > 220) {
-   const directions = [
-  [0, -1], // up
-  [0, 1],  // down
-  [-1, 0], // left
-  [1, 0],  // right
-];
 
-for (const [dx, dy] of directions) {
-  const nx = x + dx;
-  const ny = y + dy;
-  if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
-    if(Math.random() < 0.5){
-    grid.set(nx, ny, ELEMENTS.fire);
-    }
-  }
-}
-      // chance to ignite self
-      if (Math.random() < 0.1) {
-        grid.set(x, y, ELEMENTS.burntwood);
-        cell.age=0;
+    // ── FIRE BEHAVIOR ──
+    if (cell.temperature > 220) {
+      const directions = [[0,-1],[0,1],[-1,0],[1,0]];
+      for (const [dx, dy] of directions) {
+        const nx = x + dx, ny = y + dy;
+        if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+          if (Math.random() < 0.5) grid.set(nx, ny, ELEMENTS.fire);
+        }
       }
+      if (Math.random() < 0.1) { grid.set(x, y, ELEMENTS.burntwood); return; }
+    }
+
+    // ── TREE GROWTH ──
+    const mem = cell.treeMemory;
+    if (!mem || mem.stage === "done") return;
+
+    // Throttle growth speed
+    if (!cell.growTick) cell.growTick = 0;
+    cell.growTick++;
+    if (cell.growTick < 25 + Math.floor(Math.random() * 15)) return;
+    cell.growTick = 0;
+
+    const aboveY = y - 1;
+
+    // ── STAGE: trunk — grow upward ──
+    if (mem.stage === "trunk") {
+      if (mem.trunkHeight < mem.maxTrunk) {
+        if (grid.isInside(x, aboveY) && grid.get(x, aboveY).element.name === "empty") {
+          grid.set(x, aboveY, ELEMENTS.oakwood);
+          const newCell = grid.get(x, aboveY);
+          newCell.treeMemory = {
+            ...mem,
+            trunkHeight: mem.trunkHeight + 1,
+            stage: mem.trunkHeight + 1 >= mem.maxTrunk ? "branch" : "trunk",
+            branchesPlaced: false,
+          };
+          mem.stage = "done"; // this cell is no longer the tip
+        }
+      }
+      return;
+    }
+
+    // ── STAGE: branch — place branches and canopy ──
+    if (mem.stage === "branch" && !mem.branchesPlaced) {
+      mem.branchesPlaced = true;
+
+      // Place leaves above (canopy top)
+      const leafOffsets = [
+        [0, -1], [-1, -1], [1, -1], [0, -2], [-1, 0], [1, 0],
+        [-2, 0], [2, 0], [-1, 1], [1, 1], [0, 1],
+        [-2, -1], [2, -1], [-1, -2], [1, -2],
+      ];
+
+      for (const [lx, ly] of leafOffsets) {
+        const nx = x + lx, ny = y + ly;
+        if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+          if (Math.random() < 0.8) {
+            grid.set(nx, ny, ELEMENTS.oak_leaf);
+          }
+        }
+      }
+
+      // Branches: use branchSeed for determinism per tree
+      const branchDirs = [-1, 1];
+      for (const bdir of branchDirs) {
+        // Branch arm — 2-3 cells long
+        const branchLen = 2 + (mem.branchSeed > 0.5 ? 1 : 0);
+        for (let i = 1; i <= branchLen; i++) {
+          const bx = x + bdir * i;
+          const by = y - Math.floor(i * 0.5); // slight upward angle
+          if (grid.isInside(bx, by) && grid.get(bx, by).element.name === "empty") {
+            grid.set(bx, by, ELEMENTS.oakwood);
+            const branchCell = grid.get(bx, by);
+            branchCell.treeMemory = { stage: "done" };
+          }
+          // Leaves along branch
+          for (const [lx, ly] of [[-0, -1],[bdir, -1],[0, 0]]) {
+            const nx2 = bx + lx, ny2 = by + ly;
+            if (grid.isInside(nx2, ny2) && grid.get(nx2, ny2).element.name === "empty") {
+              if (Math.random() < 0.7) grid.set(nx2, ny2, ELEMENTS.oak_leaf);
+            }
+          }
+        }
+      }
+
+      mem.stage = "done";
     }
   }
 ),
@@ -1605,7 +1756,7 @@ for (const [dx, dy] of directions) {
   },
   (grid, x, y) => {
      const cell = grid.get(x, y);
-     cell.tempature = -30;
+     cell.temperature = -30;
   }
 ),
  steam: new Element(
@@ -3164,7 +3315,7 @@ orbital_laser: new Element(
                 step++;
 
                 if (step <= steps) {
-                  // ── Was: setTimeout(shockwaveStep, stepDelay) ──
+                
                   schedule(shockwaveStep, stepDelay);
                 }
               }
@@ -3172,14 +3323,14 @@ orbital_laser: new Element(
               shockwaveStep();
 
               if (laserWidth < maxWidth) {
-                // ── Was: setInterval callback every 30ms ──
+               
                 schedule(laserTick, 30);
               }
             }
 
             schedule(laserTick, 0);
 
-            // ── Was: setTimeout(..., 2500) ──
+     
             schedule(() => {
               explode(grid, cx, cy, 50);
               vfx.bloom(4000, 100);
@@ -3845,7 +3996,14 @@ humantop: new Element(
 human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true}, (grid, x, y) => {
   const cell = grid.get(x, y);
   if (cell.temperature > 100) return grid.set(x, y, ELEMENTS.fire);
-
+  if(cell.temperature < -10){
+    if(Math.random() < 0.2){
+      grid.set(x,y,ELEMENTS.ice);
+      grid.set(x,y-1,ELEMENTS.ice);
+      cell.temperature = cell.temperature;
+      return;
+    }
+  }
   if (!cell.state) cell.state = {
     age: 0,
     moveCooldown: 0,
@@ -4191,12 +4349,12 @@ grenade: new Element(
     }
 
    function explode(grid, cx, cy, maxRadius) {
-  const steps = 22;
-  const delay = 5;
+  const steps = 18;
+  const delay = 2;
   let step = 1;
 
-  // ── Pre-bake embers ───────────────────────────────────────────────────────
-  const emberCount = Math.floor(maxRadius * 3);
+  // Pre-bake embers — fewer, angles pre-computed
+  const emberCount = Math.min(12, Math.floor(maxRadius * 1.5));
   const embers = Array.from({ length: emberCount }, () => ({
     angle:  Math.random() * Math.PI * 2,
     speed:  0.5 + Math.random() * 0.8,
@@ -4204,24 +4362,81 @@ grenade: new Element(
     color:  Math.random() < 0.5 ? "#FFEE44" : Math.random() < 0.5 ? "#FF6600" : "#FF2200",
   }));
 
-  // 8 directional shrapnel rays (grenade fragments fly in defined directions)
-  const shrapnelAngles = Array.from({ length: 12 }, (_, i) =>
-    (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
+  // Shrapnel: fewer rays, pre-baked
+  const shrapnelAngles = Array.from({ length: 8 }, (_, i) =>
+    (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
   );
+
+  // Heat halo: run ONCE at the start, not every tick
+  const heatRange = 4;
+  const heatOuter = maxRadius + heatRange;
+  for (let dy = -heatOuter; dy <= heatOuter; dy++) {
+    for (let dx = -heatOuter; dx <= heatOuter; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (!grid.isInside(x, y)) continue;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d > 0 && d <= heatOuter) {
+        const cell = grid.get(x, y);
+        const falloff = 1 - Math.max(0, (d - maxRadius) / heatRange);
+        const addedTemp = 1800 * falloff * falloff;
+        if (cell.temperature === undefined) cell.temperature = 0;
+        cell.temperature = Math.max(cell.temperature, addedTemp);
+      }
+    }
+  }
+
+  // Push: run ONCE up front
+  const pushMoves = [];
+  for (let dy = -maxRadius; dy <= maxRadius; dy++) {
+    for (let dx = -maxRadius; dx <= maxRadius; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (!grid.isInside(x, y)) continue;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= 0 || d >= maxRadius) continue;
+      const cell = grid.get(x, y);
+      if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx || cell.element === ELEMENTS.grenade) continue;
+      const br = cell.element?.properties?.blastResistance ?? 99;
+      if (d <= maxRadius * 0.5 && br < 2 && Math.random() < 0.7) {
+        grid.set(x, y, ELEMENTS.empty);
+        continue;
+      }
+      const nx = dx / d, ny = dy / d;
+      const force = (maxRadius - d) / maxRadius;
+      const pushDist = Math.max(1, Math.round(force * 3));
+      let lastEmptyX = x, lastEmptyY = y;
+      for (let p = 1; p <= pushDist; p++) {
+        const tx = x + Math.round(nx * p);
+        const ty = y + Math.round(ny * p);
+        if (!grid.isInside(tx, ty)) break;
+        if (grid.get(tx, ty).element === ELEMENTS.empty) { lastEmptyX = tx; lastEmptyY = ty; }
+        else break;
+      }
+      if (lastEmptyX !== x || lastEmptyY !== y) pushMoves.push({ x, y, tx: lastEmptyX, ty: lastEmptyY });
+    }
+  }
+  const pushed = new Set();
+  for (const { x, y, tx, ty } of pushMoves) {
+    const key = `${x},${y}`, destKey = `${tx},${ty}`;
+    if (pushed.has(key) || pushed.has(destKey)) continue;
+    if (grid.get(tx, ty).element !== ELEMENTS.empty) continue;
+    grid.swap(x, y, tx, ty);
+    pushed.add(key);
+    pushed.add(destKey);
+  }
 
   function tick() {
     const t      = step / steps;
-    const tEase  = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;  // ease in-out
+    const tEase  = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     const radius = Math.floor(tEase * maxRadius);
 
-    // ── 1. FLASH (first 2 frames: white overexposure) ──────────────────────
+    // Flash — first 2 frames only
     if (step <= 2) {
       const flashR = Math.floor(maxRadius * 0.7);
       for (let dy = -flashR; dy <= flashR; dy++) {
         for (let dx = -flashR; dx <= flashR; dx++) {
           const x = cx + dx, y = cy + dy;
           if (!grid.isInside(x, y)) continue;
-          if (Math.sqrt(dx*dx + dy*dy) > flashR) continue;
+          if (Math.sqrt(dx * dx + dy * dy) > flashR) continue;
           const cell = grid.get(x, y);
           if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
             grid.set(x, y, ELEMENTS.vfx);
@@ -4232,108 +4447,39 @@ grenade: new Element(
         }
       }
       step++;
-      if (step <= steps) setTimeout(tick, delay);
+      if (step <= steps) schedule(tick, delay);
       return;
     }
 
-  // ── 2. FIREBALL BODY ───────────────────────────────────────────────────
-// Collect pushes first to avoid loop interference
-const pushMoves = [];
-
-for (let dy = -radius; dy <= radius; dy++) {
-  for (let dx = -radius; dx <= radius; dx++) {
-    const x = cx + dx, y = cy + dy;
-    if (!grid.isInside(x, y)) continue;
-    const d = Math.sqrt(dx*dx + dy*dy);
-    if (d > radius) continue;
-
-    const cell = grid.get(x, y);
-
-    // Destruction inside core
-    if (d <= radius * 0.5 && cell.element !== ELEMENTS.vfx && cell.element !== ELEMENTS.empty) {
-      const br = cell.element?.properties?.blastResistance ?? 99;
-      if (br < 2 && Math.random() < 0.7) {
-        grid.set(x, y, ELEMENTS.empty);
-        continue;
-      }
-    }
-
-    // Collect pushback candidates
-    if (d > 0 && d < radius && cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx && cell.element !== ELEMENTS.grenade) {
-      const nx = dx / d, ny = dy / d;
-      const force = (radius - d) / radius;
-      const pushDist = Math.max(1, Math.round(force * 3));
-
-      let lastEmptyX = x, lastEmptyY = y;
-      for (let pushStep = 1; pushStep <= pushDist; pushStep++) {
-        const tx = x + Math.round(nx * pushStep);
-        const ty = y + Math.round(ny * pushStep);
-        if (!grid.isInside(tx, ty)) break;
-        if (grid.get(tx, ty).element === ELEMENTS.empty) {
-          lastEmptyX = tx;
-          lastEmptyY = ty;
-        } else {
-          break;
-        }
-      }
-
-      if (lastEmptyX !== x || lastEmptyY !== y) {
-        pushMoves.push({ x, y, tx: lastEmptyX, ty: lastEmptyY });
-      }
-    }
-  }
-}
-
-// Apply all pushes after scanning is complete
-const pushed = new Set();
-for (const { x, y, tx, ty } of pushMoves) {
-  const key = `${x},${y}`;
-  const destKey = `${tx},${ty}`;
-  // Skip if this cell was already moved, or destination now occupied
-  if (pushed.has(key) || pushed.has(destKey)) continue;
-  if (grid.get(tx, ty).element !== ELEMENTS.empty && grid.get(tx, ty).element !== ELEMENTS.vfx) continue;
-  grid.swap(x, y, tx, ty);
-  pushed.add(key);
-  pushed.add(destKey);
-}
-
-// ── VFX pass (separate loop) ──────────────────────────────────────────
-for (let dy = -radius; dy <= radius; dy++) {
-  for (let dx = -radius; dx <= radius; dx++) {
-    const x = cx + dx, y = cy + dy;
-    if (!grid.isInside(x, y)) continue;
-    const d = Math.sqrt(dx*dx + dy*dy);
-    if (d > radius) continue;
-    const cell = grid.get(x, y);
-    const norm = radius > 0 ? d / radius : 0;
+    // Fireball VFX
     const coolFactor = Math.max(0, (t - 0.55) * 2.2);
-
-    if (cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx) continue;
-    grid.set(x, y, ELEMENTS.vfx);
-    const v = grid.get(x, y);
-
-    if (norm < 0.12) {
-      v.color = "#FFFFFF"; v.age = -3;
-    } else if (norm < 0.28) {
-      v.color = coolFactor > 0.3 ? "#FFCC44" : "#FFFAAA"; v.age = -4;
-    } else if (norm < 0.50) {
-      v.color = coolFactor > 0.4 ? "#CC4400" : "#FF8800"; v.age = -6;
-    } else if (norm < 0.72) {
-      v.color = coolFactor > 0.3 ? "#661100" : "#FF3300"; v.age = -7;
-    } else {
-      v.color = Math.random() < 0.4 ? "#3A1800" : "#5C2200"; v.age = -10;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const x = cx + dx, y = cy + dy;
+        if (!grid.isInside(x, y)) continue;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > radius) continue;
+        const cell = grid.get(x, y);
+        if (cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx) continue;
+        grid.set(x, y, ELEMENTS.vfx);
+        const v = grid.get(x, y);
+        const norm = radius > 0 ? d / radius : 0;
+        if      (norm < 0.12) { v.color = "#FFFFFF";  v.age = -3; }
+        else if (norm < 0.28) { v.color = coolFactor > 0.3 ? "#FFCC44" : "#FFFAAA"; v.age = -4; }
+        else if (norm < 0.50) { v.color = coolFactor > 0.4 ? "#CC4400" : "#FF8800"; v.age = -6; }
+        else if (norm < 0.72) { v.color = coolFactor > 0.3 ? "#661100" : "#FF3300"; v.age = -7; }
+        else                  { v.color = Math.random() < 0.4 ? "#3A1800" : "#5C2200"; v.age = -10; }
+      }
     }
-  }
-}
 
-    // ── 3. SHOCKWAVE RING ─────────────────────────────────────────────────
-    if (t < 0.7) {
+    // Shockwave ring — skip every other tick to save cost
+    if (t < 0.7 && step % 2 === 0) {
       const ringR = radius + 2;
-      for (let dy = -(ringR+2); dy <= ringR+2; dy++) {
-        for (let dx = -(ringR+2); dx <= ringR+2; dx++) {
+      for (let dy = -(ringR + 2); dy <= ringR + 2; dy++) {
+        for (let dx = -(ringR + 2); dx <= ringR + 2; dx++) {
           const x = cx + dx, y = cy + dy;
           if (!grid.isInside(x, y)) continue;
-          const d = Math.sqrt(dx*dx + dy*dy);
+          const d = Math.sqrt(dx * dx + dy * dy);
           if (d >= ringR && d <= ringR + 2.2) {
             const cell = grid.get(x, y);
             if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
@@ -4347,10 +4493,10 @@ for (let dy = -radius; dy <= radius; dy++) {
       }
     }
 
-    // ── 4. SHRAPNEL RAYS ─────────────────────────────────────────────────
-    if (t < 0.5) {
+    // Shrapnel rays — early phase only, skip every other tick
+    if (t < 0.5 && step % 2 === 0) {
       const rayLen = Math.floor(t * maxRadius * 2.2);
-      shrapnelAngles.forEach(angle => {
+      for (const angle of shrapnelAngles) {
         for (let r = 1; r <= rayLen; r++) {
           const sx = cx + Math.round(Math.cos(angle) * r);
           const sy = cy + Math.round(Math.sin(angle) * r);
@@ -4363,62 +4509,43 @@ for (let dy = -radius; dy <= radius; dy++) {
             v.color = r < rayLen * 0.4 ? "#FFFFFF" : r < rayLen * 0.7 ? "#FFDD44" : "#FF6600";
           }
         }
-      });
-    }
-
-    // ── 5. FLYING EMBERS ─────────────────────────────────────────────────
-    embers.forEach(ember => {
-      const dist = ember.speed * maxRadius * t * 1.6;
-      const ex = cx + Math.round(Math.cos(ember.angle) * dist + ember.wobble * t * 3);
-      const ey = cy + Math.round(Math.sin(ember.angle) * dist + ember.wobble * t * 3);
-      if (!grid.isInside(ex, ey)) return;
-      const cell = grid.get(ex, ey);
-      if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
-        grid.set(ex, ey, ELEMENTS.vfx);
-        const v = grid.get(ex, ey);
-        v.age   = -5;
-        v.color = ember.color;
       }
-    });
-
-    // ── 6. GROUND PRESSURE WAVE (horizontal) ─────────────────────────────
-const waveLen = Math.floor(t * maxRadius * 2.0);
-for (let dx = -waveLen; dx <= waveLen; dx++) {
-  for (let row = 0; row <= 0; row++) {
-    const x = cx + dx, y = cy + row;
-    if (!grid.isInside(x, y)) continue;
-    const cell = grid.get(x, y);
-    if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
-      grid.set(x, y, ELEMENTS.vfx);
-      const v = grid.get(x, y);
-      const prog = Math.abs(dx) / waveLen;
-      v.color = prog < 0.4 ? "#FFFF99" : prog < 0.75 ? "#FFAA22" : "#AA3300";
-      v.age   = -5;
     }
-  }
-}
-    // ── 7. SMOKE BILLOW (late phase) ──────────────────────────────────────
-  
-    // ── 8. HEAT HALO ─────────────────────────────────────────────────────
-    const heatRange = 5;
-    const heatOuter = radius + heatRange;
-    for (let dy = -heatOuter; dy <= heatOuter; dy++) {
-      for (let dx = -heatOuter; dx <= heatOuter; dx++) {
-        const x = cx + dx, y = cy + dy;
-        if (!grid.isInside(x, y)) continue;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        if (d > 0 && d <= heatOuter) {
-          const cell = grid.get(x, y);
-          const falloff   = 1 - Math.max(0, (d - radius) / heatRange);
-          const addedTemp = 2000 * falloff * falloff;
-          if (cell.temperature === undefined) cell.temperature = 0;
-          cell.temperature = Math.max(cell.temperature, addedTemp);
+
+    // Embers — skip every other tick
+    if (step % 2 === 0) {
+      for (const ember of embers) {
+        const dist = ember.speed * maxRadius * t * 1.6;
+        const ex = cx + Math.round(Math.cos(ember.angle) * dist + ember.wobble * t * 3);
+        const ey = cy + Math.round(Math.sin(ember.angle) * dist + ember.wobble * t * 3);
+        if (!grid.isInside(ex, ey)) continue;
+        const cell = grid.get(ex, ey);
+        if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+          grid.set(ex, ey, ELEMENTS.vfx);
+          const v = grid.get(ex, ey);
+          v.age   = -5;
+          v.color = ember.color;
         }
       }
     }
 
+    // Ground pressure wave
+    const waveLen = Math.floor(t * maxRadius * 2.0);
+    for (let dx = -waveLen; dx <= waveLen; dx++) {
+      const x = cx + dx, y = cy;
+      if (!grid.isInside(x, y)) continue;
+      const cell = grid.get(x, y);
+      if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+        grid.set(x, y, ELEMENTS.vfx);
+        const v = grid.get(x, y);
+        const prog = Math.abs(dx) / waveLen;
+        v.color = prog < 0.4 ? "#FFFF99" : prog < 0.75 ? "#FFAA22" : "#AA3300";
+        v.age   = -5;
+      }
+    }
+
     step++;
-    if (step <= steps) setTimeout(tick, delay);
+    if (step <= steps) schedule(tick, delay);
   }
 
   tick();
@@ -4600,7 +4727,7 @@ for (let dx = -lineLen; dx <= lineLen; dx++) {
 
     step++;
     if (step <= steps) {
-      setTimeout(tick, delay);
+      schedule(tick, delay);
     }
   }
 
@@ -6628,7 +6755,7 @@ for (let dx = -lineLen; dx <= lineLen; dx++) {
 
     step++;
     if (step <= steps) {
-      setTimeout(tick, delay);
+      schedule(tick, delay);
     }
   }
 
@@ -11839,7 +11966,7 @@ const explodeMissile = () => {
     }
 
     step++;
-    if (step <= steps) setTimeout(tick, delay);
+    if (step <= steps) schedule(tick, delay);
   }
 
   tick();
@@ -12570,11 +12697,3756 @@ activation_loop: new Element(
     }, cell.interval);
   }
 ),
+flower_seed: new Element(
+  "flower_seed",
+  "#56991D",
+  "Life",
+  {
+    flammable: true,
+     conductivity: 1,
+    variants: {
+       burnt:{
+      color:"#051402",
+      hidden:true,
 
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
 
-    };
+    if(cell.temperature > 60){
+      // placeholder
+        cell.element = cell.element.withTag("burnt"); // adds variant
+    }
     
-             // Simple inline Perlin-like noise for jagged cracks
+    if(cell.temperature > 120){
+      grid.set(x,y, ELEMENTS.fire);
+    }
+    if(cell.currentHeight == null) cell.currentHeight = 0;
+    // gravity
+
+    
+
+    if(grid.isInside(x,y+1)){
+       if(grid.get(x,y+1).element === ELEMENTS.empty){
+        grid.swap(x,y,x,y+1);
+      }
+      if(grid.get(x,y+1).element === ELEMENTS.dirt){
+      cell.age++;
+      }
+    }
+    if(cell.age > 30 && cell.stopGrowing == null){
+      if(cell.currentHeight > cell.height){
+       
+        flower(y - cell.currentHeight, Math.floor(Math.random() * cell.height / 2) + cell.height/4);
+        cell.age = 0;
+        cell.stopGrowing = true;
+      } else
+      if(Math.random() < 0.1){
+
+        cell.currentHeight++;
+        // change to use the height
+        if(grid.get(x,y-cell.currentHeight).element === ELEMENTS.empty){
+        if (Math.random() < 0.2) {
+  const d = Math.random() < 0.5 ? 1 : -1;
+  grid.set(x + d, y - cell.currentHeight, ELEMENTS.flower_leaf);
+}
+        grid.set(x,y-cell.currentHeight,ELEMENTS.flower_stem);
+        
+        }
+                cell.age=0;
+
+      }
+    
+    }
+function flower(cy, size = 5) {
+  const palettes = [
+    { petals: ["#FF69B4","#FF9FD0"], center: ["#FFEB3B","#FF9800"] },
+    { petals: ["#E040FB","#CE27D4"], center: ["#FFEE58","#FFA000"] },
+    { petals: ["#FFB300","#FFA000","#FFD54F"], center: ["#5D4037","#4E342E"] },
+    { petals: ["#FF5252","#FF1744"], center: ["#FFEB3B","#F9A825"] },
+    { petals: ["#40C4FF","#0091EA"], center: ["#FFFFFF","#B0BEC5"] },
+  ];
+
+  const palette = palettes[Math.floor(Math.random() * palettes.length)];
+  const pattern = Math.floor(Math.random() * 3);
+  const s = Math.max(2, Math.round(size * 0.5));
+  const p0 = palette.petals[0];
+  const p1 = palette.petals[1] ?? p0;
+  const p2 = palette.petals[2] ?? p0;
+  const c0 = palette.center[0];
+  const c1 = palette.center[1];
+
+  const place = (px, py, color) => {
+    if (grid.isInside(px, py) && grid.get(px, py).element === ELEMENTS.empty) {
+      grid.set(px, py, ELEMENTS.flower_petal);
+      grid.get(px, py).color = color;
+    }
+  };
+
+  if (pattern === 0) {
+    // BLOOM: 4 fat cardinal petals + 4 diagonal petals
+    for (let r = 1; r <= s; r++) {
+      place(x,     cy - r, p0); place(x + 1, cy - r, p0);
+      place(x,     cy + r, p0); place(x + 1, cy + r, p0);
+      place(x - r, cy,     p0); place(x - r, cy + 1, p0);
+      place(x + r, cy,     p0); place(x + r, cy + 1, p0);
+    }
+    const d = Math.max(1, s - 1);
+    for (let r = 1; r <= d; r++) {
+      place(x + r, cy - r, p1);
+      place(x - r, cy - r, p1);
+      place(x + r, cy + r, p1);
+      place(x - r, cy + r, p1);
+    }
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        place(x + dx, cy + dy, dx === 0 && dy === 0 ? c1 : c0);
+
+  } else if (pattern === 1) {
+    // TULIP: 6 petals at 60° spacing
+    const petal6 = [[0,-1],[1,-1],[1,1],[0,1],[-1,1],[-1,-1]];
+    for (let i = 0; i < petal6.length; i++) {
+      const [dx, dy] = petal6[i];
+      const col = i % 2 === 0 ? p0 : p1;
+      for (let r = 1; r <= s + 1; r++) {
+        place(x + dx * r,      cy + dy * r,      col);
+        place(x + dx * r + dy, cy + dy * r - dx, col);
+        place(x + dx * r - dy, cy + dy * r + dx, col);
+      }
+    }
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        place(x + dx, cy + dy, dx === 0 && dy === 0 ? c1 : c0);
+
+  } else {
+    // SUNFLOWER: 12 outer petals + 12 inner offset petals + disc
+    const outerR = s + 2;
+    const innerR = Math.round(s * 0.85);
+    for (let i = 0; i < 12; i++) {
+      const rad = (i / 12) * Math.PI * 2;
+      const cos = Math.cos(rad), sin = Math.sin(rad);
+      for (let r = Math.round(s * 0.55); r <= outerR; r++)
+        place(x + Math.round(cos * r), cy + Math.round(sin * r), i % 2 === 0 ? p0 : p1);
+    }
+    for (let i = 0; i < 12; i++) {
+      const rad = ((i + 0.5) / 12) * Math.PI * 2;
+      const cos = Math.cos(rad), sin = Math.sin(rad);
+      for (let r = Math.round(s * 0.45); r <= innerR; r++)
+        place(x + Math.round(cos * r), cy + Math.round(sin * r), p2);
+    }
+    const cr = Math.max(2, Math.round(s * 0.5));
+    for (let dy = -cr; dy <= cr; dy++)
+      for (let dx = -cr; dx <= cr; dx++)
+        if (dx * dx + dy * dy <= cr * cr)
+          place(x + dx, cy + dy, dx === 0 && dy === 0 ? c1 : c0);
+  }
+
+  place(x, cy, c1);
+}
+},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    cell.height = Math.floor(Math.random() * 10 + 5);
+ 
+  }
+),
+flower_stem: new Element(
+  "flower_stem",
+  "#386113",
+  "Life",
+  { flammable: true,
+     conductivity: 1,
+    variants: {
+       burnt:{
+      color:"#051402",
+      hidden:true,
+
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 60){
+      // placeholder
+        cell.element = cell.element.withTag("burnt"); // adds variant
+    }
+    
+    if(cell.temperature > 120){
+      grid.set(x,y, ELEMENTS.fire);
+    }
+  }
+),
+flower_petal: new Element(
+  "flower_petal",
+  "#FF69B4",
+  "Life",
+  { flammable: true,
+     conductivity: 1,
+    variants: {
+       burnt:{
+      color:"#051402",
+      hidden:true,
+
+
+      }
+    }
+  },
+  (grid, x, y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 60){
+      // placeholder
+        cell.element = cell.element.withTag("burnt"); // adds variant
+    }
+    
+    if(cell.temperature > 120){
+      grid.set(x,y, ELEMENTS.fire);
+    }
+  }
+  
+),
+
+flower_leaf: new Element(
+  "flower_leaf",
+  "#43701B",
+  "Life",
+  {flammable: true,
+    conductivity: 1,
+    variants: {
+       burnt:{
+      color:"#051402",
+      hidden:true,
+
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 60){
+      // placeholder
+        cell.element = cell.element.withTag("burnt"); // adds variant
+    }
+    
+    if(cell.temperature > 120){
+      grid.set(x,y, ELEMENTS.fire);
+    }
+  }
+),
+mushroom_spore: new Element(
+  "mushroom_spore",
+  "#B7FF00",
+  "Life",
+  {
+    variants: {
+   growing: {
+  color: "#D2D66B",
+  hidden: true,
+ behavior: (grid, x, y) => {
+  const cell = grid.get(x, y);
+  if (cell.currentHeight == null) cell.currentHeight = 0;
+  if (cell.stop == null) cell.stop = false;
+  if (cell.lastStemX == null) cell.lastStemX = x;
+  if (cell.lastStemY == null) cell.lastStemY = y;
+  if (cell.deflectDir == null) cell.deflectDir = cell.dir !== 0 ? -cell.dir : 1;
+  if (cell.state == null) cell.state = 'up';
+  if (cell.detourDepth == null) cell.detourDepth = 0;
+  if (cell.detourTarget == null) cell.detourTarget = 2 + Math.floor(Math.random() * 2); // 2 or 3
+
+  cell.age++;
+
+  if(cell.temperature > 300){
+    grid.set(x,y,ELEMENTS.fire);
+  }
+  if (cell.age > 50 && cell.stop === false) {
+    if (Math.random() < 0.05) {
+      if (cell.currentHeight < cell.height) {
+        cell.currentHeight++;
+
+        const t = cell.currentHeight / cell.height;
+        const targetCurve = Math.round(Math.pow(t, 0.5) * cell.height * 0.6);
+        const targetX = x + (-cell.dir * targetCurve);
+        const curveStep = targetX > cell.lastStemX ? 1 : targetX < cell.lastStemX ? -1 : 0;
+
+        let placed = false;
+
+        if (cell.state === 'up') {
+          const upCandidates = [
+            { x: cell.lastStemX + curveStep, y: cell.lastStemY - 1 },
+            { x: cell.lastStemX,             y: cell.lastStemY - 1 },
+            { x: cell.lastStemX + 1,         y: cell.lastStemY - 1 },
+            { x: cell.lastStemX - 1,         y: cell.lastStemY - 1 },
+          ];
+          for (const c of upCandidates) {
+            if (grid.isInside(c.x, c.y) && grid.get(c.x, c.y).element === ELEMENTS.empty) {
+              grid.set(c.x, c.y, ELEMENTS.mushroom_stem);
+              cell.lastStemX = c.x;
+              cell.lastStemY = c.y;
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            // Blocked — begin detour, reset depth counter and pick new target
+            cell.state = 'detouring';
+            cell.detourDepth = 0;
+            cell.detourTarget = 2 + Math.floor(Math.random() * 2);
+          }
+        }
+
+        if (cell.state === 'detouring') {
+          // Always move down+sideways until we've hit detourTarget depth
+          const detourCandidates = [
+            { x: cell.lastStemX + cell.deflectDir, y: cell.lastStemY + 1 },
+            { x: cell.lastStemX,                   y: cell.lastStemY + 1 },
+            { x: cell.lastStemX - cell.deflectDir, y: cell.lastStemY + 1 },
+            { x: cell.lastStemX + cell.deflectDir, y: cell.lastStemY     },
+          ];
+          for (const c of detourCandidates) {
+            if (grid.isInside(c.x, c.y) && grid.get(c.x, c.y).element === ELEMENTS.empty) {
+              grid.set(c.x, c.y, ELEMENTS.mushroom_stem);
+              cell.lastStemX = c.x;
+              cell.lastStemY = c.y;
+              cell.detourDepth++;
+              placed = true;
+              if (cell.detourDepth >= cell.detourTarget) {
+                cell.state = 'recovering';
+              }
+              break;
+            }
+          }
+        }
+
+        if (cell.state === 'recovering') {
+          // Head back up, preferring the deflect direction to arc around the obstacle
+          const recoverCandidates = [
+            { x: cell.lastStemX + cell.deflectDir, y: cell.lastStemY - 1 },
+            { x: cell.lastStemX,                   y: cell.lastStemY - 1 },
+            { x: cell.lastStemX - cell.deflectDir, y: cell.lastStemY - 1 },
+            { x: cell.lastStemX + cell.deflectDir, y: cell.lastStemY     },
+          ];
+          for (const c of recoverCandidates) {
+            if (grid.isInside(c.x, c.y) && grid.get(c.x, c.y).element === ELEMENTS.empty) {
+              grid.set(c.x, c.y, ELEMENTS.mushroom_stem);
+              cell.lastStemX = c.x;
+              cell.lastStemY = c.y;
+              placed = true;
+              // Back to normal once we've climbed back to where we started detouring
+              if (cell.lastStemY <= y - cell.currentHeight + 1) cell.state = 'up';
+              break;
+            }
+          }
+          if (!placed) {
+            // Still blocked going up — detour again in same direction
+            cell.state = 'detouring';
+            cell.detourDepth = 0;
+            cell.detourTarget = 2 + Math.floor(Math.random() * 2);
+          }
+        }
+
+        if (!placed) {
+          cell.stop = true;
+          cap(cell.lastStemX, cell.lastStemY - 1, Math.floor(Math.random() * 1 + 1));
+          return;
+        }
+
+        cell.age = 0;
+
+      } else {
+        cell.stop = true;
+        cap(cell.lastStemX, cell.lastStemY - 1, Math.floor(Math.random() * 1 + 1));
+      }
+    }
+  }
+
+  function cap(cx, cy, size) {
+    let height = Math.floor(size / 2);
+    for (let cdx = cx - size; cdx <= cx + size; cdx++) {
+      for (let cdy = cy - height; cdy <= cy + height; cdy++) {
+        if (grid.isInside(cdx, cdy) && (grid.get(cdx, cdy).element === ELEMENTS.empty || grid.get(cdx, cdy).element === ELEMENTS.mushroom_stem)) {
+          grid.set(cdx, cdy, ELEMENTS.mushroom_cap);
+        }
+      }
+    }
+  }
+}
+}
+}
+    // make a growing variant to control growing
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    // use snow physics
+
+    // if lands on dirt/stone/wood then start growing
+     // Snow randomly drifts left/right or straight
+      const dirs = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0]
+
+    ];
+    if(cell.temperature > 300){
+    grid.set(x,y,ELEMENTS.fire);
+  }
+    for(const [dx, dy] of dirs){
+      const cx = x + dx, cy = y + dy;
+
+    if(!grid.isInside(cx,cy)) continue;
+
+  const passEl = ["dirt", "stone", "oakwood", "gravel"];
+if (passEl.includes(grid.get(cx, cy).element.name)) {
+  if(Math.random() < 0.01){
+cell.element = cell.element.withTag("growing");
+cell.dir = dx;
+
+  }
+  return;
+}
+    }
+
+    let dx = Math.random() < 0.5 ? -1 : 1; // horizontal drift
+    let dy = 1;
+
+  
+    
+    // Check bounds
+    if (grid.isInside(x + dx, y + dy) && grid.get(x + dx, y + dy).element === ELEMENTS.empty) {
+      grid.swap(x, y, x + dx, y + dy);
+    } else if (grid.isInside(x, y + 1) && grid.get(x, y + 1).element === ELEMENTS.empty) {
+      // Fall straight if diagonal blocked
+      grid.swap(x, y, x, y + 1);
+    }
+   
+    
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    cell.height = Math.floor(Math.random() * 5 + 2);
+  }
+),
+mushroom_stem: new Element(
+  "mushroom_stem",
+  "#D2D66B",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 300){
+    grid.set(x,y,ELEMENTS.fire);
+  }
+  }
+),
+mushroom_cap: new Element(
+  "mushroom_cap",
+  "#8A5227",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 300){
+    grid.set(x,y,ELEMENTS.fire);
+  }
+
+  }
+),
+oak_sapling: new Element(
+  "oak_sapling",
+  "#41C43F",
+  "Life",
+  { flammable: true, conductivity: 0.1 },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
+      grid.swap(x,y, x,y+1);
+      return;
+    }
+    // Initialize memory on first tick
+    if (cell.growthStage === undefined) {
+      cell.growthStage = 0;       // 0=seedling, 1=sprout, 2=young, 3=trunk, 4=done
+      cell.growthTicks = 0;
+      cell.trunkHeight = 0;       // how many trunk cells have been placed above
+      cell.maxTrunk = 4 + Math.floor(Math.random() * 5); // 4-8 blocks tall
+      cell.branchSeed = Math.random(); // unique tree personality
+      cell.rootX = x;             // remember where it started
+    }
+
+    // Die if too hot or frozen
+    if (cell.temperature > 280) { grid.set(x, y, ELEMENTS.fire); return; }
+    if (cell.temperature < -10) { grid.set(x, y, ELEMENTS.empty); return; }
+
+    cell.growthTicks++;
+
+    // Need solid ground below to grow
+    const below = grid.isInside(x, y + 1) ? grid.get(x, y + 1) : null;
+    const groundNames = ["dirt", "stone", "gravel", "sand", "oakwood"];
+    const hasGround = below && (groundNames.includes(below.element.name) || below.element.name === "oakwood");
+
+    if (!hasGround) return; // can't grow without ground
+
+    // ── STAGE 0: Seedling — just wait a bit ──
+    if (cell.growthStage === 0) {
+      if (cell.growthTicks > 30 + Math.floor(Math.random() * 20)) {
+        cell.growthStage = 1;
+        cell.growthTicks = 0;
+      }
+      return;
+    }
+
+    // ── STAGE 1: Sprout — place first wood cell above ──
+    if (cell.growthStage === 1) {
+      if (cell.growthTicks > 20) {
+        const aboveY = y - 1;
+        if (grid.isInside(x, aboveY) && grid.get(x, aboveY).element.name === "empty") {
+          grid.set(x, aboveY, ELEMENTS.oakwood);
+          // Transfer memory to new wood cell
+          const newCell = grid.get(x, aboveY);
+          newCell.treeMemory = {
+            rootX: x,
+            trunkX: x,
+            trunkBase: y,
+            trunkHeight: 1,
+            maxTrunk: cell.maxTrunk,
+            branchSeed: cell.branchSeed,
+            stage: "trunk",
+            branchesPlaced: false,
+          };
+          cell.growthStage = 2;
+          cell.growthTicks = 0;
+        }
+      }
+      return;
+    }
+
+    // ── STAGE 2: Young — convert self to dirt/base wood, done growing ──
+    if (cell.growthStage === 2) {
+      if (cell.growthTicks > 10) {
+        // Sapling base becomes oakwood
+        grid.set(x, y, ELEMENTS.oakwood);
+        cell.growthStage = 3;
+      }
+      return;
+    }
+  }
+),
+oak_leaf: new Element(
+  "oak_leaf",
+  "#168014",
+  "Life",
+  {flammable: true, conductivity: 1,
+    variants: {
+      burnt: {
+        color: "#071C07",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x, y);
+       
+          if(grid.touching(x,y,"fire")){
+            cell.temperature += 10;
+          }
+          if(grid.touching(x, y, "water")){
+            cell.temperature = 20;
+          }
+
+          const directions = [
+            [0, -1],
+            [0, 1],
+            [-1, 0],
+            [1, 0],
+          ];
+
+          if(cell.temperature > 200){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "oak_leaf" && grid.get(nx, ny).element.doesNotHaveTag("burnt")) {
+                if(Math.random() < 0.5){
+                  grid.get(nx, ny).element = grid.get(nx, ny).element.withTag("burnt");
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 240){
+            if(Math.random() < 0.1){
+              grid.set(x, y, ELEMENTS.empty);
+            }
+          }
+
+          if(cell.temperature > 130){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+                if(Math.random() < 0.2){
+                  grid.set(nx, ny, ELEMENTS.fire);
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 1300){
+            if(Math.random() < 0.2){
+              grid.set(x, y, ELEMENTS.fire);
+            }
+          }
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 200){
+      cell.element = cell.element.withTag("burnt");
+    }
+  }
+),
+bamboo: new Element(
+  "bamboo",
+  "#4AB04A",
+  "Life",
+  {flammable: true, conductivity: 0.5,
+    variants: {
+      burnt: {
+        color: "#071C07",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x, y);
+       
+          if(grid.touching(x,y,"fire")){
+            cell.temperature += 10;
+          }
+          if(grid.touching(x, y, "water")){
+            cell.temperature = 20;
+          }
+
+          const directions = [
+            [0, -1],
+            [0, 1],
+            [-1, 0],
+            [1, 0],
+          ];
+
+          if(cell.temperature > 200){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "bamboo" && grid.get(nx, ny).element.doesNotHaveTag("burnt")) {
+                if(Math.random() < 0.5){
+                  grid.get(nx, ny).element = grid.get(nx, ny).element.withTag("burnt");
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 240){
+            if(Math.random() < 0.1){
+              grid.set(x, y, ELEMENTS.empty);
+            }
+          }
+
+          if(cell.temperature > 130){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+                if(Math.random() < 0.2){
+                  grid.set(nx, ny, ELEMENTS.fire);
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 1100){
+            if(Math.random() < 0.2){
+              grid.set(x, y, ELEMENTS.fire);
+            }
+          }
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const below = grid.get(x,y+1);
+    if(cell.temperature > 200){
+      cell.element = cell.element.withTag("burnt");
+      return;
+    }
+    if(grid.isInside(x,y-1) && grid.get(x,y-1).element === ELEMENTS.empty){
+      if(Math.random() < 0.0005){
+        grid.set(x,y-1, ELEMENTS.bamboo);
+      }
+    }
+    if(grid.isInside(x,y+1) && below.element === ELEMENTS.bamboo){
+      cell.bambooState = below.bambooState === 1 ? 0 : 1;
+    }
+
+    cell.color = cell.bambooState === 1 ? "#91D622" : "#4AB04A";
+    
+    if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
+      grid.swap(x,y, x,y+1);
+      return;
+    }
+
+  }
+),
+tumbleweed: new Element(
+  "tumbleweed",
+  "#9E7219",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    // --- Init ---
+    if (cell.vx    == null) cell.vx    = 0.4 + Math.random() * 0.3;
+    if (cell.vy    == null) cell.vy    = 0;
+    if (cell.subX  == null) cell.subX  = x;
+    if (cell.subY  == null) cell.subY  = y;
+    if (cell.spin  == null) cell.spin  = 0;
+    if (cell.onGround == null) cell.onGround = false;
+
+    // --- Local wind from temperature gradient ---
+    const RADIUS = 6;
+    const ambient = 20;
+    let windX = 0, windY = 0;
+
+    for (let dx = -RADIUS; dx <= RADIUS; dx++) {
+      for (let dy = -RADIUS; dy <= RADIUS; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = x + dx, ny = y + dy;
+        if (!grid.isInside(nx, ny)) continue;
+        const t = (grid.get(nx, ny).temperature ?? ambient) - ambient;
+        if (Math.abs(t) < 2) continue;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const w = t / (dist * dist + 1);
+        windX += (dx / dist) * w * 0.0015;
+        windY += (dy / dist) * w * 0.0015;
+        if (dy > 0 && t > 15) windY -= w * 0.0025;
+      }
+    }
+    windX = Math.max(-0.25, Math.min(0.25, windX));
+    windY = Math.max(-0.25, Math.min(0.25, windY));
+
+    // --- Surface checks ---
+    const belowBlocked = !grid.isInside(x, y + 1) || grid.get(x, y + 1).element !== ELEMENTS.empty;
+    const aboveBlocked = !grid.isInside(x, y - 1) || grid.get(x, y - 1).element !== ELEMENTS.empty;
+    const leftBlocked  = !grid.isInside(x - 1, y) || grid.get(x - 1, y).element !== ELEMENTS.empty;
+    const rightBlocked = !grid.isInside(x + 1, y) || grid.get(x + 1, y).element !== ELEMENTS.empty;
+
+    cell.onGround = belowBlocked;
+
+    // --- Gravity (gentle) ---
+    if (!belowBlocked) {
+      cell.vy += 0.18;
+    }
+
+    // --- Wind ---
+    cell.vx += windX;
+    cell.vy += windY;
+
+    
+   // --- Ground rolling ---
+if (cell.onGround) {
+  // spin converges toward vx, not accumulates from it
+  cell.spin += (cell.vx - cell.spin) * 0.15;
+  cell.vx   *= 0.96;
+  // very gentle random nudge
+  if (Math.random() < 0.06) cell.vx += (Math.random() - 0.5) * 0.15;
+} else {
+  cell.spin *= 0.98;
+  cell.vx   *= 0.998;
+}
+
+    // --- Wall / ceiling response ---
+    if (leftBlocked  && cell.vx < 0) { cell.vx *= -0.65; cell.spin *= -0.3; cell.subX = x; }
+    if (rightBlocked && cell.vx > 0) { cell.vx *= -0.65; cell.spin *= -0.3; cell.subX = x; }
+    if (aboveBlocked && cell.vy < 0) { cell.vy *= -0.5;  cell.subY = y; }
+
+    // --- Floor bounce ---
+    const doBounce = (impactVy) => {
+      const impact = Math.abs(impactVy);
+      // smooth continuous bounciness curve instead of hard thresholds
+      const bounciness = 0.85 * Math.min(impact / 2.5, 1.0) + 0.1;
+      let newVy = -impactVy * bounciness;
+      if (Math.abs(newVy) < 0.12) newVy = 0;
+      return newVy;
+    };
+
+    if (belowBlocked && cell.vy > 0) {
+      cell.vx  += cell.spin * 0.1;
+      cell.vy   = doBounce(cell.vy);
+      cell.subY = y;
+    }
+
+    // --- Speed cap ---
+    cell.vx = Math.max(-3.5, Math.min(3.5, cell.vx));
+    cell.vy = Math.max(-4,   Math.min(4,   cell.vy));
+
+    // --- Integrate ---
+    cell.subX += cell.vx;
+    cell.subY += cell.vy;
+
+    const newX = Math.round(cell.subX);
+    const newY = Math.round(cell.subY);
+
+    if (newX !== x || newY !== y) {
+      const xBlocked = newX !== x && (!grid.isInside(newX, y) || grid.get(newX, y).element !== ELEMENTS.empty);
+      const yBlocked = newY !== y && (!grid.isInside(x, newY) || grid.get(x, newY).element !== ELEMENTS.empty);
+
+      if (xBlocked) {
+        cell.vx *= -0.45; cell.spin *= -0.3; cell.subX = x;
+      }
+      if (yBlocked) {
+        if (cell.vy > 0) {
+          cell.vx += cell.spin * 0.1;
+          cell.vy  = doBounce(cell.vy);
+        } else {
+          cell.vy *= -0.2;
+        }
+        cell.subY = y;
+      }
+
+      const finalX = xBlocked ? x : newX;
+      const finalY = yBlocked ? y : newY;
+
+      if ((finalX !== x || finalY !== y) &&
+          grid.isInside(finalX, finalY) &&
+          grid.get(finalX, finalY).element === ELEMENTS.empty) {
+        grid.swap(x, y, finalX, finalY);
+        const moved = grid.get(finalX, finalY);
+        moved.subX     = cell.subX;
+        moved.subY     = cell.subY;
+        moved.vx       = cell.vx;
+        moved.vy       = cell.vy;
+        moved.spin     = cell.spin;
+        moved.onGround = cell.onGround;
+      }
+    }
+  }
+),
+pitcher_plant_seed: new Element(
+  "pitcher_plant_seed",
+  "#5BD42A",
+  "Life",
+  {
+    flammable: true,
+    conductivity: 0.8,
+    variants: {
+      burnt: {
+        color: "#1B3D0D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+
+          if(grid.touching(x,y,"fire")){
+            cell.temperature += 10;
+          }
+          if(grid.touching(x, y, "water")){
+            cell.temperature = 20;
+          }
+
+          const directions = [
+            [0, -1],
+            [0, 1],
+            [-1, 0],
+            [1, 0],
+          ];
+
+          if(cell.temperature > 200){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "pitcher_plant_seed" && grid.get(nx, ny).element.doesNotHaveTag("burnt")) {
+                if(Math.random() < 0.5){
+                  grid.get(nx, ny).element = grid.get(nx, ny).element.withTag("burnt");
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 240){
+            if(Math.random() < 0.1){
+              grid.set(x, y, ELEMENTS.empty);
+            }
+          }
+
+          if(cell.temperature > 130){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+                if(Math.random() < 0.2){
+                  grid.set(nx, ny, ELEMENTS.fire);
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 1100){
+            if(Math.random() < 0.2){
+              grid.set(x, y, ELEMENTS.fire);
+            }
+          }
+        }
+      }, 
+   growing: {
+  color: "#56B82E",
+  hidden: true,
+  behavior: (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (cell.currentLength == null) cell.currentLength = 1;
+    if (cell.currentPitcher == null) cell.currentPitcher = 0;
+    if (cell.maxLength == null) cell.maxLength = Math.floor(Math.random() * 3 + 1) * 7;
+    cell.age++;
+
+    if (cell.age > 30) {
+      if (Math.random() < 0.05) {
+
+        // --- Phase 0: grow main stem upward ---
+        if (cell.currentPitcher === 0) {
+          if (cell.currentLength < cell.maxLength) {
+            if (grid.isInside(x, y - cell.currentLength) && grid.get(x, y - cell.currentLength).element === ELEMENTS.empty) {
+              grid.set(x, y - cell.currentLength, ELEMENTS.pitcher_plant_stem);
+              cell.currentLength++;
+              cell.age = 0;
+            }
+          } else {
+            leaf(x, y - cell.currentLength, Math.floor(cell.maxLength / 2));
+
+            if (!cell.pitcherAttachY) {
+              const roll = cell.pitcherCount;
+              if (roll === 4) {
+                cell.resolvedPitcherCount = 2;
+                cell.pitcherSize = "medium";
+              } else if (roll === 3) {
+                cell.resolvedPitcherCount = 1;
+                cell.pitcherSize = "large";
+              } else if (roll === 2) {
+                cell.resolvedPitcherCount = 1;
+                cell.pitcherSize = "medium";
+              } else {
+                cell.resolvedPitcherCount = 1;
+                cell.pitcherSize = "small";
+              }
+
+              cell.pitcherAttachY = [];
+              cell.pitcherSide = [];
+              cell.pitcherArmPath = [];
+              cell.pitcherArmLength = []; // FIX: was missing
+              const used = new Set();
+              const topQuarterStart = Math.floor(cell.maxLength * 0.75);
+
+              for (let i = 0; i < cell.resolvedPitcherCount; i++) {
+                let yOff;
+                let tries = 0;
+                do {
+                  yOff = Math.floor(Math.random() * (cell.maxLength - topQuarterStart - 1)) + topQuarterStart;
+                  tries++;
+                } while (used.has(yOff) && tries < 20);
+                used.add(yOff);
+                cell.pitcherAttachY.push(yOff);
+                cell.pitcherSide.push(Math.random() < 0.5 ? -1 : 1);
+                cell.pitcherArmPath.push(null);
+                cell.pitcherArmLength.push(0); // FIX: was missing
+              }
+            }
+
+            cell.currentPitcher = 1;
+            cell.currentLength = 0;
+            cell.age = 0;
+          }
+        }
+
+        // --- Phase 1 to resolvedPitcherCount: grow each pitcher arm ---
+        else if (cell.currentPitcher >= 1 && cell.currentPitcher <= cell.resolvedPitcherCount) {
+          const pi      = cell.currentPitcher - 1;
+          const attachY = cell.pitcherAttachY[pi];
+          const side    = cell.pitcherSide[pi];
+
+          const armLen = cell.pitcherSize === "large"  ? 6
+                       : cell.pitcherSize === "medium" ? 4
+                       : 3;
+
+          // Build the full path once using Bresenham between sampled curve waypoints
+          if (!cell.pitcherArmPath[pi]) {
+            const waypoints = [];
+            const steps = armLen;
+            for (let t = 0; t <= steps; t++) {
+              const progress = t / steps;
+              const wx = x + (side > 0
+                ? Math.floor(progress * armLen * 0.9)
+                : -Math.floor(progress * armLen * 0.9));
+              const wy = (y - attachY) + Math.floor(Math.pow(progress, 2.2) * 5);
+              waypoints.push([wx, wy]);
+            }
+
+            const path = [];
+            for (let w = 0; w < waypoints.length - 1; w++) {
+              let [cx, cy] = waypoints[w];
+              const [x1, y1] = waypoints[w + 1];
+              const ddx = Math.abs(x1 - cx), ddy = Math.abs(y1 - cy);
+              const sx = x1 > cx ? 1 : -1, sy = y1 > cy ? 1 : -1;
+              let err = ddx - ddy;
+              while (true) {
+                if (path.length === 0 || path[path.length - 1][0] !== cx || path[path.length - 1][1] !== cy) {
+                  path.push([cx, cy]);
+                }
+                if (cx === x1 && cy === y1) break;
+                const e2 = 2 * err;
+                if (e2 > -ddy) { err -= ddy; cx += sx; }
+                if (e2 <  ddx) { err += ddx; cy += sy; }
+              }
+            }
+
+            cell.pitcherArmPath[pi] = path;
+            cell.pitcherArmLength[pi] = 0; // FIX: reset to 0 when path is built
+          }
+
+          const path = cell.pitcherArmPath[pi];
+
+          if (cell.pitcherArmLength[pi] < path.length) {
+            const [nx, ny] = path[cell.pitcherArmLength[pi]];
+            if (grid.isInside(nx, ny) && grid.get(nx, ny).element === ELEMENTS.empty) {
+              grid.set(nx, ny, ELEMENTS.pitcher_plant_stem);
+            }
+            cell.pitcherArmLength[pi]++;
+            cell.age = 0;
+          } else {
+            const [tipX, tipY] = path[path.length - 1];
+            placePitcher(tipX, tipY, side, cell.pitcherSize);
+            cell.currentPitcher++;
+            cell.age = 0;
+          }
+        }
+      }
+    }
+
+    function leaf(x2, y2, size) {
+      if (size < 2) size = 2;
+      const leafDefs = [
+        { side: -1, vertOffset: 0 },
+        { side:  1, vertOffset: 0 },
+        { side: -1, vertOffset: -3 },
+        { side:  1, vertOffset: -3 },
+      ].slice(0, 2 + Math.floor(Math.random() * 3));
+
+      for (const { side, vertOffset } of leafDefs) {
+        for (let t = 0; t < size; t++) {
+          const progress  = t / (size - 1);
+          const nx        = x2 + Math.round(side * progress * (size * 0.7));
+          const ny        = y2 + vertOffset - Math.round(Math.sin(progress * Math.PI * 0.75) * (size * 0.5));
+          const halfWidth = Math.round(Math.sin(progress * Math.PI) * (size * 0.25));
+          for (let w = -halfWidth; w <= halfWidth; w++) {
+            const fx = nx;
+            const fy = ny + w;
+            if (grid.isInside(fx, fy) && grid.get(fx, fy).element === ELEMENTS.empty) {
+              grid.set(fx, fy, ELEMENTS.pitcher_plant_leaf);
+            }
+          }
+        }
+      }
+    }
+
+   function placePitcher(px, py, side, size) {
+  function makePitcherShape(side, scale) {
+    const cells = [];
+    const width  = scale;
+    const height = Math.round(scale * 2.5);
+    const halfH  = Math.floor(height / 2); // vertical center offset
+
+    // body columns — centered on py
+    for (let col = 0; col < width; col++) {
+      for (let row = 0; row < height; row++) {
+        cells.push([side * col, -row + halfH, "Normal"]);
+      }
+    }
+
+    // lip: one row above body top
+    const lipY = -height + halfH;
+    for (let col = -1; col <= width; col++) {
+      cells.push([side * col, lipY, "Lip"]);
+    }
+
+    // lid: diagonal up and outward from lip
+    const lidSteps = scale * 2;
+    for (let i = 0; i < lidSteps; i++) {
+      const lx = side * (Math.floor(i * 0.7) + 1);
+      const ly = lipY - 1 - i;
+      cells.push([lx, ly, "leaf"]);
+    }
+
+    return cells;
+  }
+
+  const scaleMap = { small: 2, medium: 3, large: 5 };
+  const shape = makePitcherShape(side, scaleMap[size]);
+  for (const [dx, dy, type] of shape) {
+    const fx = px + dx;
+    const fy = py + dy;
+    if (grid.isInside(fx, fy) && grid.get(fx, fy).element === ELEMENTS.empty) {
+      grid.set(fx, fy, ELEMENTS.pitcher_plant_pitcher);
+      grid.get(fx, fy).type = type;
+    }
+  }
+}
+  }
+}
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    // temp/burning
+    if(cell.temperature > 200){
+      cell.element = cell.element.withTag("burnt");
+      return;
+    }
+    if(grid.touching(x,y,ELEMENTS.fire)){
+      cell.temperature+=16;
+    }
+
+    // gravity
+    if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
+      grid.swap(x,y, x, y+1);
+      return;
+    }
+    
+    const pass = ["dirt", "grass", "moss"];
+    // growing init
+    if(grid.isInside(x,y+1) && pass.includes(grid.get(x,y+1).element.name)){
+      cell.element = cell.element.withTag("growing");
+      cell.pitcherCount = Math.floor(Math.random() * 4 + 1);
+      cell.maxLength = cell.pitcherCount * 7;
+    }
+  }
+),
+pitcher_plant_stem: new Element(
+  "pitcher_plant_stem",
+  "#56B82E",
+  "Life",
+  {
+    flammable: true,
+    conductivity: 1,
+    variants: {
+       burnt: {
+        color: "#1B3D0D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+
+          if(grid.touching(x,y,"fire")){
+            cell.temperature += 10;
+          }
+          if(grid.touching(x, y, "water")){
+            cell.temperature = 20;
+          }
+
+          const directions = [
+            [0, -1],
+            [0, 1],
+            [-1, 0],
+            [1, 0],
+          ];
+
+          if(cell.temperature > 200){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "pitcher_plant_stem" && grid.get(nx, ny).element.doesNotHaveTag("burnt")) {
+                if(Math.random() < 0.5){
+                  grid.get(nx, ny).element = grid.get(nx, ny).element.withTag("burnt");
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 240){
+            if(Math.random() < 0.1){
+              grid.set(x, y, ELEMENTS.empty);
+            }
+          }
+
+          if(cell.temperature > 130){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+                if(Math.random() < 0.2){
+                  grid.set(nx, ny, ELEMENTS.fire);
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 1100){
+            if(Math.random() < 0.2){
+              grid.set(x, y, ELEMENTS.fire);
+            }
+          }
+
+        }
+      }, 
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    // temp/burning
+     if(cell.temperature > 200){
+      cell.element = cell.element.withTag("burnt");
+      return;
+    }
+    if(grid.touching(x,y,ELEMENTS.fire)){
+      cell.temperature+=16;
+    }
+
+
+  }
+),
+pitcher_plant_leaf: new Element(
+  "pitcher_plant_leaf",
+  "#459E21",
+  "Life",
+  {
+    flammable: true,
+    conductivity: 1,
+    variants: {
+       burnt: {
+        color: "#1B3D0D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+
+          if(grid.touching(x,y,"fire")){
+            cell.temperature += 10;
+          }
+          if(grid.touching(x, y, "water")){
+            cell.temperature = 20;
+          }
+
+          const directions = [
+            [0, -1],
+            [0, 1],
+            [-1, 0],
+            [1, 0],
+          ];
+
+          if(cell.temperature > 200){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "pitcher_plant_leaf" && grid.get(nx, ny).element.doesNotHaveTag("burnt")) {
+                if(Math.random() < 0.5){
+                  grid.get(nx, ny).element = grid.get(nx, ny).element.withTag("burnt");
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 240){
+            if(Math.random() < 0.1){
+              grid.set(x, y, ELEMENTS.empty);
+            }
+          }
+
+          if(cell.temperature > 130){
+            for (const [dx, dy] of directions) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+                if(Math.random() < 0.2){
+                  grid.set(nx, ny, ELEMENTS.fire);
+                }
+              }
+            }
+          }
+
+          if(cell.temperature > 1100){
+            if(Math.random() < 0.2){
+              grid.set(x, y, ELEMENTS.fire);
+            }
+          }
+
+        }
+      }, 
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    // temp/burning
+     if(cell.temperature > 200){
+      cell.element = cell.element.withTag("burnt");
+      return;
+    }
+    if(grid.touching(x,y,ELEMENTS.fire)){
+      cell.temperature+=16;
+    }
+
+
+  }
+),
+pitcher_plant_pitcher: new Element(
+  "pitcher_plant_pitcher",
+  "#416311",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.type == null) cell.type = "Normal";
+
+    if(cell.type === "Normal"){
+      cell.color = "#416311";
+    } else  if(cell.type === "Lip"){
+      cell.color = "#8A2232";
+    } else if(cell.type === "leaf"){
+      cell.color = "#9C2A3B";
+    }
+  }
+),
+drosera_capensis_seed: new Element(
+  "drosera_capensis_seed",
+  "#359C2A",
+  "Life",
+  {
+    flammable: true,
+    conductivity: 0.8,
+    variants: {
+      burnt: {
+        color: "#1B3D0D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(grid.touching(x,y,"fire")) cell.temperature += 10;
+          if(grid.touching(x,y,"water")) cell.temperature = 20;
+          const directions = [[0,-1],[0,1],[-1,0],[1,0]];
+          if(cell.temperature > 200){
+            for(const [dx,dy] of directions){
+              const nx=x+dx, ny=y+dy;
+              if(grid.isInside(nx,ny) && grid.get(nx,ny).element.name==="drosera_capensis_seed" && grid.get(nx,ny).element.doesNotHaveTag("burnt")){
+                if(Math.random()<0.5) grid.get(nx,ny).element = grid.get(nx,ny).element.withTag("burnt");
+              }
+            }
+          }
+          if(cell.temperature>240 && Math.random()<0.1) grid.set(x,y,ELEMENTS.empty);
+          if(cell.temperature>130){
+            for(const [dx,dy] of directions){
+              const nx=x+dx, ny=y+dy;
+              if(grid.isInside(nx,ny) && grid.get(nx,ny).element.name==="empty" && Math.random()<0.2)
+                grid.set(nx,ny,ELEMENTS.fire);
+            }
+          }
+          if(cell.temperature>1100 && Math.random()<0.2) grid.set(x,y,ELEMENTS.fire);
+        }
+      },
+      growing: {
+        color: "#4BBF30",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+
+          if(cell.currentLeaf == null) cell.currentLeaf = 0;
+          if(cell.leafCount == null) cell.leafCount = Math.floor(Math.random()*4+4); // 4–7 leaves
+          if(cell.leafPaths == null) cell.leafPaths = [];
+          if(cell.leafProgress == null) cell.leafProgress = [];
+          if(cell.phase == null) cell.phase = 0; // 0=init, 1=growing leaves
+          cell.age++;
+
+          if(cell.age < 30) return;
+          if(Math.random() > 0.05) return;
+
+          // Phase 0: place the central stem base (1 cell up)
+          if(cell.phase === 0){
+            const sx = x, sy = y-1;
+            if(grid.isInside(sx,sy) && grid.get(sx,sy).element === ELEMENTS.empty){
+              grid.set(sx,sy,ELEMENTS.drosera_capensis_stem);
+            }
+            // Build all leaf paths now
+            cell.leafPaths = [];
+            cell.leafProgress = [];
+            const leafLen = Math.floor(Math.random()*4+5); // 5–8 cells per leaf
+            for(let i=0; i<cell.leafCount; i++){
+              const angle = (i / cell.leafCount) * Math.PI * 2; // evenly spaced radially
+              // Leaves curve outward from base and arch slightly upward
+              const path = [];
+              const steps = leafLen;
+              for(let t=1; t<=steps; t++){
+                const progress = t/steps;
+                // arch: rise then curve outward
+                const lx = x + Math.round(Math.cos(angle) * progress * leafLen * 0.85);
+                const ly = (y-1) + Math.round(-Math.abs(Math.sin(progress * Math.PI * 0.65)) * leafLen * 0.55 + progress * leafLen * 0.2);
+                if(path.length===0 || path[path.length-1][0]!==lx || path[path.length-1][1]!==ly)
+                  path.push([lx,ly]);
+              }
+              cell.leafPaths.push(path);
+              cell.leafProgress.push(0);
+            }
+            cell.phase = 1;
+            cell.age = 0;
+            return;
+          }
+
+          // Phase 1: grow leaves one step at a time, round-robin
+          if(cell.phase === 1){
+            // advance the current leaf
+            const li = cell.currentLeaf % cell.leafCount;
+            const path = cell.leafPaths[li];
+            const prog = cell.leafProgress[li];
+
+            if(prog < path.length){
+              const [lx,ly] = path[prog];
+              if(grid.isInside(lx,ly) && grid.get(lx,ly).element === ELEMENTS.empty){
+                grid.set(lx,ly,ELEMENTS.drosera_capensis_leaf);
+                // mark tip for tentacles on the last 2/3 of the leaf
+                if(prog > Math.floor(path.length*0.3)){
+                  grid.get(lx,ly).hasTentacle = true;
+                }
+              }
+              cell.leafProgress[li]++;
+            } else {
+              // This leaf is done — place tentacles alongside it
+              placeTentacles(path, li);
+              cell.currentLeaf++;
+              cell.age = 0;
+              if(cell.currentLeaf >= cell.leafCount) cell.phase = 2;
+            }
+          }
+
+          function placeTentacles(path, li){
+            // Place tentacle cells perpendicular to each leaf cell in the upper portion
+            for(let t = Math.floor(path.length*0.25); t<path.length; t++){
+              const [lx,ly] = path[t];
+              // tentacle above/beside each leaf cell — just one cell "above" relative to path direction
+              const perps = [[-1,0],[1,0],[0,-1]];
+              for(const [px,py] of perps){
+                const tx=lx+px, ty=ly+py;
+                if(grid.isInside(tx,ty) && grid.get(tx,ty).element===ELEMENTS.empty && Math.random()<0.45){
+                  grid.set(tx,ty,ELEMENTS.drosera_capensis_tentacle);
+                  break; // only one tentacle per leaf cell
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if(cell.temperature > 200){ cell.element = cell.element.withTag("burnt"); return; }
+    if(grid.touching(x,y,ELEMENTS.fire)) cell.temperature += 16;
+
+    // gravity
+    if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
+      grid.swap(x,y,x,y+1);
+      return;
+    }
+
+    const pass = ["dirt","grass","moss"];
+    if(grid.isInside(x,y+1) && pass.includes(grid.get(x,y+1).element.name)){
+      cell.element = cell.element.withTag("growing");
+    }
+  }
+),
+
+drosera_capensis_stem: new Element(
+  "drosera_capensis_stem",
+  "#4BBF30",
+  "Life",
+  {
+    flammable: true,
+    conductivity: 1,
+    variants: {
+      burnt: {
+        color: "#1B3D0D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(grid.touching(x,y,"fire")) cell.temperature += 10;
+          if(grid.touching(x,y,"water")) cell.temperature = 20;
+          const directions = [[0,-1],[0,1],[-1,0],[1,0]];
+          if(cell.temperature>200){
+            for(const [dx,dy] of directions){
+              const nx=x+dx,ny=y+dy;
+              if(grid.isInside(nx,ny)&&grid.get(nx,ny).element.name==="drosera_capensis_stem"&&grid.get(nx,ny).element.doesNotHaveTag("burnt"))
+                if(Math.random()<0.5) grid.get(nx,ny).element=grid.get(nx,ny).element.withTag("burnt");
+            }
+          }
+          if(cell.temperature>240&&Math.random()<0.1) grid.set(x,y,ELEMENTS.empty);
+          if(cell.temperature>130){
+            for(const [dx,dy] of directions){
+              const nx=x+dx,ny=y+dy;
+              if(grid.isInside(nx,ny)&&grid.get(nx,ny).element.name==="empty"&&Math.random()<0.2)
+                grid.set(nx,ny,ELEMENTS.fire);
+            }
+          }
+          if(cell.temperature>1100&&Math.random()<0.2) grid.set(x,y,ELEMENTS.fire);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature>200){ cell.element=cell.element.withTag("burnt"); return; }
+    if(grid.touching(x,y,ELEMENTS.fire)) cell.temperature+=16;
+  }
+),
+
+drosera_capensis_leaf: new Element(
+  "drosera_capensis_leaf",
+  "#3DA820",
+  "Life",
+  {
+    flammable: true,
+    conductivity: 1,
+    variants: {
+      burnt: {
+        color: "#1B3D0D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(grid.touching(x,y,"fire")) cell.temperature += 10;
+          if(grid.touching(x,y,"water")) cell.temperature = 20;
+          const directions = [[0,-1],[0,1],[-1,0],[1,0]];
+          if(cell.temperature>200){
+            for(const [dx,dy] of directions){
+              const nx=x+dx,ny=y+dy;
+              if(grid.isInside(nx,ny)&&grid.get(nx,ny).element.name==="drosera_capensis_leaf"&&grid.get(nx,ny).element.doesNotHaveTag("burnt"))
+                if(Math.random()<0.5) grid.get(nx,ny).element=grid.get(nx,ny).element.withTag("burnt");
+            }
+          }
+          if(cell.temperature>240&&Math.random()<0.1) grid.set(x,y,ELEMENTS.empty);
+          if(cell.temperature>130){
+            for(const [dx,dy] of directions){
+              const nx=x+dx,ny=y+dy;
+              if(grid.isInside(nx,ny)&&grid.get(nx,ny).element.name==="empty"&&Math.random()<0.2)
+                grid.set(nx,ny,ELEMENTS.fire);
+            }
+          }
+          if(cell.temperature>1100&&Math.random()<0.2) grid.set(x,y,ELEMENTS.fire);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature>200){ cell.element=cell.element.withTag("burnt"); return; }
+    if(grid.touching(x,y,ELEMENTS.fire)) cell.temperature+=16;
+  }
+),
+
+drosera_capensis_tentacle: new Element(
+  "drosera_capensis_tentacle",
+  "#C0182A",
+  "hidden",
+  {
+    flammable: true,
+    conductivity: 0.7,
+    variants: {
+      burnt: {
+        color: "#3D0A0A",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(grid.touching(x,y,"fire")) cell.temperature += 10;
+          if(grid.touching(x,y,"water")) cell.temperature = 20;
+          if(cell.temperature>240&&Math.random()<0.1) grid.set(x,y,ELEMENTS.empty);
+          if(cell.temperature>1100&&Math.random()<0.2) grid.set(x,y,ELEMENTS.fire);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    // Glistening dewdrop effect: flicker between deep red and bright red
+    cell.color = Math.random() < 0.07 ? "#C0182A" : "#C0182A";
+    if(cell.temperature>200){ cell.element=cell.element.withTag("burnt"); return; }
+    if(grid.touching(x,y,ELEMENTS.fire)) cell.temperature+=16;
+  }
+),
+fly: new Element(
+  "fly",
+  "#141414",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    // ── INIT ──
+    if (cell.flyState == null)    cell.flyState    = "flying";
+    if (cell.flyVx == null)       cell.flyVx       = (Math.random() - 0.5) * 2;
+    if (cell.flyVy == null)       cell.flyVy       = (Math.random() - 0.5) * 2;
+    if (cell.flyPx == null)       cell.flyPx       = x;
+    if (cell.flyPy == null)       cell.flyPy       = y;
+    if (cell.jitterTimer == null) cell.jitterTimer  = 0;
+    if (cell.stateTimer == null)  cell.stateTimer   = 0;
+    if (cell.walkDir == null)     cell.walkDir      = Math.random() < 0.5 ? -1 : 1;
+    if (cell.walkTimer == null)   cell.walkTimer    = 0;
+    if (cell.targetX == null)     cell.targetX      = null;
+    if (cell.targetY == null)     cell.targetY      = null;
+
+    if(cell.temperature > 49){
+      cell.flyState = "dead";
+      if(cell.temperature > 200){
+        grid.set(x,y,ELEMENTS.fire);
+      }
+    }
+    if(cell.flyState === "dead"){
+      if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
+        grid.swap(x,y,x,y+1);
+        return;
+      }
+      return;
+    }
+    if(grid.touching(x,y, "drosera_capensis_tentacle")){
+      if(Math.random() < 0.1){
+        cell.flyState = "dead";
+        return;
+      }
+    }
+    cell.stateTimer++;
+    cell.jitterTimer++;
+
+    // ── ATTRACTION SCAN (every ~20 ticks) ──
+    if (cell.jitterTimer % 20 === 0) {
+      const SCAN = 18;
+      let bestScore = -Infinity;
+      let bx = null, by = null;
+
+      for (let dy = -SCAN; dy <= SCAN; dy++) {
+        for (let dx = -SCAN; dx <= SCAN; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const n = grid.get(nx, ny);
+          if (!n || !n.element) continue;
+          const name = n.element.name;
+          const cat  = n.element.category;
+
+          let score = 0;
+
+          if (name === "drosera_capensis_leaf")     score = 120;
+          if (name === "drosera_capensis_stem")     score = 80;
+          if (name === "drosera_capensis_seed")     score = 60;
+          if (name === "drosera_capensis_tentacle") score = 50;
+
+          if (name === "pitcher_plant_pitcher")     score = 70;
+          if (name === "pitcher_plant_stem")        score = 45;
+          if (name === "pitcher_plant_leaf")        score = 35;
+          if (name === "pitcher_plant_seed")        score = 25;
+
+       
+
+          if (score === 0) continue;
+
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const weighted = score / (dist + 1) + Math.random() * 3;
+          if (weighted > bestScore) {
+            bestScore = weighted;
+            bx = nx;
+            by = ny;
+          }
+        }
+      }
+
+      if (bx !== null) {
+        cell.targetX = bx;
+        cell.targetY = by;
+      } else {
+        if (Math.random() < 0.3) {
+          cell.targetX = x + Math.floor((Math.random() - 0.5) * 20);
+          cell.targetY = y + Math.floor((Math.random() - 0.5) * 20);
+        }
+      }
+    }
+
+    // ── STATE: FLYING ──
+    if (cell.flyState === "flying") {
+      if (cell.jitterTimer % 3 === 0) {
+        cell.color = Math.random() < 0.4 ? "#2a2a2a" : "#141414";
+      }
+
+      if (cell.targetX !== null && cell.targetY !== null) {
+        const tdx = cell.targetX - x;
+        const tdy = cell.targetY - y;
+        const dist = Math.sqrt(tdx*tdx + tdy*tdy);
+        if (dist > 0) {
+          cell.flyVx += (tdx / dist) * 0.25;
+          cell.flyVy += (tdy / dist) * 0.25;
+        }
+        if (dist < 3 && cell.stateTimer > 15) {
+          cell.flyState = "landing";
+          cell.stateTimer = 0;
+        }
+      }
+
+      cell.flyVx += (Math.random() - 0.5) * 0.6;
+      cell.flyVy += (Math.random() - 0.5) * 0.6;
+      cell.flyVy -= 0.04;
+      cell.flyVy += 0.05;
+
+      const spd = Math.sqrt(cell.flyVx**2 + cell.flyVy**2);
+      const MAX_SPD = 1.8;
+      if (spd > MAX_SPD) {
+        cell.flyVx = (cell.flyVx / spd) * MAX_SPD;
+        cell.flyVy = (cell.flyVy / spd) * MAX_SPD;
+      }
+
+      cell.flyVx *= 0.88;
+      cell.flyVy *= 0.88;
+      cell.flyPx += cell.flyVx;
+      cell.flyPy += cell.flyVy;
+
+      const nx = Math.round(cell.flyPx);
+      const ny = Math.round(cell.flyPy);
+
+      if (nx !== x || ny !== y) {
+        if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+          grid.swap(x, y, nx, ny);
+          const moved = grid.get(nx, ny);
+          moved.flyPx = nx;
+          moved.flyPy = ny;
+          moved.flyVx = cell.flyVx;
+          moved.flyVy = cell.flyVy;
+        } else {
+          cell.flyVx *= -0.5;
+          cell.flyVy *= -0.5;
+          cell.flyPx = x;
+          cell.flyPy = y;
+        }
+      } else {
+        cell.flyPx = x + (cell.flyPx - x) * 0.9;
+        cell.flyPy = y + (cell.flyPy - y) * 0.9;
+      }
+
+      if (cell.stateTimer > 60 && Math.random() < 0.01) {
+        const below = grid.isInside(x, y+1) ? grid.get(x, y+1) : null;
+        if (below && below.element.name !== "empty") {
+          cell.flyState = "walking";
+          cell.stateTimer = 0;
+          cell.flyVx = 0;
+          cell.flyVy = 0;
+        }
+      }
+      return;
+    }
+
+    // ── STATE: LANDING ──
+    if (cell.flyState === "landing") {
+      cell.color = "#1e1e1e";
+      cell.flyVy += 0.1;
+      cell.flyVx *= 0.75;
+      cell.flyVy *= 0.85;
+      cell.flyPx += cell.flyVx;
+      cell.flyPy += cell.flyVy;
+
+      const nx = Math.round(cell.flyPx);
+      const ny = Math.round(cell.flyPy);
+
+      if (nx !== x || ny !== y) {
+        if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+          grid.swap(x, y, nx, ny);
+          const moved = grid.get(nx, ny);
+          moved.flyPx = nx;
+          moved.flyPy = ny;
+          moved.flyVx = cell.flyVx;
+          moved.flyVy = cell.flyVy;
+        } else {
+          cell.flyState = "walking";
+          cell.stateTimer = 0;
+          cell.flyVx = 0; cell.flyVy = 0;
+          cell.flyPx = x; cell.flyPy = y;
+        }
+      }
+
+      const below = grid.isInside(x, y+1) ? grid.get(x, y+1) : null;
+      if (below && below.element.name !== "empty" && below.element.name !== "fly") {
+        cell.flyState = "walking";
+        cell.stateTimer = 0;
+        cell.flyVx = 0; cell.flyVy = 0;
+        cell.flyPx = x; cell.flyPy = y;
+      }
+
+      if (cell.stateTimer > 40) {
+        cell.flyState = "flying";
+        cell.stateTimer = 0;
+      }
+      return;
+    }
+    
+    // ── STATE: WALKING ──
+    if (cell.flyState === "walking") {
+      if (cell.jitterTimer % 6 === 0) {
+        cell.color = Math.random() < 0.2 ? "#222222" : "#141414";
+      }
+
+      cell.walkTimer++;
+
+      const below = grid.isInside(x, y+1) ? grid.get(x, y+1) : null;
+      if (!below || below.element.name === "empty") {
+        cell.flyState = "flying";
+        cell.stateTimer = 0;
+        cell.flyVx = (Math.random() - 0.5);
+        cell.flyVy = -0.8;
+        cell.flyPx = x; cell.flyPy = y;
+        return;
+      }
+
+      if (cell.targetX !== null) {
+        const tdx = cell.targetX - x;
+        if (Math.abs(tdx) > 1) cell.walkDir = tdx > 0 ? 1 : -1;
+      }
+
+      if (cell.walkTimer > 15 + Math.floor(Math.random() * 20)) {
+        cell.walkTimer = 0;
+        if (Math.random() < 0.25) cell.walkDir *= -1;
+      }
+
+      if (cell.walkTimer % 3 === 0) {
+        const nx = x + cell.walkDir;
+        if (grid.isInside(nx, y) && grid.get(nx, y).element.name === "empty") {
+          const nBelow = grid.isInside(nx, y+1) ? grid.get(nx, y+1) : null;
+          if (nBelow && nBelow.element.name !== "empty") {
+            grid.swap(x, y, nx, y);
+          } else {
+            cell.walkDir *= -1;
+          }
+        } else {
+          cell.walkDir *= -1;
+        }
+      }
+
+      if (cell.stateTimer > 80 + Math.floor(Math.random() * 60) && Math.random() < 0.02) {
+        cell.flyState = "flying";
+        cell.stateTimer = 0;
+        cell.flyVx = (Math.random() - 0.5) * 1.5;
+        cell.flyVy = -(0.5 + Math.random());
+        cell.flyPx = x; cell.flyPy = y;
+      }
+      return;
+    }
+  }
+),
+
+ant_egg: new Element(
+  "ant_egg",
+  "#E3E3E3",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y); 
+    if(cell.colony == null) cell.colony = Math.random().toString(36).slice(2);
+    cell.age++;
+  let t = Math.min(cell.age / 1000, 1);
+
+// Egg color: bright white #F5F5F0
+const r1 = 0xF5, g1 = 0xF5, b1 = 0xF0;
+
+// Larva color: #A8A88A
+const r2 = 0xA8, g2 = 0xA8, b2 = 0x8A;
+
+const r = Math.round(r1 + (r2 - r1) * t);
+const g = Math.round(g1 + (g2 - g1) * t);
+const b = Math.round(b1 + (b2 - b1) * t);
+
+cell.color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    if(cell.age > 1000){
+      if(Math.random() < 0.1){
+      grid.set(x,y,ELEMENTS.ant_larva);
+      grid.get(x,y).colony = cell.colony;
+      grid.get(x,y).job      = "builder";
+      }
+    }
+
+    
+    // gravity
+    if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
+      grid.swap(x,y,x,y+1);
+      return;
+    }
+  }
+),
+ant_larva: new Element(
+  "ant_larva",
+  "#A8A88A",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (cell.colony == null) cell.colony = Math.random().toString(36).slice(2);
+    cell.age++;
+    if(cell.age > 1000){
+      if(Math.random() < 0.1){
+          grid.set(x,y,ELEMENTS.ant);
+      grid.get(x,y).colony = cell.colony;
+      grid.get(x,y).job      = "builder";
+      }
+    }
+    if (!cell.state) cell.state = {
+      wiggleTimer: 0,
+      wiggleDir: 0,       // -1 = left, 0 = up, 1 = right
+      headWasPresent: false
+    };
+    const s = cell.state;
+
+    // Color lerp egg → larva
+    const t = Math.min(cell.age / 500, 1);
+    const r1 = 0xF5, g1 = 0xF5, b1 = 0xF0;
+    const r2 = 0xA8, g2 = 0xA8, b2 = 0x8A;
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    cell.color = `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+
+    // Head death check — if head disappears without us clearing it, die
+    const headOffsets = [-1, 0, 1]; // left-up, up, right-up
+    const hx = x + s.wiggleDir;
+    const hy = y - 1;
+    if (grid.isInside(hx, hy)) {
+      const headCell = grid.get(hx, hy);
+      const headPresent = headCell.element === ELEMENTS.ant_larva_head
+                       && headCell.colony === cell.colony;
+      if (s.headWasPresent && !headPresent) {
+        // Head was destroyed externally — larva dies
+        grid.set(x, y, ELEMENTS.empty);
+        return;
+      }
+    }
+
+    // Helper: safely clear our head
+    const clearHead = (chx, chy) => {
+      if (!grid.isInside(chx, chy)) return;
+      const t = grid.get(chx, chy);
+      if (t.element === ELEMENTS.ant_larva_head && t.colony === cell.colony) {
+        t.selfCleared = true;
+        grid.set(chx, chy, ELEMENTS.empty);
+      }
+    };
+
+    // Wiggle timer — pick a new direction every 20–40 ticks
+    s.wiggleTimer--;
+    if (s.wiggleTimer <= 0) {
+      clearHead(x + s.wiggleDir, y - 1);
+      // Choose: -1 (up-left), 0 (up), or 1 (up-right)
+      s.wiggleDir = [-1, 0, 1][Math.floor(Math.random() * 3)];
+      s.wiggleTimer = 20 + Math.floor(Math.random() * 60);
+      s.headWasPresent = false;
+    }
+
+    // Place head above in current wiggle direction
+    const nhx = x + s.wiggleDir;
+    const nhy = y - 1;
+    if (grid.isInside(nhx, nhy)) {
+      const target = grid.get(nhx, nhy);
+      if (target.element === ELEMENTS.empty || 
+         (target.element === ELEMENTS.ant_larva_head && target.colony === cell.colony)) {
+        grid.set(nhx, nhy, ELEMENTS.ant_larva_head);
+        const h = grid.get(nhx, nhy);
+        h.colony = cell.colony;
+        s.headWasPresent = true;
+      }
+    }
+  }
+),
+
+ant_larva_head: new Element(
+  "ant_larva_head",
+  "#8F8F74",
+  "hidden",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    // If the body below-ish is gone, clean up
+    // Check directly below and diagonally below
+    const bodyPositions = [
+      { bx: x,     by: y + 1 },
+      { bx: x - 1, by: y + 1 },
+      { bx: x + 1, by: y + 1 },
+    ];
+    const hasBody = bodyPositions.some(({ bx, by }) => {
+      if (!grid.isInside(bx, by)) return false;
+      const b = grid.get(bx, by);
+      return b.element === ELEMENTS.ant_larva && b.colony === cell.colony;
+    });
+
+    if (!hasBody && !cell.selfCleared) {
+      grid.set(x, y, ELEMENTS.empty);
+    }
+  }
+),
+
+// =====================================================
+// ANT ELEMENT
+// =====================================================
+ant: new Element(
+  "ant",
+  "#6E3017",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    // ═══════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════
+    if (cell.antId    == null) cell.antId    = Math.random().toString(36).slice(2);
+    if (cell.colony   == null) cell.colony   = cell.antId;
+    if (cell.job      == null) cell.job      = "worker";
+    if (cell.dir      == null) cell.dir      = { dx: 1, dy: 0 };
+    if (cell.lookDir  == null) cell.lookDir  = { dx: 1, dy: 0 };
+    if (cell.prevX    == null) cell.prevX    = null;
+    if (cell.prevY    == null) cell.prevY    = null;
+    if (cell.targetX  == null) cell.targetX  = null;
+    if (cell.targetY  == null) cell.targetY  = null;
+    if (cell.state    == null) cell.state    = "wander";
+    if (cell.stateAge == null) cell.stateAge = 0;
+    if (cell.lookCd   == null) cell.lookCd   = 0;
+    if (cell.moveCd   == null) cell.moveCd   = 0;
+    if (cell.scanCd   == null) cell.scanCd   = 0;
+    if (cell.digCd    == null) cell.digCd    = 0;
+    if (cell.hp       == null) cell.hp       = 10;
+    if (cell.scores   == null) cell.scores   = {};
+
+    const id  = cell.antId;
+    const col = getColony(cell.colony);
+
+    // ═══════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════
+    const DIRS4 = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+    const DIRS8 = [
+      {dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1},
+      {dx:1,dy:-1},{dx:-1,dy:-1},{dx:1,dy:1},{dx:-1,dy:1}
+    ];
+
+    // solid = anything the ant cannot walk into (not empty, not own parts)
+    const isSolid = (cx, cy) => {
+      if (!grid.isInside(cx, cy)) return true;
+      const n = grid.get(cx, cy).element.name;
+      return n !== "empty" && n !== "ant" && n !== "ant_head" && n !== "ant_abdomen";
+    };
+
+    // mineable = solid AND a builder can dig it
+    const isMineable = (cx, cy) => {
+      if (!grid.isInside(cx, cy)) return false;
+      const n = grid.get(cx, cy).element.name;
+      return n === "stone" || n === "dirt" || n === "gravel" || n === "sand" || n === "oakwood";
+    };
+
+    const isFree = (cx, cy) => {
+      if (!grid.isInside(cx, cy)) return false;
+      const n = grid.get(cx, cy).element.name;
+      if (n === "empty") return true;
+      if ((n === "ant_head" || n === "ant_abdomen") && grid.get(cx,cy).antId === id) return true;
+      return false;
+    };
+
+    const isValidHeadPos = (hx, hy) => {
+      if (!grid.isInside(hx, hy)) return false;
+      const t = grid.get(hx, hy);
+      const n = t.element.name;
+      if (n === "empty") return true;
+      if ((n === "ant_head" || n === "ant_abdomen") && t.antId === id) return true;
+      return false;
+    };
+
+    const clearPart = (name, px, py) => {
+      if (px == null || py == null || !grid.isInside(px, py)) return;
+      const pc = grid.get(px, py);
+      if (pc.element.name === name && pc.antId === id)
+        grid.set(px, py, ELEMENTS.empty);
+    };
+
+    const stampHead = (bx, by, dir) => {
+      const hx = bx + dir.dx, hy = by + dir.dy;
+      if (!isValidHeadPos(hx, hy)) return;
+      grid.set(hx, hy, ELEMENTS.ant_head);
+      grid.get(hx, hy).antId = id;
+    };
+
+    const stampAbdomen = (px, py) => {
+      if (px == null || py == null || !grid.isInside(px, py)) return;
+      const t = grid.get(px, py);
+      if (t.element.name === "empty" || (t.element.name === "ant_abdomen" && t.antId === id)) {
+        grid.set(px, py, ELEMENTS.ant_abdomen);
+        grid.get(px, py).antId = id;
+      }
+    };
+
+    const clearAllParts = () => {
+      clearPart("ant_head",     x + cell.lookDir.dx, y + cell.lookDir.dy);
+      clearPart("ant_head",     x + cell.dir.dx,     y + cell.dir.dy);
+      clearPart("ant_abdomen", cell.prevX,           cell.prevY);
+    };
+
+    const doMove = (nx, ny, newDir) => {
+      clearAllParts();
+      const s = {
+        antId: id, colony: cell.colony, job: cell.job,
+        dir: newDir, lookDir: { ...newDir },
+        moveCd: 4, prevX: x, prevY: y,
+        targetX: cell.targetX, targetY: cell.targetY,
+        scanCd: cell.scanCd, state: cell.state,
+        stateAge: cell.stateAge, lookCd: cell.lookCd,
+        scores: cell.scores, hp: cell.hp, digCd: cell.digCd,
+      };
+      grid.set(x, y, ELEMENTS.empty);
+      grid.set(nx, ny, ELEMENTS.ant);
+      Object.assign(grid.get(nx, ny), s);
+      stampHead(nx, ny, newDir);
+      stampAbdomen(x, y);
+    };
+
+    // ═══════════════════════════════════════
+    // DEATH
+    // ═══════════════════════════════════════
+    if (cell.temperature > 120 || cell.hp <= 0) {
+      clearAllParts();
+      grid.set(x, y, cell.temperature > 250 ? ELEMENTS.fire : ELEMENTS.empty);
+      return;
+    }
+
+    cell.stateAge++;
+
+
+    // create queen
+    if (cell.job === "worker") {
+      let queenNear = false;
+      const QSCAN = 20;
+      outer: for (let sdy = -QSCAN; sdy <= QSCAN; sdy++) {
+        for (let sdx = -QSCAN; sdx <= QSCAN; sdx++) {
+          const n = grid.get(x+sdx, y+sdy);
+          if (n && n.element && n.element.name === "ant" && n.job === "queen") {
+            queenNear = true; break outer;
+          }
+        }
+      }
+      if (!queenNear && Math.random() < 0.6) {
+        cell.job = "queen";
+      }
+    }
+    // ═══════════════════════════════════════
+    // QUEEN
+    // ═══════════════════════════════════════
+   // ═══════════════════════════════════════
+// QUEEN
+// ═══════════════════════════════════════
+if (cell.job === "queen") {
+  col.queen = { x, y };
+  if (col.phase === "founding") {
+    planColony(col, x, y);
+    col.phase = "expanding";
+  }
+  // 10x more frequent egg spawning (was 0.0003)
+  if (Math.random() < 0.001) {
+    for (const {dx,dy} of DIRS4) {
+      const ex = x+dx, ey = y+dy;
+      if (grid.isInside(ex,ey) && grid.get(ex,ey).element.name === "empty") {
+        grid.set(ex, ey, ELEMENTS.ant_egg);
+        const a    = grid.get(ex, ey);
+        a.colony   = cell.colony;
+        a.job      = "builder";
+        col.food  -= 5;
+        break;
+      }
+    }
+  }
+  // NEW: actively recruit nearby unaffiliated ants into this colony
+  const RECRUIT_RANGE = 15;
+  for (let sdy = -RECRUIT_RANGE; sdy <= RECRUIT_RANGE; sdy++) {
+    for (let sdx = -RECRUIT_RANGE; sdx <= RECRUIT_RANGE; sdx++) {
+      const n = grid.get(x+sdx, y+sdy);
+      if (n && n.element && n.element.name === "ant"
+          && n.colony !== cell.colony
+          && n.job !== "queen"
+          && Math.random() < 0.01) {
+        n.colony = cell.colony;   // absorbed into this queen's colony
+        n.state  = "wander";
+        n.stateAge = 0;
+      }
+    }
+  }
+}
+    // ═══════════════════════════════════════
+    // JOB REASSIGNMENT
+    // ═══════════════════════════════════════
+    if (cell.job === "worker" && col.phase === "expanding" && Math.random() < 0.002) {
+      const r = Math.random();
+      cell.job = r < 0.4 ? "builder" : r < 0.7 ? "forager" : "soldier";
+    }
+
+    // ═══════════════════════════════════════
+    // SURFACE & NORMAL
+    // ═══════════════════════════════════════
+    const onFloor   = isSolid(x, y+1);
+    const onCeiling = isSolid(x, y-1);
+    const onLeft    = isSolid(x-1, y);
+    const onRight   = isSolid(x+1, y);
+    const onSurface = onFloor || onCeiling || onLeft || onRight;
+
+    let normDx = 0, normDy = 0;
+    if      (onFloor)   normDy = -1;
+    else if (onCeiling) normDy =  1;
+    else if (onLeft)    normDx =  1;
+    else if (onRight)   normDx = -1;
+
+    // ═══════════════════════════════════════
+    // GRAVITY
+    // ═══════════════════════════════════════
+    if (!onSurface) {
+      if (isFree(x, y+1)) {
+        clearAllParts();
+        const s = {
+          antId:id, colony:cell.colony, job:cell.job,
+          dir:{dx:0,dy:1}, lookDir:{dx:0,dy:1},
+          moveCd:0, prevX:x, prevY:y,
+          targetX:cell.targetX, targetY:cell.targetY,
+          scanCd:cell.scanCd, state:cell.state,
+          stateAge:0, lookCd:0, scores:cell.scores,
+          hp:cell.hp, digCd:cell.digCd,
+        };
+        grid.set(x, y, ELEMENTS.empty);
+        grid.set(x, y+1, ELEMENTS.ant);
+        Object.assign(grid.get(x, y+1), s);
+      }
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    // COMMUNICATE
+    // ═══════════════════════════════════════
+    for (const {dx,dy} of DIRS8) {
+      const nx = x+dx, ny = y+dy;
+      if (!grid.isInside(nx,ny)) continue;
+      const n = grid.get(nx,ny);
+      if (n.element.name !== "ant") continue;
+      if (n.colony === cell.colony) {
+        // spread fight signal only
+        if (n.state === "fighting" && cell.state === "wander"
+            && (cell.job === "soldier" || cell.job === "worker")) {
+          cell.state = "fighting"; cell.stateAge = 0;
+          cell.targetX = n.targetX; cell.targetY = n.targetY;
+        }
+      } else {
+        const dip = getDiplomacy(cell.colony, n.colony);
+        if (dip.atWar) {
+          cell.state = "fighting"; cell.stateAge = 0;
+          cell.targetX = nx; cell.targetY = ny;
+          col.rallyPoint = { x, y };
+          colonyMessage(cell.colony, "rally", { x, y });
+        } else {
+          damageRelation(cell.colony, n.colony, 5);
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // STATE TRANSITIONS
+    // ═══════════════════════════════════════
+    const fireNear = DIRS8.some(({dx,dy}) => {
+      const n = grid.get(x+dx, y+dy);
+      return n && (n.element.name === "fire" || n.temperature > 80);
+    });
+    if (fireNear && cell.state !== "flee") { cell.state = "flee"; cell.stateAge = 0; }
+
+    const warMsgs = readMessages(cell.colony, "war");
+    if (warMsgs.length > 0 && cell.state !== "fighting" && cell.state !== "flee"
+        && (cell.job === "soldier" || cell.job === "worker")) {
+      cell.state = "fighting"; cell.stateAge = 0;
+      if (col.rallyPoint) { cell.targetX = col.rallyPoint.x; cell.targetY = col.rallyPoint.y; }
+    }
+
+    switch (cell.state) {
+      case "wander":
+        if (cell.stateAge > 80 && Math.random() < 0.008) { cell.state = "rest";  cell.stateAge = 0; cell.lookCd = 0; }
+        if (cell.stateAge > 30 && Math.random() < 0.004) { cell.state = "alert"; cell.stateAge = 0; }
+        break;
+      case "rest":
+        if (cell.stateAge > 120 + Math.floor(Math.random()*100)) { cell.state = "wander"; cell.stateAge = 0; }
+        break;
+      case "alert":
+        if (cell.stateAge > 40) { cell.state = "wander"; cell.stateAge = 0; }
+        break;
+      case "flee":
+        if (!fireNear && cell.stateAge > 30) { cell.state = "alert"; cell.stateAge = 0; }
+        break;
+      case "fighting":
+        let hitEnemy = false;
+        for (const {dx,dy} of DIRS4) {
+          const n = grid.get(x+dx, y+dy);
+          if (n && n.element.name === "ant" && n.colony !== cell.colony) {
+            n.hp     = (n.hp||10) - (cell.job === "soldier" ? 3 : 1);
+            cell.hp -= 1;
+            damageRelation(cell.colony, n.colony, 1);
+            hitEnemy = true;
+            break;
+          }
+        }
+        if (!hitEnemy) {
+          if (col.phase !== "war") { cell.state = "wander"; cell.stateAge = 0; }
+          else if (col.rallyPoint) { cell.targetX = col.rallyPoint.x; cell.targetY = col.rallyPoint.y; }
+        }
+        break;
+    }
+
+    // ═══════════════════════════════════════
+    // REST
+    // ═══════════════════════════════════════
+    if (cell.state === "rest") {
+      const validDirs = DIRS8.filter(({dx,dy}) => isValidHeadPos(x+dx, y+dy));
+      if (validDirs.length > 0) {
+        cell.lookCd++;
+        const lhx = x+cell.lookDir.dx, lhy = y+cell.lookDir.dy;
+        if (cell.lookCd % 18 === 0) {
+          clearPart("ant_head", lhx, lhy);
+          cell.lookDir = { ...validDirs[Math.floor(cell.lookCd/18) % validDirs.length] };
+          grid.set(x+cell.lookDir.dx, y+cell.lookDir.dy, ELEMENTS.ant_head);
+          grid.get(x+cell.lookDir.dx, y+cell.lookDir.dy).antId = id;
+        } else if (isValidHeadPos(lhx, lhy)) {
+          grid.set(lhx, lhy, ELEMENTS.ant_head);
+          grid.get(lhx, lhy).antId = id;
+        } else {
+          clearPart("ant_head", lhx, lhy);
+          cell.lookDir = { ...validDirs[0] };
+          grid.set(x+cell.lookDir.dx, y+cell.lookDir.dy, ELEMENTS.ant_head);
+          grid.get(x+cell.lookDir.dx, y+cell.lookDir.dy).antId = id;
+        }
+      }
+      stampAbdomen(cell.prevX, cell.prevY);
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    // ALERT
+    // ═══════════════════════════════════════
+    if (cell.state === "alert") {
+      if (cell.stateAge === 1) {
+        // scan and pick best target
+        const SCAN = 12;
+        let best = -Infinity, bx = null, by = null;
+        for (let sdy=-SCAN; sdy<=SCAN; sdy++) {
+          for (let sdx=-SCAN; sdx<=SCAN; sdx++) {
+            const nx=x+sdx, ny=y+sdy;
+            if (!grid.isInside(nx,ny)) continue;
+            const n=grid.get(nx,ny);
+            const name=n.element.name;
+            let score=0;
+           
+            if (n.temperature>80) score-=20;
+            if (name==="fire") score-=50;
+            if (score===0) continue;
+            const w=score/(Math.sqrt(sdx*sdx+sdy*sdy)+1);
+            if (w>best) { best=w; bx=nx; by=ny; }
+          }
+        }
+        if (bx!==null && best>0) { cell.targetX=bx; cell.targetY=by; }
+      }
+      clearPart("ant_head", x+cell.lookDir.dx, y+cell.lookDir.dy);
+      const wantDx = Math.sign((cell.targetX||x)-x) || cell.dir.dx;
+      const wantDy = Math.sign((cell.targetY||y)-y) || 0;
+      if (isValidHeadPos(x+wantDx, y+wantDy)) {
+        cell.lookDir = { dx:wantDx, dy:wantDy };
+        grid.set(x+wantDx, y+wantDy, ELEMENTS.ant_head);
+        grid.get(x+wantDx, y+wantDy).antId = id;
+      } else {
+        stampHead(x, y, cell.dir);
+      }
+      stampAbdomen(cell.prevX, cell.prevY);
+      cell.moveCd = 6;
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    // BUILDER — dig logic
+    // ═══════════════════════════════════════
+    if (cell.job === "builder" && cell.state !== "flee" && cell.state !== "fighting") {
+      cell.digCd = Math.max(0, cell.digCd - 1);
+
+      if (col.digQueue && col.digQueue.length > 0) {
+        // skip already-cleared cells
+        while (col.digIndex < col.digQueue.length) {
+          const qt = col.digQueue[col.digIndex];
+          if (!grid.isInside(qt.x, qt.y) || grid.get(qt.x, qt.y).element.name === "empty")
+            col.digIndex++;
+          else break;
+        }
+
+        const target = col.digQueue[col.digIndex];
+        if (target) {
+          col.digTarget = target;
+          cell.targetX  = target.x;
+          cell.targetY  = target.y;
+
+          // dig if adjacent and cooldown done
+          const manhattan = Math.abs(target.x-x) + Math.abs(target.y-y);
+          if (manhattan <= 1 && cell.digCd <= 0) {
+            const t = grid.get(target.x, target.y);
+            if (t && t.element.name !== "empty"
+              && t.element.name !== "ant"
+              && t.element.name !== "ant_head"
+              && t.element.name !== "ant_abdomen") {
+              grid.set(target.x, target.y, ELEMENTS.empty);
+              cell.digCd = 8;
+              col.digIndex++;
+            }
+          }
+
+          // KEY FIX: if blocked moving toward target, dig the blocker
+          // this lets builders tunnel through solid ground
+      // Dig ANY adjacent mineable cell, not just ones in the target direction.
+// This lets builders dig straight down, up, sideways — whatever is touching them.
+if (cell.digCd <= 0) {
+  // First priority: dig the exact target if adjacent
+  // Second priority: dig anything touching us that's mineable
+  const tdx = Math.sign(target.x - x);
+  const tdy = Math.sign(target.y - y);
+  const preferred = [[tdx,0],[0,tdy],[tdx,tdy]];
+  const fallback  = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  const allDirs   = [...preferred, ...fallback];
+  for (const [ddx, ddy] of allDirs) {
+    if (ddx===0 && ddy===0) continue;
+    const nx = x+ddx, ny = y+ddy;
+    if (!grid.isInside(nx,ny)) continue;
+    if (isMineable(nx, ny)) {
+      grid.set(nx, ny, ELEMENTS.empty);
+      cell.digCd = 8;
+      break;
+    }
+  }
+}
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // COOLDOWN
+    // ═══════════════════════════════════════
+    if (cell.moveCd > 0) {
+      cell.moveCd--;
+      if (isValidHeadPos(x+cell.dir.dx, y+cell.dir.dy)) stampHead(x, y, cell.dir);
+      stampAbdomen(cell.prevX, cell.prevY);
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    // TARGET SELECTION
+    // ═══════════════════════════════════════
+    cell.scanCd--;
+    if (cell.scanCd <= 0 || cell.targetX == null) {
+      cell.scanCd = 20 + Math.floor(Math.random()*20);
+
+      if (cell.state === "flee") {
+        let hotDx=0, hotDy=0, maxT=0;
+        for (const {dx,dy} of DIRS8) {
+          const n=grid.get(x+dx,y+dy);
+          if (n && n.temperature>maxT) { maxT=n.temperature; hotDx=dx; hotDy=dy; }
+        }
+        cell.targetX=x-hotDx*12; cell.targetY=y-hotDy*12;
+
+      } else if (cell.state === "fighting" && col.rallyPoint) {
+        cell.targetX=col.rallyPoint.x; cell.targetY=col.rallyPoint.y;
+
+      } else if (cell.job === "builder" && col.digTarget) {
+        // builders always locked onto dig target — never wander
+        cell.targetX=col.digTarget.x; cell.targetY=col.digTarget.y;
+
+      } else if (cell.job === "soldier" && col.phase === "war" && col.rallyPoint) {
+        cell.targetX=col.rallyPoint.x; cell.targetY=col.rallyPoint.y;
+
+      } else if (cell.job === "forager") {
+        let best=-Infinity, bx=null, by=null;
+        const SCAN=12;
+        for (let sdy=-SCAN; sdy<=SCAN; sdy++) {
+          for (let sdx=-SCAN; sdx<=SCAN; sdx++) {
+            const nx=x+sdx, ny=y+sdy;
+            if (!grid.isInside(nx,ny)) continue;
+            const n=grid.get(nx,ny);
+            if (n.element.category==="Life" && n.element.name!=="ant"
+                && n.element.name!=="ant_head" && n.element.name!=="ant_abdomen") {
+              const w=3/(Math.sqrt(sdx*sdx+sdy*sdy)+1);
+              if (w>best) { best=w; bx=nx; by=ny; }
+            }
+          }
+        }
+        if (bx!==null) { cell.targetX=bx; cell.targetY=by; }
+        else {
+          const ang=Math.random()*Math.PI*2, d=10+Math.floor(Math.random()*12);
+          cell.targetX=x+Math.round(Math.cos(ang)*d);
+          cell.targetY=y+Math.round(Math.sin(ang)*d);
+        }
+
+      } else {
+        // worker / soldier not at war: wander
+        const ang=Math.random()*Math.PI*2, d=8+Math.floor(Math.random()*14);
+        cell.targetX=x+Math.round(Math.cos(ang)*d);
+        cell.targetY=y+Math.round(Math.sin(ang)*d);
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // MOVEMENT
+    // ═══════════════════════════════════════
+    const tx = cell.targetX ?? x, ty = cell.targetY ?? y;
+    const {dx, dy} = cell.dir;
+    const fwdX = x+dx, fwdY = y+dy;
+    const moves = [];
+
+    const tryMove = (nx, ny, newDx, newDy, bonus=0) => {
+      if (!isFree(nx, ny)) return;
+      // must still touch a solid after moving
+      let grounded = false;
+      for (const {dx:sdx,dy:sdy} of DIRS4) {
+        if (isSolid(nx+sdx, ny+sdy)) { grounded=true; break; }
+      }
+      if (!grounded) return;
+      const dist     = Math.sqrt((nx-tx)**2 + (ny-ty)**2);
+      const momentum = (newDx===dx && newDy===dy) ? 3 : 0;
+      const flee     = cell.state==="flee" ? Math.sqrt((nx-x)**2+(ny-y)**2)*2 : 0;
+      moves.push({ nx, ny, newDir:{dx:newDx,dy:newDy},
+                   score: -dist+momentum+bonus+flee+Math.random()*1.5 });
+    };
+
+    if (!isSolid(fwdX, fwdY)) {
+      tryMove(fwdX, fwdY, dx, dy);
+      // outer corner: ground disappears ahead, curl around edge
+      if (!isSolid(fwdX+normDx, fwdY+normDy))
+        tryMove(fwdX+normDx, fwdY+normDy, normDx, normDy, -0.5);
+    } else {
+      // inner corner: climb onto face of blocker
+      tryMove(x+normDx+dx, y+normDy+dy, dx, dy, -0.5);
+    }
+
+    // fallback: any grounded cardinal
+    if (moves.length === 0)
+      for (const {dx:tdx,dy:tdy} of DIRS4)
+        tryMove(x+tdx, y+tdy, tdx, tdy, -5);
+
+    if (moves.length === 0) {
+      // truly stuck — reset target so next tick picks fresh
+      cell.targetX = null;
+      cell.moveCd  = 6;
+      if (isValidHeadPos(x+cell.dir.dx, y+cell.dir.dy)) stampHead(x, y, cell.dir);
+      stampAbdomen(cell.prevX, cell.prevY);
+      return;
+    }
+
+    moves.sort((a,b) => b.score-a.score);
+    doMove(moves[0].nx, moves[0].ny, moves[0].newDir);
+  }
+),
+ant_head: new Element(
+  "ant_head",
+  "#7D3A1F",
+  "hidden",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell.antId) { grid.set(x, y, ELEMENTS.empty); return; }
+    // brain can be up to 1 step away (moving) or same tile during rest look-around (up to 1 step)
+    let ok = false;
+    for (const {dx,dy} of [
+      {dx:0,dy:0},{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1},
+      {dx:1,dy:-1},{dx:-1,dy:-1},{dx:1,dy:1},{dx:-1,dy:1}
+    ]) {
+      const n = grid.get(x+dx, y+dy);
+      if (n && n.element.name === "ant" && n.antId === cell.antId) { ok = true; break; }
+    }
+    if (!ok) grid.set(x, y, ELEMENTS.empty);
+  }
+),
+
+ant_abdomen: new Element(
+  "ant_abdomen",
+  "#5C2915",
+  "hidden",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell.antId) { grid.set(x, y, ELEMENTS.empty); return; }
+    let ok = false;
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const n = grid.get(x+dx, y+dy);
+        if (n && n.element.name === "ant" && n.antId === cell.antId) { ok = true; break; }
+      }
+      if (ok) break;
+    }
+    if (!ok) grid.set(x, y, ELEMENTS.empty);
+  }
+),
+bee: new Element(
+  "bee",
+  "#E8A010",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    // ═══════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════
+    if (cell.beeId    == null) cell.beeId    = Math.random().toString(36).slice(2);
+    if (cell.hive     == null) cell.hive     = "hive_" + cell.beeId;
+    if (cell.job      == null) cell.job      = "worker";
+    if (cell.dir      == null) cell.dir      = { dx: 1, dy: 0 };
+    if (cell.prevX    == null) cell.prevX    = null;
+    if (cell.prevY    == null) cell.prevY    = null;
+    if (cell.targetX  == null) cell.targetX  = null;
+    if (cell.targetY  == null) cell.targetY  = null;
+    if (cell.state    == null) cell.state    = "wander";
+    if (cell.stateAge == null) cell.stateAge = 0;
+    if (cell.moveCd   == null) cell.moveCd   = 0;
+    if (cell.scanCd   == null) cell.scanCd   = 0;
+    if (cell.buildCd  == null) cell.buildCd  = 0;
+    if (cell.hp       == null) cell.hp       = 10;
+    if (cell.pollen   == null) cell.pollen   = 0;
+    if (cell.returning== null) cell.returning= false;
+
+    // ═══════════════════════════════════════
+    // NATURAL QUEEN PROMOTION
+    // ═══════════════════════════════════════
+    if (cell.job === "worker") {
+      let queenNear = false;
+      const QSCAN = 20;
+      outer: for (let sdy = -QSCAN; sdy <= QSCAN; sdy++) {
+        for (let sdx = -QSCAN; sdx <= QSCAN; sdx++) {
+          const n = grid.get(x+sdx, y+sdy);
+          if (n && n.element && n.element.name === "bee" && n.job === "queen") {
+            queenNear = true; break outer;
+          }
+        }
+      }
+      if (!queenNear && Math.random() < 0.0003) {
+        cell.job = "queen";
+      }
+    }
+
+    const id  = cell.beeId;
+    const hiv = getBeeHive(cell.hive);
+
+    const DIRS4 = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+    const DIRS8 = [
+      {dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1},
+      {dx:1,dy:-1},{dx:-1,dy:-1},{dx:1,dy:1},{dx:-1,dy:1}
+    ];
+
+    const isFree = (cx, cy) => {
+      if (!grid.isInside(cx, cy)) return false;
+      return grid.get(cx, cy).element.name === "empty";
+    };
+
+    const doMove = (nx, ny, newDir) => {
+      const s = {
+        beeId: id, hive: cell.hive, job: cell.job,
+        dir: newDir,
+        moveCd: 3, prevX: x, prevY: y,
+        targetX: cell.targetX, targetY: cell.targetY,
+        scanCd: cell.scanCd, state: cell.state,
+        stateAge: cell.stateAge,
+        hp: cell.hp, buildCd: cell.buildCd,
+        pollen: cell.pollen, returning: cell.returning,
+      };
+      grid.set(x, y, ELEMENTS.empty);
+      grid.set(nx, ny, ELEMENTS.bee);
+      Object.assign(grid.get(nx, ny), s);
+    };
+
+    // ═══════════════════════════════════════
+    // DEATH
+    // ═══════════════════════════════════════
+    if (cell.temperature > 120 || cell.hp <= 0) {
+      grid.set(x, y, cell.temperature > 250 ? ELEMENTS.fire : ELEMENTS.empty);
+      return;
+    }
+
+    cell.stateAge++;
+
+    // ═══════════════════════════════════════
+    // QUEEN — register position, plan hive, recruit, spawn
+    // ═══════════════════════════════════════
+    if (cell.job === "queen") {
+      hiv.queen = { x, y };
+      cell.color = "#AB852B";
+      if (!hiv.cells || hiv.cells.length === 0) {
+        const hcx = Math.max(6, Math.min(grid.cols - 6, x));
+        const hcy = Math.max(6, Math.min(grid.rows - 6, y));
+        // store hive center so all bees can navigate to it reliably
+        hiv.centerX = hcx;
+        hiv.centerY = hcy;
+        planHive(hiv, hcx, hcy);
+      }
+
+      // recruit nearby bees into this hive
+      const RSCAN = 15;
+      for (let sdy = -RSCAN; sdy <= RSCAN; sdy++) {
+        for (let sdx = -RSCAN; sdx <= RSCAN; sdx++) {
+          if (!grid.isInside(x+sdx, y+sdy)) continue;
+          const n = grid.get(x+sdx, y+sdy);
+          if (n && n.element && n.element.name === "bee" && n.hive !== cell.hive) {
+            n.hive = cell.hive;
+            n.job  = Math.random() < 0.5 ? "builder" : "forager";
+          }
+        }
+      }
+
+      // spawn new bees
+      if (hiv.food > 10 && Math.random() < 0.0004) {
+        for (const {dx,dy} of DIRS4) {
+          const ex = x+dx, ey = y+dy;
+          if (grid.isInside(ex,ey) && grid.get(ex,ey).element.name === "empty") {
+            grid.set(ex, ey, ELEMENTS.bee);
+            const b    = grid.get(ex, ey);
+            b.beeId    = Math.random().toString(36).slice(2);
+            b.hive     = cell.hive;
+            b.job      = Math.random() < 0.5 ? "builder" : "forager";
+            b.state    = "wander"; b.stateAge = 0;
+            b.moveCd   = 0; b.scanCd = 0; b.buildCd = 0;
+            b.hp       = 10; b.pollen = 0; b.returning = false;
+            b.dir      = {dx, dy};
+            b.prevX    = null; b.prevY = null;
+            b.targetX  = null; b.targetY = null;
+            hiv.food  -= 5;
+            break;
+          }
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // JOB REASSIGNMENT
+    // ═══════════════════════════════════════
+    if (cell.job === "worker" && hiv.cells && hiv.cells.length > 0 && Math.random() < 0.002) {
+      cell.job = Math.random() < 0.5 ? "builder" : "forager";
+    }
+
+    // ═══════════════════════════════════════
+    // FIRE FLEE
+    // ═══════════════════════════════════════
+    const fireNear = DIRS8.some(({dx,dy}) => {
+      const n = grid.get(x+dx, y+dy);
+      return n && (n.element.name === "fire" || n.temperature > 80);
+    });
+    if (fireNear && cell.state !== "flee") { cell.state = "flee"; cell.stateAge = 0; }
+    if (!fireNear && cell.state === "flee" && cell.stateAge > 30) { cell.state = "wander"; cell.stateAge = 0; }
+
+    // ═══════════════════════════════════════
+    // COOLDOWN
+    // ═══════════════════════════════════════
+    if (cell.moveCd > 0) { cell.moveCd--; return; }
+
+   // ═══════════════════════════════════════
+// BUILDER — place hive cells
+// ═══════════════════════════════════════
+if (cell.job === "builder" && cell.state !== "flee") {
+  cell.buildCd = Math.max(0, cell.buildCd - 1);
+
+  if (hiv.cells && hiv.cells.length > 0) {
+
+    // — PHASE 1: walls —
+    if (!hiv.wallsDone) {
+      while (hiv.wallIndex < hiv.wallQueue.length) {
+        const qt = hiv.wallQueue[hiv.wallIndex];
+        if (!grid.isInside(qt.x, qt.y) ||
+            grid.get(qt.x, qt.y).element.name === qt.elementName)
+          hiv.wallIndex++;
+        else break;
+      }
+      if (hiv.wallIndex >= hiv.wallQueue.length) {
+        hiv.wallsDone = true;
+      } else {
+        const target = hiv.wallQueue[hiv.wallIndex];
+        hiv.digTarget = target;
+        cell.targetX = target.x;
+        cell.targetY = target.y;
+
+        const manhattan = Math.abs(target.x - x) + Math.abs(target.y - y);
+        if (manhattan <= 1 && cell.buildCd <= 0) {
+          const t = grid.get(target.x, target.y);
+          if (t && t.element.name === "empty") {
+            grid.set(target.x, target.y, ELEMENTS.hive_wall);
+            cell.buildCd = 10;
+            hiv.wallIndex++;
+          }
+        }
+      }
+
+    // — PHASE 2: top and bottom simultaneously, randomly switching —
+    } else {
+      // randomly pick top or bottom queue, fall back to the other if done
+      const topDone = hiv.topIndex >= hiv.topQueue.length;
+      const botDone = hiv.botIndex >= hiv.botQueue.length;
+
+      if (topDone && botDone) {
+        // all done
+      } else {
+        let useTop;
+        if      (topDone) useTop = false;
+        else if (botDone) useTop = true;
+        else              useTop = Math.random() < 0.5;
+
+        const queue = useTop ? hiv.topQueue : hiv.botQueue;
+        const idx   = useTop ? hiv.topIndex : hiv.botIndex;
+
+        // skip already placed
+        let i = idx;
+        while (i < queue.length) {
+          const qt = queue[i];
+          if (!grid.isInside(qt.x, qt.y) ||
+              grid.get(qt.x, qt.y).element.name === qt.elementName)
+            i++;
+          else break;
+        }
+        if (useTop) hiv.topIndex = i;
+        else        hiv.botIndex = i;
+
+        const target = queue[useTop ? hiv.topIndex : hiv.botIndex];
+        if (target) {
+          hiv.digTarget = target;
+          cell.targetX = target.x;
+          cell.targetY = target.y;
+
+          const manhattan = Math.abs(target.x - x) + Math.abs(target.y - y);
+          if (manhattan <= 1 && cell.buildCd <= 0) {
+            const t = grid.get(target.x, target.y);
+            if (t && t.element.name === "empty") {
+              const elem = target.variant
+                ? ELEMENTS[target.elementName].withTag(target.variant)
+                : ELEMENTS[target.elementName];
+              grid.set(target.x, target.y, elem);
+              cell.buildCd = 10;
+              if (useTop) hiv.topIndex++;
+              else        hiv.botIndex++;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+    // ═══════════════════════════════════════
+    // TARGET SELECTION
+    // ═══════════════════════════════════════
+    cell.scanCd--;
+    if (cell.scanCd <= 0 || cell.targetX == null) {
+      cell.scanCd = 20 + Math.floor(Math.random() * 20);
+
+      // hive center — fixed point, never moves unlike the queen
+      const homX = hiv.centerX ?? hiv.queen?.x ?? x;
+      const homY = hiv.centerY ?? hiv.queen?.y ?? y;
+
+      if (cell.state === "flee") {
+        let hotDx=0, hotDy=0, maxT=0;
+        for (const {dx,dy} of DIRS8) {
+          const n = grid.get(x+dx, y+dy);
+          if (n && n.temperature > maxT) { maxT = n.temperature; hotDx=dx; hotDy=dy; }
+        }
+        cell.targetX = x - hotDx*12; cell.targetY = y - hotDy*12;
+
+      } else if (cell.job === "builder" && hiv.digTarget) {
+        cell.targetX = hiv.digTarget.x; cell.targetY = hiv.digTarget.y;
+
+      } else if (cell.job === "forager") {
+        // decide to return home if carrying pollen or randomly after foraging a while
+        if (cell.pollen > 0 || (cell.stateAge > 60 && Math.random() < 0.7)) {
+          cell.returning = true;
+        }
+
+        if (cell.returning) {
+          // navigate to fixed hive center, not the wandering queen
+          cell.targetX = homX;
+          cell.targetY = homY;
+          const dist = Math.abs(x - homX) + Math.abs(y - homY);
+          if (dist <= 3) {
+            hiv.food += cell.pollen;
+            cell.pollen = 0;
+            cell.returning = false;
+            cell.stateAge = 0;
+          }
+        } else {
+          // go forage
+          let best=-Infinity, bx=null, by=null;
+          const SCAN = 14;
+          for (let sdy=-SCAN; sdy<=SCAN; sdy++) {
+            for (let sdx=-SCAN; sdx<=SCAN; sdx++) {
+              const nx=x+sdx, ny=y+sdy;
+              if (!grid.isInside(nx,ny)) continue;
+              const n = grid.get(nx,ny);
+              const name = n.element.name;
+              if (n.element.category === "Life"
+                  && name !== "bee" && name !== "honeycomb"
+                  && name !== "hive_wall") {
+                const w = 4 / (Math.sqrt(sdx*sdx+sdy*sdy) + 1);
+                if (w > best) { best=w; bx=nx; by=ny; }
+              }
+            }
+          }
+          if (bx !== null) {
+            cell.targetX = bx; cell.targetY = by;
+            if (Math.abs(x-bx) + Math.abs(y-by) <= 1) cell.pollen += 3;
+          } else {
+            const ang = Math.random()*Math.PI*2, d = 10+Math.floor(Math.random()*14);
+            cell.targetX = x+Math.round(Math.cos(ang)*d);
+            cell.targetY = y+Math.round(Math.sin(ang)*d);
+          }
+        }
+
+      } else {
+        const ang = Math.random()*Math.PI*2, d = 6+Math.floor(Math.random()*12);
+        cell.targetX = x+Math.round(Math.cos(ang)*d);
+        cell.targetY = y+Math.round(Math.sin(ang)*d);
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // FLIGHT MOVEMENT
+    // ═══════════════════════════════════════
+    const tx = cell.targetX ?? x, ty = cell.targetY ?? y;
+    const {dx, dy} = cell.dir;
+    const bobY = Math.random() < 0.3 ? -1 : 0;
+
+    const moves = [];
+    const tryMove = (nx, ny, newDx, newDy, bonus=0) => {
+      if (!isFree(nx, ny)) return;
+      const dist = Math.sqrt((nx-tx)**2 + (ny-ty)**2);
+      const momentum = (newDx===dx && newDy===dy) ? 2 : 0;
+      const flee = cell.state==="flee" ? Math.sqrt((nx-x)**2+(ny-y)**2)*2 : 0;
+      moves.push({ nx, ny, newDir:{dx:newDx,dy:newDy},
+                   score: -dist + momentum + bonus + flee + Math.random()*2 });
+    };
+
+    for (const {dx:mdx, dy:mdy} of DIRS8) {
+      tryMove(x+mdx, y+mdy+bobY, mdx, mdy+bobY, 0);
+      tryMove(x+mdx, y+mdy, mdx, mdy, 0);
+    }
+    tryMove(x+dx, y+dy, dx, dy, 1);
+
+    if (moves.length === 0) {
+      for (const {dx:mdx,dy:mdy} of DIRS4) {
+        if (isFree(x+mdx, y+mdy)) {
+          cell.targetX = null;
+          doMove(x+mdx, y+mdy, {dx:mdx,dy:mdy});
+          return;
+        }
+      }
+      cell.targetX = null;
+      cell.moveCd = 4;
+      return;
+    }
+
+    moves.sort((a,b) => b.score-a.score);
+    doMove(moves[0].nx, moves[0].ny, moves[0].newDir);
+  }
+),
+honeycomb: new Element(
+  "honeycomb",
+  "#CC8A18",
+  "Life",
+  {
+    variants: {
+    outer: {
+      color: "#A67217"
+    }
+  }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+  }
+),
+hive_wall: new Element(
+  "hive_wall",
+  "#B0AC5D",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+  }
+),
+frog: new Element(
+  "frog",
+  "#36A31A",
+  "Life",
+  {
+    variants: {
+      back: {
+        color: "#2F8C16",
+        hidden: true,
+        behavior: (grid, x, y) => { 
+          const cell = grid.get(x,y);
+          if(cell.temperature > 200){ grid.set(x,y,ELEMENTS.fire); }
+        }
+      },
+      leg: {
+        color: "#4CCF29",
+        hidden: true,
+        behavior: (grid, x, y) => { 
+          const cell = grid.get(x,y);
+          if(cell.temperature > 200){ grid.set(x,y,ELEMENTS.fire); }
+        }
+      },
+    },
+  },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (cell.element.hasTag("back") || cell.element.hasTag("leg")) return;
+
+    // ── init ──────────────────────────────────────────────
+    if (cell.direction    == null) cell.direction    = { dx: 1, dy: 0 };
+    if (cell.parts        == null) cell.parts        = {};
+    if (cell.state        == null) cell.state        = "idle";
+    if (cell.prevState    == null) cell.prevState    = null;
+    if (cell.partCounter  == null) cell.partCounter  = 0;
+    if (cell.vy           == null) cell.vy           = 0;
+    if (cell.vx           == null) cell.vx           = 0;
+    if (cell.subX         == null) cell.subX         = 0;
+    if (cell.subY         == null) cell.subY         = 0;
+    if (cell.jumpCooldown == null) cell.jumpCooldown = 60;
+    if (cell.goalX        == null) cell.goalX        = null;
+    if (cell.goalY        == null) cell.goalY        = null;
+    if (cell.goalTimer    == null) cell.goalTimer    = 0;
+    if (cell.stuckTimer   == null) cell.stuckTimer   = 0;
+    if (cell.lastX        == null) cell.lastX        = x;
+    if (cell.lastY        == null) cell.lastY        = y;
+    if (cell.tongueState  == null) cell.tongueState  = "none";
+    if (cell.tongueTimer  == null) cell.tongueTimer  = 0;
+    if (cell.tongueFoodX  == null) cell.tongueFoodX  = null;
+    if (cell.tongueFoodY  == null) cell.tongueFoodY  = null;
+    if (cell.tongueTips   == null) cell.tongueTips   = [];
+    if (cell.prevDirDx    == null) cell.prevDirDx    = cell.direction.dx;
+
+    if (cell.temperature > 200) { grid.set(x, y, ELEMENTS.fire); }
+
+    // ── food check helper ─────────────────────────────────
+    const FOOD_NAMES = new Set(["fly", "bee", "ant", "ant_head", "ant_abdomen"]);
+
+    function isFood(element) {
+      if (!element || element === ELEMENTS.empty) return false;
+      if (FOOD_NAMES.has(element.name)) return true;
+      for (const tag of FOOD_NAMES) {
+        if (element.hasTag && element.hasTag(tag)) return true;
+      }
+      return false;
+    }
+
+    // ── part helpers ──────────────────────────────────────
+    function clearPart(name) {
+      const p = cell.parts[name];
+      if (!p) return;
+      const c = grid.get(p.cx, p.cy);
+      if (c && c.element && c.element.hasTag && c.element.hasTag(p.tag)) {
+        grid.set(p.cx, p.cy, ELEMENTS.empty);
+      }
+      delete cell.parts[name];
+    }
+
+    function clearAllParts() {
+      for (const name of Object.keys(cell.parts)) clearPart(name);
+      cell.partCounter = 0;
+    }
+
+    // ── applyState ────────────────────────────────────────
+    function applyState(state) {
+      clearAllParts();
+
+      function getOffsets(state, dirDx) {
+        if (state === "idle") return [
+          { tag: "back", dx: -1 * dirDx, dy: 0 },
+          { tag: "leg",  dx: -2 * dirDx, dy: 1 },
+          { tag: "leg",  dx:  0,          dy: 1 },
+        ];
+        if (state === "jumping") return [
+          { tag: "back", dx: -1 * dirDx, dy: 1 },
+          { tag: "leg",  dx: -2 * dirDx, dy: 2 },
+          { tag: "leg",  dx:  1 * dirDx, dy: -1 },
+        ];
+        if (state === "falling") return [
+          { tag: "back", dx: -1 * dirDx, dy: 0 },
+          { tag: "leg",  dx: -2 * dirDx, dy: 1 },
+          { tag: "leg",  dx:  1 * dirDx, dy: -1 },
+        ];
+        return [];
+      }
+
+      for (const off of getOffsets(state, cell.direction.dx)) {
+        const px = x + off.dx;
+        const py = y + off.dy;
+        if (!grid.isInside(px, py)) continue;
+        const target = grid.get(px, py);
+        if (target.element !== ELEMENTS.empty) continue;
+        const id = off.tag + "_" + (cell.partCounter++);
+        grid.set(px, py, ELEMENTS.frog);
+        const placed = grid.get(px, py);
+        placed.element = placed.element.withTag(off.tag);
+        cell.parts[id] = { cx: px, cy: py, tag: off.tag };
+      }
+    }
+
+    // ── movement ─────────────────────────────────────────
+    function move(dx, dy) {
+      if (dx === 0 && dy === 0) return false;
+      const stepX = Math.sign(dx), stepY = Math.sign(dy);
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      let stepsX = Math.abs(dx), stepsY = Math.abs(dy);
+      let movedX = 0, movedY = 0;
+      let cx = x, cy = y;
+
+      for (let i = 0; i < steps; i++) {
+        const sdx = stepsX > 0 ? stepX : 0;
+        const sdy = stepsY > 0 ? stepY : 0;
+        const hx = cx + sdx, hy = cy + sdy;
+        if (!grid.isInside(hx, hy)) break;
+        const headTarget = grid.get(hx, hy);
+        const isOwnPart = Object.values(cell.parts).some(p => p.cx === hx && p.cy === hy);
+        if (!isOwnPart && headTarget.element !== ELEMENTS.empty) break;
+
+        let blocked = false;
+        for (const part of Object.values(cell.parts)) {
+          const px = part.cx + sdx, py = part.cy + sdy;
+          if (!grid.isInside(px, py)) { blocked = true; break; }
+          const partTarget = grid.get(px, py);
+          const isHead = (px === cx && py === cy);
+          const isOtherPart = Object.values(cell.parts).some(p => p.cx === px && p.cy === py);
+          if (!isHead && !isOtherPart && partTarget.element !== ELEMENTS.empty) { blocked = true; break; }
+        }
+        if (blocked) break;
+
+        const snapshot = {};
+        for (const [name, part] of Object.entries(cell.parts)) snapshot[name] = { ...part };
+        for (const name of Object.keys(snapshot)) {
+          if (!cell.parts[name]) continue;
+          grid.set(cell.parts[name].cx, cell.parts[name].cy, ELEMENTS.empty);
+          delete cell.parts[name];
+        }
+        grid.swap(cx, cy, cx + sdx, cy + sdy);
+        for (const [name, old] of Object.entries(snapshot)) {
+          const nx = old.cx + sdx, ny = old.cy + sdy;
+          if (grid.isInside(nx, ny) && grid.get(nx, ny).element === ELEMENTS.empty) {
+            grid.set(nx, ny, ELEMENTS.frog);
+            grid.get(nx, ny).element = grid.get(nx, ny).element.withTag(old.tag);
+            cell.parts[name] = { cx: nx, cy: ny, tag: old.tag };
+          }
+        }
+        cx += sdx; cy += sdy;
+        if (stepsX > 0) { movedX += stepX; stepsX--; }
+        if (stepsY > 0) { movedY += stepY; stepsY--; }
+      }
+
+      return movedX !== 0 || movedY !== 0;
+    }
+
+    // ── ground check ─────────────────────────────────────
+    function groundDistance() {
+      const allCells = [{ cx: x, cy: y }, ...Object.values(cell.parts)];
+      const colLowest = {};
+      for (const c of allCells) {
+        if (colLowest[c.cx] == null || c.cy > colLowest[c.cx]) colLowest[c.cx] = c.cy;
+      }
+      let dist = Infinity;
+      for (const [colStr, lowestY] of Object.entries(colLowest)) {
+        const col = parseInt(colStr, 10);
+        let colDist = 0;
+        for (let checkY = lowestY + 1; checkY < grid.rows; checkY++) {
+          if (!grid.isInside(col, checkY)) break;
+          const below = grid.get(col, checkY);
+          const isOwn = allCells.some(c => c.cx === col && c.cy === checkY);
+          if (!isOwn && below.element !== ELEMENTS.empty) break;
+          colDist++;
+        }
+        if (colDist < dist) dist = colDist;
+      }
+      return dist === Infinity ? 0 : dist;
+    }
+
+    // ── AI: scan for nearby food ───────────────────────────
+    function findFood(radius) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const fx = x + dx, fy = y + dy;
+          if (!grid.isInside(fx, fy)) continue;
+          const c = grid.get(fx, fy);
+          if (!c || !c.element) continue;
+          if (isFood(c.element)) return { fx, fy };
+        }
+      }
+      return null;
+    }
+
+    // ── wall check ───────────────────────────────────────
+    function touchingWall(sideDx) {
+      const allCells = [{ cx: x, cy: y }, ...Object.values(cell.parts)];
+      for (const c of allCells) {
+        const nx = c.cx + sideDx;
+        if (!grid.isInside(nx, c.cy)) return true;
+        const neighbor = grid.get(nx, c.cy);
+        const isOwn = allCells.some(p => p.cx === nx && p.cy === c.cy);
+        if (!isOwn && neighbor.element !== ELEMENTS.empty) return true;
+      }
+      return false;
+    }
+
+    // ── AI: simulate arc ──────────────────────────────────
+    function simulateArc(vx, vy) {
+      const GRAVITY = 0.1;
+      let sx = x, sy = y;
+      let svy = vy;
+      let subX = 0, subY = 0;
+      for (let t = 0; t < 200; t++) {
+        svy += GRAVITY;
+        subX += vx; subY += svy;
+        const mx = Math.trunc(subX), my = Math.trunc(subY);
+        if (mx !== 0 || my !== 0) { sx += mx; sy += my; subX -= mx; subY -= my; }
+        if (!grid.isInside(sx, sy)) return { landed: false, sx, sy };
+        const c = grid.get(sx, sy);
+        const isStart = (t < 3);
+        if (!isStart && c.element !== ELEMENTS.empty && c.element !== ELEMENTS.frog) {
+          return { landed: false, sx, sy };
+        }
+        if (t > 4) {
+          const belowY = sy + 1;
+          if (!grid.isInside(sx, belowY)) return { landed: true, sx, sy };
+          const below = grid.get(sx, belowY);
+          const isSolid = below.element !== ELEMENTS.empty && below.element !== ELEMENTS.frog;
+          const isOpen  = c.element === ELEMENTS.empty;
+          if (isSolid && isOpen) return { landed: true, sx, sy };
+        }
+      }
+      return { landed: false, sx, sy };
+    }
+
+    // ── AI: pick best jump toward goal ────────────────────
+    function pickJump() {
+      const gx = cell.goalX != null ? cell.goalX : x;
+      const goalDx = gx === x ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(gx - x);
+      cell.direction.dx = goalDx;
+
+      let best = null;
+      let bestScore = -Infinity;
+
+      for (let power = 0.4; power <= 2.5; power += 0.15) {
+        for (let upward = 0.5; upward <= 2.5; upward += 0.15) {
+          const vx = goalDx * power;
+          const vy = -upward;
+          const { landed, sx } = simulateArc(vx, vy);
+          if (!landed) continue;
+          const distBefore = Math.abs(x - gx);
+          const distAfter  = Math.abs(sx - gx);
+          const progress   = distBefore - distAfter;
+          const overshoot  = Math.max(0, distAfter - 2) * 8;
+          const score = progress * 10 - overshoot - power * 0.5;
+          if (score > bestScore) { bestScore = score; best = { vx, vy }; }
+        }
+      }
+
+      if (!best) best = { vx: goalDx * 0.6, vy: -0.6 };
+      return best;
+    }
+
+    // ── physics ──────────────────────────────────────────
+    const dist = groundDistance();
+    const onGround = dist === 0;
+
+    if (!onGround) {
+      cell.vy += 0.1;
+      if (cell.vx !== 0 && touchingWall(Math.sign(cell.vx))) { cell.vx = 0; cell.subX = 0; }
+    } else {
+      if (cell.vy > 0) cell.vy = 0;
+      cell.vx *= 0.3;
+      if (Math.abs(cell.vx) < 0.05) cell.vx = 0;
+    }
+
+    // ── AI decisions ─────────────────────────────────────
+    if (cell.jumpCooldown > 0) cell.jumpCooldown--;
+
+    if (onGround && Math.abs(cell.vx) < 0.1) {
+      if (Math.abs(x - cell.lastX) < 1 && Math.abs(y - cell.lastY) < 1) {
+        cell.stuckTimer++;
+      } else {
+        cell.stuckTimer = 0;
+        cell.lastX = x;
+        cell.lastY = y;
+      }
+      if (cell.stuckTimer > 60) {
+        cell.goalX = null;
+        cell.jumpCooldown = 5;
+        cell.stuckTimer = 0;
+      }
+    }
+
+    // ── tongue helpers ────────────────────────────────────
+    function clearTongueTips() {
+      for (const tip of cell.tongueTips) {
+        if (!grid.isInside(tip.cx, tip.cy)) continue;
+        const c = grid.get(tip.cx, tip.cy);
+        if (c && c.element && c.element.name === "frog_tongue") grid.set(tip.cx, tip.cy, ELEMENTS.empty);
+      }
+      cell.tongueTips = [];
+    }
+
+    function linePoints(x0, y0, x1, y1) {
+      const pts = [];
+      let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+      let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+      let err = dx + dy;
+      let cx2 = x0, cy2 = y0;
+      while (true) {
+        if (!(cx2 === x0 && cy2 === y0)) pts.push({ cx: cx2, cy: cy2 });
+        if (cx2 === x1 && cy2 === y1) break;
+        const e2 = 2 * err;
+        if (e2 >= dy) { err += dy; cx2 += sx; }
+        if (e2 <= dx) { err += dx; cy2 += sy; }
+      }
+      return pts;
+    }
+
+    // ── tongue AI ─────────────────────────────────────────
+    const nearFood = findFood(30);
+
+    if (cell.tongueState === "none") {
+      if (nearFood && onGround && Math.abs(cell.vx) < 0.1) {
+        const dist2food = Math.abs(nearFood.fx - x) + Math.abs(nearFood.fy - y);
+        if (dist2food <= 30) {
+          cell.direction.dx = nearFood.fx >= x ? 1 : -1;
+          cell.tongueState  = "staring";
+          cell.tongueTimer  = 45;
+          cell.tongueFoodX  = nearFood.fx;
+          cell.tongueFoodY  = nearFood.fy;
+        }
+      }
+    } else if (cell.tongueState === "staring") {
+      cell.vx = 0; cell.vy = 0; cell.subX = 0; cell.subY = 0;
+      if (nearFood) { cell.tongueFoodX = nearFood.fx; cell.tongueFoodY = nearFood.fy; }
+      if (cell.tongueFoodX != null) cell.direction.dx = cell.tongueFoodX >= x ? 1 : -1;
+      cell.tongueTimer--;
+      if (cell.tongueTimer <= 0) {
+        if (cell.tongueFoodX != null && grid.isInside(cell.tongueFoodX, cell.tongueFoodY)) {
+          const fc = grid.get(cell.tongueFoodX, cell.tongueFoodY);
+          // ← fixed: was only "fly", now accepts any food element
+          if (fc && isFood(fc.element)) {
+            cell.tongueState = "shooting";
+            cell.tongueTimer = 0;
+          } else {
+            cell.tongueState = "none";
+            cell.tongueFoodX = null; cell.tongueFoodY = null;
+          }
+        } else {
+          cell.tongueState = "none";
+        }
+      }
+    } else if (cell.tongueState === "shooting") {
+      cell.vx = 0; cell.vy = 0; cell.subX = 0; cell.subY = 0;
+      const fx = cell.tongueFoodX, fy = cell.tongueFoodY;
+      const allLine = linePoints(x, y, fx, fy);
+      cell.tongueTimer++;
+      clearTongueTips();
+      const reach = Math.min(cell.tongueTimer, allLine.length);
+      for (let i = 0; i < reach; i++) {
+        const pt = allLine[i];
+        if (!grid.isInside(pt.cx, pt.cy)) break;
+        const tc = grid.get(pt.cx, pt.cy);
+        // ← fixed: was only "fly", now eats any food element
+        if (tc.element && isFood(tc.element)) {
+          grid.set(pt.cx, pt.cy, ELEMENTS.empty);
+          cell.tongueState = "retracting";
+          cell.tongueTimer = reach - 1;
+          break;
+        }
+        if (tc.element === ELEMENTS.empty) {
+          grid.set(pt.cx, pt.cy, ELEMENTS.frog_tongue);
+          cell.tongueTips.push({ cx: pt.cx, cy: pt.cy });
+        } else if (!(tc.element && tc.element.name === "frog")) {
+          cell.tongueState = "retracting";
+          cell.tongueTimer = i;
+          break;
+        }
+      }
+      if (cell.tongueState === "shooting" && reach >= allLine.length) cell.tongueState = "retracting";
+    } else if (cell.tongueState === "retracting") {
+      cell.vx = 0; cell.vy = 0; cell.subX = 0; cell.subY = 0;
+      cell.tongueTimer--;
+      clearTongueTips();
+      if (cell.tongueTimer <= 0) {
+        cell.tongueState = "none";
+        cell.tongueFoodX = null; cell.tongueFoodY = null;
+        cell.jumpCooldown = Math.max(cell.jumpCooldown, 20);
+      } else {
+        const fx = cell.tongueFoodX, fy = cell.tongueFoodY;
+        const allLine = linePoints(x, y, fx != null ? fx : x + cell.direction.dx, fy != null ? fy : y);
+        for (let i = 0; i < cell.tongueTimer && i < allLine.length; i++) {
+          const pt = allLine[i];
+          if (!grid.isInside(pt.cx, pt.cy)) break;
+          const tc = grid.get(pt.cx, pt.cy);
+          if (tc.element === ELEMENTS.empty) {
+            grid.set(pt.cx, pt.cy, ELEMENTS.frog_tongue);
+            cell.tongueTips.push({ cx: pt.cx, cy: pt.cy });
+          }
+        }
+      }
+    }
+
+    // Chase food if nearby, otherwise wander
+    const food = cell.tongueState !== "none" ? null : findFood(20);
+    if (food) {
+      cell.goalX = food.fx;
+      cell.goalY = food.fy;
+      cell.goalTimer = 30;
+    } else if (cell.goalX == null || cell.goalTimer <= 0) {
+      const wanderDist = 8 + Math.floor(Math.random() * 14);
+      const bias = Math.random() < 0.75 ? cell.direction.dx : -cell.direction.dx;
+      cell.goalX = Math.max(0, Math.min(grid.cols - 1, x + bias * wanderDist));
+      cell.goalY = y;
+      cell.goalTimer = 150 + Math.floor(Math.random() * 200);
+    }
+    if (onGround) cell.goalTimer--;
+
+    // Jump decision
+    if (onGround && cell.jumpCooldown <= 0 && Math.abs(cell.vx) < 0.1 && cell.tongueState === "none") {
+      if (Math.abs(x - cell.goalX) < 3) {
+        cell.goalX = null;
+        cell.jumpCooldown = 40 + Math.floor(Math.random() * 80);
+      } else {
+        const jump = pickJump();
+        cell.vx = jump.vx;
+        cell.vy = jump.vy;
+        cell.jumpCooldown = 20 + Math.floor(Math.random() * 30);
+      }
+    }
+
+    // ── animation state ──────────────────────────────────
+    const newState = cell.vy < -0.2 ? "jumping" : cell.vy > 0.2 ? "falling" : "idle";
+    if (newState !== cell.prevState) {
+      cell.state     = newState;
+      cell.prevState = newState;
+      applyState(newState);
+    }
+
+    if (cell.tongueState === "none") {
+      if (cell.vx > 0.1)       cell.direction.dx =  1;
+      else if (cell.vx < -0.1) cell.direction.dx = -1;
+    }
+
+    if (cell.direction.dx !== cell.prevDirDx) {
+      cell.prevDirDx = cell.direction.dx;
+      applyState(cell.state);
+    }
+
+    // ── apply movement ───────────────────────────────────
+    cell.subX += cell.vx;
+    cell.subY += cell.vy;
+    const moveX = Math.trunc(cell.subX);
+    const moveY = Math.trunc(cell.subY);
+    if (moveX !== 0 || moveY !== 0) {
+      move(moveX, moveY);
+      cell.subX -= moveX;
+      cell.subY -= moveY;
+    }
+  }
+),
+frog_tongue: new Element(
+  "frog_tongue",
+  "#FF4444",
+  "hidden",
+  {},
+  (grid, x, y) => {
+    // Tongue cells are purely cosmetic — managed entirely by the frog head.
+    // If a tongue cell is still here after 5 ticks (orphaned), remove it.
+    const cell = grid.get(x, y);
+    if (cell.ttl == null) cell.ttl = 5;
+    cell.ttl--;
+    if (cell.ttl <= 0) grid.set(x, y, ELEMENTS.empty);
+  }
+),
+    };
+selectedElement = ELEMENTS.empty;
+    function planHive(hive, cx, cy) {
+  if (hive.cells && hive.cells.length > 0) return;
+
+  const template = [
+    [0, 0, 'W','W','W','W','W','W','W','W', 0 ],
+    [0, 'W','I','I','O','O','O','O','I','I','W'],
+    ['W','I','O','O','I','I','I','I','O','O','I','W'],
+    ['W','I','O','O','I', 0 , 0 ,'I','O','O','I','W'],
+    ['W', 0 ,'I','I', 0 , 0 , 0 , 0 ,'I','I', 0 ,'W'],
+    [0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 'W'],
+    [0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 'W'],
+    ['W', 0 ,'I','I', 0 , 0 , 0 , 0 ,'I','I', 0 ,'W'],
+    ['W','I','O','O','I', 0 , 0 ,'I','O','O','I','W'],
+    ['W','I','O','O','I','I','I','I','O','O','I','W'],
+    [0, 'W','I','I','O','O','O','O','I','I','W', 0 ],
+    [0, 0, 'W','W','W','W','W','W','W','W', 0,  0 ],
+  ];
+
+  const rows = template.length;
+  const cols = template[0].length;
+  const offsetX = cx - Math.floor(cols / 2);
+  const offsetY = cy - Math.floor(rows / 2);
+
+  const walls = [];
+  const innerRows = [];
+
+  for (let row = 0; row < rows; row++) {
+    innerRows[row] = [];
+    for (let col = 0; col < template[row].length; col++) {
+      const val = template[row][col];
+      if (val === 0) continue;
+      const wx = offsetX + col;
+      const wy = offsetY + row;
+      if (!grid.isInside(wx, wy)) continue;
+
+      if (val === 'W') {
+        walls.push({ x: wx, y: wy, elementName: "hive_wall" });
+      } else if (val === 'O') {
+        innerRows[row].push({ x: wx, y: wy, elementName: "honeycomb", variant: "outer" });
+      } else if (val === 'I') {
+        innerRows[row].push({ x: wx, y: wy, elementName: "honeycomb" });
+      }
+    }
+  }
+
+  // split into top half and bottom half queues
+  const mid = Math.floor(rows / 2);
+  const topQueue = [];
+  const botQueue = [];
+  for (let row = 0; row < rows; row++) {
+    if (!innerRows[row]) continue;
+    if (row < mid) topQueue.push(...innerRows[row]);
+    else           botQueue.push(...innerRows[row]);
+  }
+  // reverse bottom so it builds inward from the bottom up
+  botQueue.reverse();
+
+  hive.cells        = walls; // just for existence check
+  hive.wallQueue    = walls;
+  hive.wallIndex    = 0;
+  hive.topQueue     = topQueue;
+  hive.topIndex     = 0;
+  hive.botQueue     = botQueue;
+  hive.botIndex     = 0;
+  hive.digTarget    = walls[0] || null;
+  // keep digQueue/digIndex pointing at walls for now
+  hive.digQueue     = walls;
+  hive.digIndex     = 0;
+  hive.wallsDone    = false;
+}
+function stampHive(cx, cy) {
+  // W = hive_wall, O = honeycomb (outer variant), I = honeycomb (base), . = empty/skip
+  // Shape is 11 wide x 12 tall, centered on cx, cy
+  const template = [
+    [0, 0, 'W','W','W','W','W','W','W','W', 0 ],
+    [0, 'W','I','I','O','O','O','O','I','I','W'],
+    ['W','I','O','O','I','I','I','I','O','O','I','W'],
+    ['W','I','O','O','I', 0 , 0 ,'I','O','O','I','W'],
+    ['W', 0 ,'I','I', 0 , 0 , 0 , 0 ,'I','I', 0 ,'W'],
+    [0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 'W'],
+    [0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 'W'],
+    ['W', 0 ,'I','I', 0 , 0 , 0 , 0 ,'I','I', 0 ,'W'],
+    ['W','I','O','O','I', 0 , 0 ,'I','O','O','I','W'],
+    ['W','I','O','O','I','I','I','I','O','O','I','W'],
+    [0, 'W','I','I','O','O','O','O','I','I','W', 0 ],
+    [0, 0, 'W','W','W','W','W','W','W','W', 0,  0 ],
+  ];
+
+  const rows = template.length;       // 12
+  const cols = template[0].length;    // 12
+  const offsetX = cx - Math.floor(cols / 2);
+  const offsetY = cy - Math.floor(rows / 2);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < template[row].length; col++) {
+      const val = template[row][col];
+      if (val === 0) continue;
+      const wx = offsetX + col;
+      const wy = offsetY + row;
+      if (!grid.isInside(wx, wy)) continue;
+
+      if (val === 'W') {
+        grid.set(wx, wy, ELEMENTS.hive_wall);
+      } else if (val === 'O') {
+        grid.set(wx, wy, ELEMENTS.honeycomb.withTag("outer"));
+      } else if (val === 'I') {
+        grid.set(wx, wy, ELEMENTS.honeycomb);
+      }
+    }
+  }
+}
+
+    // ── ANT COLONY REGISTRY ──
+const AntColonies = {};
+function getColony(id) {
+  if (!AntColonies[id]) AntColonies[id] = {
+    id, food: 50, population: 0, queen: null,
+    diplomacy: {}, messages: [], rooms: [], tunnels: [],
+    digTarget: null, rallyPoint: null,
+    phase: "founding", phaseAge: 0, enemyColony: null,
+  };
+  return AntColonies[id];
+}
+function colonyMessage(colonyId, type, data) {
+  const col = getColony(colonyId);
+  col.messages.push({ type, data, age: 0 });
+  if (col.messages.length > 40) col.messages.shift();
+}
+function readMessages(colonyId, type) {
+  return getColony(colonyId).messages.filter(m => m.type === type);
+}
+function getDiplomacy(colA, colB) {
+  const col = getColony(colA);
+  if (!col.diplomacy[colB]) col.diplomacy[colB] = { relation: 50, atWar: false };
+  return col.diplomacy[colB];
+}
+function damageRelation(colA, colB, amount) {
+  const dA = getDiplomacy(colA, colB);
+  const dB = getDiplomacy(colB, colA);
+  dA.relation = Math.max(0, dA.relation - amount);
+  dB.relation = Math.max(0, dB.relation - amount);
+  if (dA.relation < 20 && !dA.atWar) {
+    dA.atWar = dB.atWar = true;
+    getColony(colA).enemyColony = colB;
+    getColony(colB).enemyColony = colA;
+    getColony(colA).phase = "war";
+    getColony(colB).phase = "war";
+    colonyMessage(colA, "war", { enemy: colB });
+    colonyMessage(colB, "war", { enemy: colA });
+  }
+}
+function planColony(col, qx, qy) {
+  if (col.rooms.length > 0) return;
+
+  const rooms = [];
+  const halls = [];
+  const queue = [];
+
+  const addRoom = (cx, cy, w, h, type) => {
+    rooms.push({ cx, cy, w, h, type, built: false });
+    for (let dy = -Math.floor(h/2); dy <= Math.floor(h/2); dy++) {
+      for (let dx = -Math.floor(w/2); dx <= Math.floor(w/2); dx++) {
+        queue.push({ x: cx+dx, y: cy+dy });
+      }
+    }
+  };
+
+  const addHallV = (x, y1, y2) => {
+    halls.push({ x1:x, y1, x2:x, y2, axis:"v" });
+    const minY = Math.min(y1,y2), maxY = Math.max(y1,y2);
+    for (let y = minY; y <= maxY; y++) queue.push({ x, y });
+  };
+
+  const addHallH = (y, x1, x2) => {
+    halls.push({ x1, y1:y, x2, y2:y, axis:"h" });
+    const minX = Math.min(x1,x2), maxX = Math.max(x1,x2);
+    for (let x = minX; x <= maxX; x++) queue.push({ x, y });
+  };
+
+  const addCrossroad = (cx, cy) => {
+    addRoom(cx, cy, 3, 3, "crossroad");
+  };
+
+  const shaftX = qx;
+  const depth1 = qy + 4;
+  const depth2 = qy + 9;
+  const depth3 = qy + 14;
+
+  addRoom(qx, qy+2, 6, 3, "queen");
+  addHallV(qx, qy, qy+2);
+  addHallV(shaftX, qy+4, depth3+1);
+
+  addCrossroad(shaftX, depth1);
+  addHallH(depth1, shaftX-7, shaftX-1);
+  addHallH(depth1, shaftX+1, shaftX+7);
+  addRoom(shaftX-8, depth1, 5, 4, "nursery");
+  addRoom(shaftX+8, depth1, 5, 4, "storage");
+
+  addCrossroad(shaftX, depth2);
+  addHallH(depth2, shaftX-6, shaftX-1);
+  addHallH(depth2, shaftX+1, shaftX+6);
+  addRoom(shaftX-7, depth2, 4, 3, "barracks");
+  addRoom(shaftX+7, depth2, 4, 4, "food");
+
+  addCrossroad(shaftX, depth3);
+  addHallH(depth3, shaftX-5, shaftX+5);
+  addRoom(shaftX, depth3+3, 7, 5, "great_hall");
+
+  col.rooms     = rooms;
+  col.halls     = halls;
+  col.digQueue  = queue;
+  col.digIndex  = 0;
+  col.digTarget = queue[0] || null;
+}
+
+// ── BEE HIVE REGISTRY ──
+const BeeHives = {};
+function getBeeHive(id) {
+  if (!BeeHives[id]) BeeHives[id] = {
+    id, food: 50, population: 0, queen: null,
+    cells: [], digQueue: [], digIndex: 0, digTarget: null,
+  };
+  return BeeHives[id];
+}
+
+function startHive() {
+  var qx=null, qy=null;
+  for (var y=0; y<grid.rows; y++) {
+    for (var x=0; x<grid.cols; x++) {
+      if (grid.get(x,y).element.name==="bee") { qx=x; qy=y; break; }
+    }
+    if (qx!==null) break;
+  }
+  if (qx===null) { console.log("No bee found!"); return; }
+  var qc = grid.get(qx,qy);
+  qc.job = "queen"; qc.hive = "hive1";
+  qc.beeId = qc.beeId || Math.random().toString(36).slice(2);
+  var hiv = getBeeHive("hive1");
+  planHive(hiv, qx, qy);
+  var jobs = ["builder","builder","forager","worker"];
+  var i = 0;
+  for (var y=0; y<grid.rows; y++) {
+    for (var x=0; x<grid.cols; x++) {
+      var c = grid.get(x,y);
+      if (c.element.name==="bee" && c.job!=="queen") {
+        c.hive = "hive1";
+        c.beeId = c.beeId || Math.random().toString(36).slice(2);
+        c.job = jobs[i++%jobs.length];
+      }
+    }
+  }
+  console.log("Hive started at "+qx+","+qy+", "+hiv.digQueue.length+" cells to place, "+i+" bees assigned.");
+}
+// quick start colony
+function startColony(){
+  var qx=null,qy=null;
+  for(var y=0;y<grid.rows;y++){
+    for(var x=0;x<grid.cols;x++){
+      if(grid.get(x,y).element.name==="ant"){qx=x;qy=y;break;}
+    }
+    if(qx!==null)break;
+  }
+  if(qx===null){console.log("No ant found!");return;}
+  var qc=grid.get(qx,qy);
+  var colInit = Math.random().toString(36).slice(2);
+  qc.job="queen"; qc.colony="col" + colInit;
+  var col=getColony("col" + colInit);
+  planColony(col,qx,qy);
+  col.phase="expanding";
+  var jobs=["builder","builder","builder","worker","soldier","forager"];
+  var i=0;
+  for(var y=0;y<grid.rows;y++){
+    for(var x=0;x<grid.cols;x++){
+      var c=grid.get(x,y);
+      if(c.element.name==="ant"&&c.job!=="queen"){
+        c.colony="col1"; c.job=jobs[i++%jobs.length];
+      }
+    }
+  }
+  console.log("Colony started at "+qx+","+qy+", "+col.digQueue.length+" cells to dig, "+i+" ants assigned.");
+}           
+// Simple inline Perlin-like noise for jagged cracks
 
 function listelements(){
 const keys = Object.keys(ELEMENTS).join(", ");
@@ -12650,21 +16522,20 @@ const perlin = new Perlin();
     this.lightGrid = Array.from({ length: this.rows }, () =>
   Array.from({ length: this.cols }, () => null)
 );
-
-    this.showHeat = false; // toggle heat visualization
-    this.showE = false; // toggle energy visualization
+    this.showGrid = "normal";
+   
     this.initGrid();
-   window.addEventListener("keydown", (e) => {
+  window.addEventListener("keydown", (e) => {
   if (!keybinds) {
     if (e.altKey && e.key.toLowerCase() === "g") {
-      if (!this.showHeat && !this.showE) {
-        this.showHeat = true;       // off → heat
-      } else if (this.showHeat) {
-        this.showHeat = false;
-        this.showE = true;          // heat → electric
+      if (this.showGrid === "normal") {
+        this.showGrid = "heat";
+      } else if (this.showGrid === "heat") {
+        this.showGrid = "electricity";
       } else {
-        this.showE = false;         // electric → off
+        this.showGrid = "normal";
       }
+      document.getElementById("gridDisplay").textContent = "grid: " + this.showGrid;
     }
   }
 });
@@ -13050,7 +16921,7 @@ addLight(x, y, color, level) {
 }
 
  draw(ctx) {
-  const { cols, rows, voxelsize, showHeat, showE } = this;
+  const { cols, rows, voxelsize } = this;
 
   const img = ctx.createImageData(cols, rows);
   const data = img.data;
@@ -13070,7 +16941,7 @@ addLight(x, y, color, level) {
       // =========================
       // 🔥 HEAT VIEW
       // =========================
-      if (showHeat) {
+      if (this.showGrid === "heat") {
         const t = cell.temperature;
 
         if (t <= -100) {
@@ -13108,7 +16979,7 @@ addLight(x, y, color, level) {
       // =========================
       // ⚡ ELECTRIC VIEW
       // =========================
-      else if (showE) {
+      else if (this.showGrid === "electricity") {
         const e = cell.e || 0;
 
         if (e <= 0.1) {
@@ -13193,7 +17064,7 @@ addLight(x, y, color, level) {
   // =========================
   // 🧲 GLUED OVERLAY PASS
   // =========================
-  if (!showHeat && !showE) {
+  if (this.showGrid === "normal") {
     ctx.save();
 
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
