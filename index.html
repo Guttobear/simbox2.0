@@ -518,6 +518,36 @@ canvas {
 <div class="catalog-scroll">
 
 <div class="catalog-entry">
+   <div class="catalog-entry-version">Va1.3 - All the Elements</div>
+
+
+<div class="catalog-entry-content">
+  <div class="catalog-category">Elements</div>
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px;">Life</div>
+  <div class="catalog-item">Mouse</div>
+ 
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Elemental Elements</div>
+  <div class="catalog-item">Sodium, titanium, zinc, tin</div>
+  <div class="catalog-item">lead, platinum, tungsten, chlorine</div>
+  <div class="catalog-item">Indium, Potassium, calcium, plutonium</div>
+    <div class="catalog-item">Nickel, Sulfur Crystal, Sulfur Deposit, magnesium, aluminium, </div>
+      <div class="catalog-item">Sulfur Dioxide, Sulfurous Acid</div>
+</div>
+<div class="catalog-entry-content">
+  <div class="catalog-category">Human Ai Changes</div>
+  <div class="catalog-item">Made Humans have A* Pathfinding, Multiple skin colors, Multiple shirt colors, and more</div>
+</div>
+<div class="catalog-entry-content">
+  <div class="catalog-category">Bug Fixes</div>
+  <div class="catalog-item">All foods can be destroyed by heat</div>
+  
+
+</div>
+
+</div>
+<div class="catalog-entry">
    <div class="catalog-entry-version">Va1.2 - Steamin Bakin</div>
 
 <div class="catalog-entry-content">
@@ -753,7 +783,7 @@ canvas {
 </div>
   <script>
     // version
-    const CURRENT_VERSION = "Va1.2";
+    const CURRENT_VERSION = "Va1.3";
     document.getElementById("version").textContent = CURRENT_VERSION;
 
     // canvas
@@ -798,6 +828,9 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
     let hoveredMeasurementIndex = -1;
     let keybinds = false;
 
+
+  
+
     // FPS display
     let fps = 0;
     let fpsFrames = 0;
@@ -836,13 +869,16 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
 
     // === MERGED KEYDOWN ===
     window.addEventListener("keydown", (e) => {
+     
       // block hotkeys when keybinds mode is active (terminal open, etc.)
       if (keybinds && e.target.id !== "commandInput") {
         e.stopPropagation();
         e.preventDefault();
         return;
       }
-
+      if(keybinds) return;
+      
+     
       // step once (always available)
       if (e.key === "+" || e.key === "=") {
         stepOnce = true;
@@ -850,7 +886,7 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
 
       // pause
       if (e.code === "Space") {
-        e.preventDefault();
+       
         paused = !paused;
       }
 
@@ -882,6 +918,7 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
           document.getElementById("gridDisplay").textContent = "grid: " + grid.showGrid;
         }
       }
+ 
     });
 
     // === MERGED KEYUP ===
@@ -894,6 +931,7 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
           shiftClearTimer = null;
         }, 3000);
       }
+     
     });
 
     // --- CONTEXT MENU ---
@@ -1597,7 +1635,7 @@ function liquidPhysics(grid, x, y, opts = {}) {
     const td = target.element.properties.density ?? Infinity;
     if (target.element.name === "empty") return true;
     if (tt === "Gas") return true;
-    if ((tt === "Liquids" || tt === "Powders") && td < myDensity) return true;
+    if ((tt === "Liquids") && td < myDensity) return true;
     if (extraCanEnter && extraCanEnter(target)) return true;
     return false;
   }
@@ -1709,8 +1747,15 @@ function powderPhysics(grid, x, y, opts = {}) {
     if (sinkGases   && tt === "Gas")                       return true;
     if (sinkLiquids && tt === "Liquids" && td < myDensity) return true;
     if (extraCanEnter && extraCanEnter(target))            return true;
-   
     return false;
+  }
+
+  function canMoveDiagonal(x, y, dx, dy) {
+    // slide if at least one side is free
+    const side1 = grid.get(x + dx, y);
+    const side2 = grid.get(x, y + dy);
+    if (!side1 || !side2) return false;
+    return side1.element.name === "empty" || side2.element.name === "empty";
   }
 
   // --- Fall straight down ---
@@ -1722,28 +1767,92 @@ function powderPhysics(grid, x, y, opts = {}) {
     }
   }
 
-  // --- Slide diagonally (one random side per tick, matching vanilla sand) ---
- // --- Slide diagonally (try both sides in random order) ---
-if (Math.random() < diagChance) {
- const dx = Math.random() < 0.5 ? -1 : 1;
-const nx = x + dx;
-const ny = y + 1;
+  // --- Slide diagonally ---
+  if (Math.random() < diagChance) {
+    const dx = Math.random() < 0.5 ? -1 : 1;
+    const nx = x + dx;
+    const ny = y + 1;
 
-if (!grid.isInside(nx, ny)) return;
+    if (!grid.isInside(nx, ny)) return false;
 
-const target = grid.get(nx, ny);
-const td = target.element.properties.density ?? Infinity;
+    const target = grid.get(nx, ny);
+    const td = target.element.properties.density ?? Infinity;
 
+    if (
+      canMoveDiagonal(x, y, dx, 1) && // only needs one side free now
+      (target.element.name === "empty" || 
+       ((target.element.category === "Liquids" || target.element.category === "Gas") && td < myDensity))
+    ) {
+      grid.swap(x, y, nx, ny);
+      return true;
+    }
+  }
 
-if (
-  target.element.name === "empty" ||
-  ((target.element.category === "Liquids" || target.element.category === "Gas") && td < myDensity)
-) {
-  grid.swap(x, y, nx, ny);
-}
-}
   return false;
 }
+//-------gas physics helper----------
+function gasPhysics(grid, x, y, opts = {}) {
+  const {
+    extraCanEnter = null,
+  } = opts;
+
+  const cell = grid.get(x, y);
+  const sd = cell.element.properties.density ?? 1;
+
+  function canEnter(target) {
+    if (target.element.name === "empty") return true;
+    const tc = target.element.category;
+    const td = target.element.properties.density ?? 1;
+    if (tc === "Gas" && td < sd) return true;
+    if (extraCanEnter && extraCanEnter(target)) return true;
+    return false;
+  }
+
+  function canEnterDiag(dx, dy) {
+    const side = grid.get(x + dx, y);
+    const up   = grid.get(x, y + dy);
+    if (!side || !up) return false;
+    if (!canEnter(side) || !canEnter(up)) return false;
+    const dest = grid.get(x + dx, y + dy);
+    return dest && canEnter(dest);
+  }
+
+  const dirs = [
+    [0, -1, false],                                    // up
+    [Math.random() < 0.5 ? -1 : 1, 0, false],         // random left/right
+    [Math.random() < 0.5 ? -1 : 1, -1, true],         // diagonal up
+  ];
+
+  let moved = false;
+
+  for (const [dx, dy, diag] of dirs) {
+    const nx = x + dx, ny = y + dy;
+    if (!grid.isInside(nx, ny)) continue;
+    const ok = diag ? canEnterDiag(dx, dy) : canEnter(grid.get(nx, ny));
+    if (ok && Math.random() < 0.5) {
+      grid.swap(x, y, nx, ny);
+      moved = true;
+    }
+  }
+
+  if (!moved) {
+    const belowDirs = [
+      [0, 1, false],
+      [Math.random() < 0.5 ? -1 : 1, 1, true],
+      [Math.random() < 0.5 ? -1 : 1, 0, false],
+    ];
+
+    for (const [dx, dy, diag] of belowDirs) {
+      const nx = x + dx, ny = y + dy;
+      if (!grid.isInside(nx, ny)) continue;
+      const ok = diag ? canEnterDiag(dx, dy) : canEnter(grid.get(nx, ny));
+      if (ok && Math.random() < 0.2) {
+        grid.swap(x, y, nx, ny);
+      }
+    }
+  }
+}
+
 
 const RECIPES = [
   {
@@ -1944,7 +2053,7 @@ powderPhysics(grid, x, y);
   "fire",
   "#ff4500",
   "Energy",
-  {conductivity: 2, temperature: 100},
+  {conductivity: 2, temperature: 100, harmful: true},
   (grid, x, y) => {
     const cell = grid.get(x, y);
  cell.age++;
@@ -2174,45 +2283,7 @@ if (!moved) {
       return;
       }
     }
-    // movement
-  const dirs = [
-  [0, -1], // up
-  [Math.random() < 0.5 ? -1 : 1, 0], // random left/right
-  [Math.random() < 0.5 ? -1 : 1, -1] // diagonal up-left/up-right
-];
-
-let moved = false;
-
-// Try moving up/sideways
-for (let [dx, dy] of dirs) {
-  const nx = x + dx, ny = y + dy;
-  if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
-    if (Math.random() < 0.5) {
-      grid.swap(x, y, nx, ny);
-      moved = true;
-  
-    }
-  }
-}
-
-// If can’t move up/sideways, try down using your style
-if (!moved) {
-  const belowDirs = [
-    [0, 1],
-    [Math.random() < 0.5 ? -1 : 1, 1],
-    [Math.random() < 0.5 ? -1 : 1, 0],
-  ];
-
-  for (let [dx, dy] of belowDirs) {
-    const nx = x + dx, ny = y + dy;
-    if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
-      if(Math.random() < 0.2){
-      grid.swap(x, y, nx, ny);
-     
-      }
-    }
-  }
-}
+  gasPhysics(grid,x,y);
 
 
   }
@@ -3259,9 +3330,11 @@ orbital_laser: new Element(
               if (Math.abs(xx) > maxX) continue;
 
               // solid CRT blue
-              c.element = ELEMENTS.vfx;
-              c.color = "#080b0d";
-              c.age = -1;
+              
+              grid.set(cx+xx, cy + yy, ELEMENTS.vfx);
+              const c2 = grid.get(cx + xx, cy + yy);
+              c2.color = "#080b0d";
+              c2.age = -1;
             }
           }
 
@@ -3306,8 +3379,9 @@ orbital_laser: new Element(
                 const g = Math.floor(220 * i + 30 * i * i);
                 const b = Math.floor(255 * i);
 
+                
+                grid.set(gx,gy, ELEMENTS.vfx);
                 const c = grid.get(gx, gy);
-                c.element = ELEMENTS.vfx;
                 c.color = `rgb(${r},${g},${b})`;
                 c.age = -45;
               }
@@ -3931,12 +4005,12 @@ grass: new Element(
     },
   (grid, x, y) => {
     const cell = grid.get(x,y);
-    if(cell.temperature > 60){
+    if(cell.temperature > 30){
       // placeholder
         cell.element = cell.element.withTag("burnt"); // adds variant
     }
     
-    if(cell.temperature > 120){
+    if(cell.temperature > 90){
       grid.set(x,y, ELEMENTS.fire);
     }
     // spreading logic
@@ -3991,7 +4065,7 @@ oil: new Element(
     const cell = grid.get(x, y);
 
     // 🔥 Ignite if hot
-    if (cell.temperature > 300) {
+    if (cell.temperature > 50) {
       grid.set(x, y, ELEMENTS.fire);
       return;
     }
@@ -4053,221 +4127,445 @@ humantop: new Element(
     cell.ownedByHuman = true;
   }
 ),
-
 human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true}, (grid, x, y) => {
   const cell = grid.get(x, y);
-  if(cell.chopped){
-    grid.set(x,y,ELEMENTS.empty);
-  }
-  if (cell.temperature > 43 && Math.random() < 0.1) return grid.set(x, y, ELEMENTS.fire);
-  if(cell.temperature < -10){
-    if(Math.random() < 0.2){
-      grid.set(x,y,ELEMENTS.ice);
-      grid.set(x,y-1,ELEMENTS.ice);
-      cell.temperature = cell.temperature;
-      return;
-    }
-  }
-  if (!cell.state) cell.state = {
-    age: 0,
-    moveCooldown: 0,
-    jumpCooldown: 0,
-    targetX: x,
-    headWasPresent: false
-  };
-  const s = cell.state;
-  s.age++;
 
-  // ----------------------------
-  // Head death check (before we place a new head)
-  // ----------------------------
+  // ── Debug toggle ────────────────────────────────────────────────────────
+  const SHOW_PATH = false; // set to false to hide path visualization
+
+  function getRandomSkinColor() {
+    const hue = 25 + Math.random() * 20;
+    const saturation = 40 + Math.random() * 30;
+    const lightness = 30 + Math.random() * 30;
+    return hslToHex(hue, saturation, lightness);
+  }
+
+  function hslToHex(h, s, l) {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2*l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c/2;
+    let r = 0, g = 0, b = 0;
+
+    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  }
+
+  function getRandomShirtColor() {
+    const hue = Math.random() * 360;
+    const saturation = 50 + Math.random() * 50;
+    const lightness = 30 + Math.random() * 40;
+    return hslToHex(hue, saturation, lightness);
+  }
+
+  cell.shirtcolor ??= getRandomShirtColor();
+  cell.color = cell.shirtcolor;
+
+  if (!cell.humanId) cell.humanId = Math.random().toString(36).slice(2);
   if (grid.isInside(x, y - 1)) {
-    const above = grid.get(x, y - 1);
-    const headPresent = above.element === ELEMENTS.humantop;
+    const head = grid.get(x, y - 1);
+    if (!head.color) head.color = getRandomSkinColor();
+    if (head.element === ELEMENTS.humantop) head.humanId = cell.humanId;
+  }
 
-    if (s.headWasPresent && !headPresent) {
-      // Head gone and we didn't clear it ourselves — death
-      grid.set(x, y, ELEMENTS.blood);
-      return;
+  function clearHead() {
+    if (grid.isInside(x, y - 1)) {
+      const head = grid.get(x, y - 1);
+      if (head.element === ELEMENTS.humantop) head.selfCleared = true;
     }
   }
 
-  // ----------------------------
-  // Helper: clear head at a position safely (marks selfCleared)
-  // ----------------------------
-  const clearHead = (hx, hy) => {
-    if (!grid.isInside(hx, hy)) return;
-    const t = grid.get(hx, hy);
-    if (t.element === ELEMENTS.humantop) {
-      t.selfCleared = true;
-      grid.set(hx, hy, ELEMENTS.empty);
-    
-    }
+  // === Death / transformation ===
+  if (cell.chopped) { clearHead(); grid.set(x, y, ELEMENTS.empty); return; }
+  if (cell.temperature > 43 && Math.random() < 0.1) { clearHead(); return grid.set(x, y, ELEMENTS.fire); }
+  if (cell.temperature < -10 && Math.random() < 0.2) {
+    clearHead();
+    grid.set(x, y, ELEMENTS.ice);
+    if (grid.isInside(x, y - 1)) grid.set(x, y - 1, ELEMENTS.ice);
+    return;
+  }
+  if (grid.get(x, y - 1).element !== ELEMENTS.humantop) {
+    grid.set(x, y, ELEMENTS.blood);
+  }
+
+  // === Init ===
+  if (!cell.settings) cell.settings = { jumpHeight: 2 };
+  if (!cell.state) cell.state = {
+    target: { x: null, y: null },
+    task: null,
+    emotion: "neutral",
+    inventory: [null, null, null, null, null, null, null, null, null],
   };
+ if (!cell.pfState) cell.pfState = {
+    path: null,
+    prevPath: null,
+    pathStep: 0,
+    retargetCooldown: 0,
+    jumpCooldown: 0,
+    moveTick: 0,
+    fleeing: false,
+  };
+  const pf = cell.pfState;
 
-  // Gravity & cooldowns
-  if (s.moveCooldown > 0) s.moveCooldown--;
-  if (s.jumpCooldown > 0) s.jumpCooldown--;
-
-  if (grid.isInside(x, y + 1) && grid.get(x, y + 1).element === ELEMENTS.empty && s.jumpCooldown < 5) {
-    clearHead(x, y - 1);
-    grid.swap(x, y, x, y + 1);
-    grid.set(x, y, ELEMENTS.humantop);
-     
-    s.headWasPresent = false;
-    return;
+  // ── move ──────────────────────────────────────────────────────────────────
+  function move(tx, ty) {
+    if (!grid.isInside(tx, ty) || grid.get(tx, ty).element !== ELEMENTS.empty) return false;
+    if (!grid.isInside(tx, ty - 1)) return false;
+    const headDest = grid.get(tx, ty - 1);
+    const headOk = headDest.element === ELEMENTS.empty ||
+                   (headDest.element === ELEMENTS.human && headDest.humanId === cell.humanId);
+    if (!headOk) return false;
+    grid.swap(x, y,     tx, ty);
+    grid.swap(x, y - 1, tx, ty - 1);
+    return true;
   }
 
-  if (s.moveCooldown > 0) {
-    // Stationary — maintain head
-    grid.set(x, y - 1, ELEMENTS.humantop);
-    s.headWasPresent = true;
-    return;
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function isGround(tx, ty) {
+    if (!grid.isInside(tx, ty + 1)) return true;
+    const e = grid.get(tx, ty + 1).element;
+    return e !== ELEMENTS.empty && e !== ELEMENTS.human && e !== ELEMENTS.humantop;
   }
 
-  // ----------------------------
-  // Pathfinding
-  // ----------------------------
-  if (Math.abs(s.targetX - x) < 2 || Math.random() < 0.05) {
-    s.targetX = x + (Math.floor(Math.random() * 20) - 10);
-  }
-
-  const dir = s.targetX > x ? 1 : -1;
-  const nx = x + dir;
-
-  const checkSafety = (tx, ty) => {
+  function isClearFeet(tx, ty) {
     if (!grid.isInside(tx, ty)) return false;
-    const target = grid.get(tx, ty);
-    if (target.temperature > 100 || target.temperature < 0) return false;
-    return target.element === ELEMENTS.empty;
-  };
-
-  const canWalk   = checkSafety(nx, y) && checkSafety(nx, y - 1);
-  const canStepUp = !checkSafety(nx, y) && checkSafety(nx, y - 1) && checkSafety(nx, y - 2);
-
-  if (canStepUp && s.jumpCooldown === 0) {
-    clearHead(x, y - 1);
-    grid.swap(x, y, nx, y - 1);
-    grid.set(nx, y - 2, ELEMENTS.humantop);
-    s.headWasPresent = true;
-    s.jumpCooldown = 15;
-    s.moveCooldown = 8;
-  } else if (canWalk) {
-    clearHead(x, y - 1);
-    grid.swap(x, y, nx, y);
-    grid.set(nx, y - 1, ELEMENTS.humantop);
-    s.headWasPresent = true;
-    s.moveCooldown = 5;
-  } else {
-    // Stuck — maintain head
-    grid.set(x, y - 1, ELEMENTS.humantop);
-    s.headWasPresent = true;
-    s.targetX = x - dir * 5;
+    return grid.get(tx, ty).element === ELEMENTS.empty;
   }
-}),
 
-blackhole: new Element(
-  "blackhole",
-  "#0A0A0A",
-  "Energy",
-  {},
-  (grid, x, y) => {
+  function isClearHead(tx, ty) {
+    if (!grid.isInside(tx, ty - 1)) return false;
+    const c = grid.get(tx, ty - 1);
+    return c.element === ELEMENTS.empty ||
+           (c.element === ELEMENTS.human && c.humanId === cell.humanId);
+  }
 
+  function isDangerous(tx, ty) {
+    if (!grid.isInside(tx, ty)) return false;
+    const c = grid.get(tx, ty);
+    if (c.temperature > 38 || c.temperature < -5) return true;
+    if (c.element && c.element.properties && c.element.properties.harmful === true) return true;
+    return false;
+  }
 
-
-    const radius = 30;          // smaller for performance
-    const killRadius = 3;       // destroy cells very close
-    const directRadius = 3;     // straight pull zone
-    const maxTemperature = 5000;
-    const maxMovesPerTick = 500; // limit to avoid overload
-
-    let moves = [];
-    let moveCount = 0;
-
-    for (let dx = -radius; dx <= radius; dx++) {
-      for (let dy = -radius; dy <= radius; dy++) {
-
-        if (moveCount >= maxMovesPerTick) break;
-
-        const nx = x + dx;
-        const ny = y + dy;
-
+  function findNearestDanger(radius) {
+    let best = null, bestDist = Infinity;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
         if (dx === 0 && dy === 0) continue;
-        if (!grid.isInside(nx, ny)) continue;
-
-        const cell = grid.get(nx, ny);
-        if (!cell || cell.element === ELEMENTS.empty) continue;
-
-        const distX = nx - x;
-        const distY = ny - y;
-        const dist = Math.max(0.5, Math.hypot(distX, distY));
-
-      if (dist <= killRadius) {
- 
-  grid.set(nx, ny, ELEMENTS.empty);
-  continue;
-}
-
-
-        // Temperature
-     const t = Math.max(0, 1 - dist / radius);  
-const tempAdd = Math.round(maxTemperature * Math.pow(t, 8)); // closer = bigger
-cell.temperature += tempAdd;
-
-        // Motion
-        let stepX = 0;
-        let stepY = 0;
-
-        if (dist > directRadius) {
-          // Spiral motion
-          const orbitX = -distY / dist;
-          const orbitY = distX / dist;
-          const orbitSpeed = 1 + (radius - dist) / radius * 2;
-          const pullStrength = 0.5 + (radius - dist) / radius * 0.5;
-
-          stepX = orbitX * orbitSpeed + (-distX / dist) * pullStrength;
-          stepY = orbitY * orbitSpeed + (-distY / dist) * pullStrength;
-
-        } else {
-          // Direct pull
-          const directSpeed = 0.5 + (directRadius - dist) / directRadius * 5;
-          stepX = -distX / dist * directSpeed;
-          stepY = -distY / dist * directSpeed;
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        if (isDangerous(tx, ty)) {
+          const dist = Math.abs(dx) + Math.abs(dy);
+          if (dist < bestDist) { bestDist = dist; best = { x: tx, y: ty, dist }; }
         }
+      }
+    }
+    return best;
+  }
 
-        // Ensure movement
-        if (Math.round(stepX) === 0 && Math.round(stepY) === 0) {
-          if (Math.abs(distX) > Math.abs(distY)) stepX = Math.sign(-distX);
-          else stepY = Math.sign(-distY);
+  function pickFleeTarget(danger) {
+    const awayX = x - danger.x;
+    const awayY = y - danger.y;
+    const len = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
+    const nx = awayX / len;
+    const ny = awayY / len;
+
+    const range = 25;
+    let best = null, bestScore = -Infinity;
+
+    for (let dy = -range; dy <= range; dy++) {
+      for (let dx = -range; dx <= range; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (tx === x && ty === y) continue;
+        if (!isClearFeet(tx, ty) || !isClearHead(tx, ty)) continue;
+        if (!isGround(tx, ty)) continue;
+        if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) continue;
+        const ddx = tx - x, ddy = ty - y;
+        const score = ddx * nx + ddy * ny;
+        if (score > bestScore) { bestScore = score; best = { x: tx, y: ty }; }
+      }
+    }
+    return best;
+  }
+
+  // ── A* ────────────────────────────────────────────────────────────────────
+  function nodeKey(nx, ny) { return nx + "," + ny; }
+  function heuristic(ax, ay, bx, by) { return Math.abs(ax - bx) + Math.abs(ay - by); }
+
+  function tileCost(tx, ty) {
+    if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) return 200;
+    return 1;
+  }
+
+  function getNeighbors(cx, cy, jumpHeight, nodeGrounded) {
+    const result = [];
+    if (nodeGrounded) {
+      for (const dx of [-1, 1]) {
+        if (isClearFeet(cx + dx, cy) && isClearHead(cx + dx, cy))
+          result.push({ x: cx + dx, y: cy });
+        if (isClearFeet(cx + dx, cy + 1) && isClearHead(cx + dx, cy + 1))
+          result.push({ x: cx + dx, y: cy + 1 });
+      }
+      for (let rise = 1; rise <= jumpHeight; rise++) {
+        const jy = cy - rise;
+        if (!grid.isInside(cx, jy) || !isClearFeet(cx, jy) || !isClearHead(cx, jy)) break;
+        for (const dx of [-1, 0, 1]) {
+          const jx = cx + dx;
+          if (!grid.isInside(jx, jy)) continue;
+          if (isClearFeet(jx, jy) && isClearHead(jx, jy))
+            result.push({ x: jx, y: jy });
         }
+      }
+    }
+    if (isClearFeet(cx, cy + 1) && isClearHead(cx, cy + 1))
+      result.push({ x: cx, y: cy + 1 });
+    return result;
+  }
 
-        let tx = nx + Math.round(stepX);
-        let ty = ny + Math.round(stepY);
+  function reconstructPath(cameFrom, startKey, endKey) {
+    const path = [];
+    let cur = endKey;
+    while (cur && cur !== startKey) {
+      const [px, py] = cur.split(",").map(Number);
+      path.unshift({ x: px, y: py });
+      cur = cameFrom.get(cur);
+    }
+    return path;
+  }
 
-        // Clamp to grid
-        tx = Math.min(grid.width - 1, Math.max(0, tx));
-        ty = Math.min(grid.height - 1, Math.max(0, ty));
+  function findPath(sx, sy, gx, gy, jumpHeight, maxNodes = 500) {
+    const startKey = nodeKey(sx, sy);
+    const goalKey  = nodeKey(gx, gy);
+    const openMap  = new Map();
+    const gScore   = new Map();
+    const fScore   = new Map();
+    const cameFrom = new Map();
+    const closed   = new Set();
 
-       const targetCell = grid.get(tx, ty);
-if (targetCell && targetCell.element === ELEMENTS.empty) {
-    moves.push({fromX: nx, fromY: ny, toX: tx, toY: ty});
-    moveCount++;
-}
+    gScore.set(startKey, 0);
+    fScore.set(startKey, heuristic(sx, sy, gx, gy));
+    openMap.set(startKey, { x: sx, y: sy });
+
+    let iters = 0;
+    while (openMap.size > 0 && iters++ < maxNodes) {
+      let curKey = null, curF = Infinity;
+      for (const [k] of openMap) {
+        const f = fScore.get(k) ?? Infinity;
+        if (f < curF) { curF = f; curKey = k; }
+      }
+      if (!curKey) break;
+      if (curKey === goalKey) return reconstructPath(cameFrom, startKey, goalKey);
+
+      const cur = openMap.get(curKey);
+      openMap.delete(curKey);
+      closed.add(curKey);
+
+      const nodeGrounded = isGround(cur.x, cur.y);
+      for (const nb of getNeighbors(cur.x, cur.y, jumpHeight, nodeGrounded)) {
+        const nbKey = nodeKey(nb.x, nb.y);
+        if (closed.has(nbKey)) continue;
+        const tentG = (gScore.get(curKey) ?? Infinity) + tileCost(nb.x, nb.y);
+        if (tentG < (gScore.get(nbKey) ?? Infinity)) {
+          cameFrom.set(nbKey, curKey);
+          gScore.set(nbKey, tentG);
+          fScore.set(nbKey, tentG + heuristic(nb.x, nb.y, gx, gy));
+          openMap.set(nbKey, nb);
+        }
+      }
+    }
+    return null;
+  }
+
+  // ── Target picking ────────────────────────────────────────────────────────
+  function pickNewTarget() {
+    const range = 20;
+    const candidates = [];
+    for (let dy = -range; dy <= range; dy++) {
+      for (let dx = -range; dx <= range; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (tx === x && ty === y) continue;
+        if (!isClearFeet(tx, ty) || !isClearHead(tx, ty)) continue;
+        if (!isGround(tx, ty)) continue;
+        if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) continue;
+        candidates.push({ x: tx, y: ty });
+      }
+    }
+    if (!candidates.length) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // ── AI tick ───────────────────────────────────────────────────────────────
+  const jumpHeight = cell.settings.jumpHeight;
+  const grounded   = isGround(x, y);
+
+  if (pf.retargetCooldown > 0) pf.retargetCooldown--;
+  if (pf.jumpCooldown    > 0) pf.jumpCooldown--;
+
+  const tgt = cell.state.target;
+
+  // ── Danger check ──────────────────────────────────────────────────────────
+  const danger = findNearestDanger(5);
+
+  if (danger) {
+    if (!pf.fleeing || tgt.x === null) {
+      const fleeTgt = pickFleeTarget(danger);
+      if (fleeTgt) {
+        pf.path = findPath(x, y, fleeTgt.x, fleeTgt.y, jumpHeight);
+        pf.pathStep = 0;
+        if (pf.path) {
+          cell.state.target = fleeTgt;
+          tgt.x = fleeTgt.x; tgt.y = fleeTgt.y;
+          pf.fleeing = true;
+          pf.retargetCooldown = 30;
+        }
+      }
+    }
+  } else {
+    if (pf.fleeing) {
+      pf.fleeing = false;
+      cell.state.target = { x: null, y: null };
+      tgt.x = null; tgt.y = null;
+      pf.path = null; pf.pathStep = 0;
+      pf.retargetCooldown = 0;
+    }
+  }
+
+  // ── Normal wander ─────────────────────────────────────────────────────────
+  if (!pf.fleeing) {
+    if (tgt.x !== null && x === tgt.x && y === tgt.y) {
+      pf.path = null; pf.pathStep = 0;
+      cell.state.target = { x: null, y: null };
+      tgt.x = null; tgt.y = null;
+      pf.retargetCooldown = 20;
+    }
+
+    if (tgt.x === null || pf.retargetCooldown === 0) {
+      pf.path = null; pf.pathStep = 0;
+      const newTgt = pickNewTarget();
+      if (newTgt) { cell.state.target = newTgt; tgt.x = newTgt.x; tgt.y = newTgt.y; }
+      pf.retargetCooldown = 60 + Math.floor(Math.random() * 60);
+    }
+
+    if (tgt.x !== null && (!pf.path || pf.pathStep >= pf.path.length)) {
+      pf.path = findPath(x, y, tgt.x, tgt.y, jumpHeight);
+      pf.pathStep = 0;
+      if (!pf.path) {
+        cell.state.target = { x: null, y: null };
+        tgt.x = null; tgt.y = null;
+        pf.retargetCooldown = 15;
+      }
+    }
+  }
+
+  // ── Execute next path step ────────────────────────────────────────────────
+  pf.moveTick++;
+  if (pf.moveTick % 2 === 0 && pf.path && pf.pathStep < pf.path.length) {
+    const next = pf.path[pf.pathStep];
+    const nx = next.x, ny = next.y;
+
+    if (isDangerous(nx, ny) || isDangerous(nx, ny - 1)) {
+      pf.path = null;
+      cell.state.target = { x: null, y: null };
+      tgt.x = null; tgt.y = null;
+      pf.fleeing = false;
+      pf.retargetCooldown = 0;
+    } else if (ny < y) {
+      if (grounded && pf.jumpCooldown === 0) {
+        if (move(nx, ny)) { pf.pathStep++; pf.jumpCooldown = 4; }
+      }
+    } else if (nx !== x) {
+      if (grounded) {
+        if (move(nx, ny)) { pf.pathStep++; }
+        else { pf.path = null; pf.pathStep = 0; }
+      }
+    } else {
+      if (move(nx, ny)) { pf.pathStep++; }
+      else { pf.path = null; pf.pathStep = 0; }
+    }
+  }
+
+  // ── Path visualization ────────────────────────────────────────────────────
+ // ── Path visualization ────────────────────────────────────────────────────
+  const PATH_FADE_TICKS = 2; // how many ticks before a stamped cell clears
+  if (!cell.pfState.tick) cell.pfState.tick = 0;
+  cell.pfState.tick++;
+  const nowTick = cell.pfState.tick;
+
+  if (SHOW_PATH) {
+    // Stamp remaining path cells with current tick
+    if (pf.path) {
+      for (let i = pf.pathStep; i < pf.path.length; i++) {
+        const step = pf.path[i];
+        if (!grid.isInside(step.x, step.y)) continue;
+        const pathCell = grid.get(step.x, step.y);
+        if (pathCell.element === ELEMENTS.empty) {
+          const t = pf.path.length <= 1 ? 0 : (i - pf.pathStep) / (pf.path.length - 1 - pf.pathStep);
+          const r = Math.round(t * 255).toString(16).padStart(2, '0');
+          const g = Math.round((1 - t) * 255).toString(16).padStart(2, '0');
+          pathCell.color = `#${r}${g}00`;
+          pathCell.pathTick = nowTick; // stamp with current tick
+        }
       }
     }
 
-    // Apply all moves after calculations
-    for (let m of moves) {
-      grid.swap(m.fromX, m.fromY, m.toX, m.toY);
+    // Scan nearby area and clear any stale path cells
+    const scanRadius = 80;
+    for (let dy = -scanRadius; dy <= scanRadius; dy++) {
+      for (let dx = -scanRadius; dx <= scanRadius; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        const c = grid.get(tx, ty);
+        if (c.element === ELEMENTS.empty && c.pathTick !== undefined) {
+          if (nowTick - c.pathTick >= PATH_FADE_TICKS) {
+            c.color = null;
+            c.pathTick = undefined;
+          }
+        }
+      }
     }
-
+  } else {
+    // SHOW_PATH turned off — clear everything stamped
+    const scanRadius = 80;
+    for (let dy = -scanRadius; dy <= scanRadius; dy++) {
+      for (let dx = -scanRadius; dx <= scanRadius; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        const c = grid.get(tx, ty);
+        if (c.element === ELEMENTS.empty && c.pathTick !== undefined) {
+          c.color = null;
+          c.pathTick = undefined;
+        }
+      }
+    }
   }
-),
+  // Gravity
+  if (!grounded) move(x, y + 1);
+
+},
+(grid, x, y) => {
+  if (grid.isInside(x, y - 1)) {
+    grid.set(x, y - 1, ELEMENTS.humantop);
+    const feet = grid.get(x, y);
+    const head = grid.get(x, y - 1);
+    if (feet.humanId) head.humanId = feet.humanId;
+  }
+}),
 glitch: new Element(
   "glitch",
   "#000000",
   "Energy",
-  {},
+  {harmful: true},
   (grid, x, y) => {
     const cell = grid.get(x, y);
     cell.age++;
@@ -4362,7 +4660,7 @@ grenade: new Element(
   "grenade",
   "#064F08",
   "Explosive",
-  {},
+  {harmful: true},
   (grid, x, y) => {
     const cell = grid.get(x, y);
     cell.age++;
@@ -4584,7 +4882,7 @@ gunpowder: new Element(
   "gunpowder",
   "#383838",
   "Explosive",
-  { density: 1.2 },
+  { density: 1.2, harmful: true },
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
@@ -5402,7 +5700,7 @@ ash: new Element(
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
-    if(cell.temperature > 1000){
+    if(cell.temperature > 900){
       grid.set(x,y,ELEMENTS.smoke);
     }
     // Snow randomly drifts left/right or straight
@@ -5507,7 +5805,7 @@ if (emptyCells) {
   (grid, x, y) => {
     const cell = grid.get(x, y);
    const waterCells = grid.touching(x, y, "water", true);
-   if(cell.temperature > 300){
+   if(cell.temperature > 200){
     grid.set(x,y,ELEMENTS.fire);
    }
    if(cell.age > 7){
@@ -5527,12 +5825,12 @@ virus: new Element(
   "virus",
   "#AA31CC",
   "System",
-  { flammable: true },
+  { flammable: true, harmful: true },
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
     // burn if hot
-    if (cell.temperature > 100) {
+    if (cell.temperature > 40) {
       grid.set(x, y, ELEMENTS.fire);
       return;
     }
@@ -5634,14 +5932,14 @@ moss: new Element(
         color: "#0E1F08",
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
-          if(cell.temperature > 300){
+          if(cell.temperature > 160){
             grid.set(x,y,ELEMENTS.fire);
           }
           const empties = grid.touching(x, y, "empty", true);
 if (!empties) return;
 
 for (const [nx, ny] of empties) {
-  if(cell.temperature > 60){
+  if(cell.temperature > 40){
   grid.set(nx, ny, ELEMENTS.fire);
   }
 }
@@ -5654,7 +5952,7 @@ for (const [nx, ny] of empties) {
   },
   (grid, x, y) => {
     const cell = grid.get(x, y);
-    if(cell.temperature > 100){
+    if(cell.temperature > 40){
       cell.element = cell.element.withTag("burnt");
     }
     // optional: slow growth
@@ -5887,7 +6185,7 @@ cell.color = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
         hidden: true,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
-               if(cell.temperature > 350){
+               if(cell.temperature > 150){
             grid.set(x,y,ELEMENTS.fire);
           }
           const empties = grid.touching(x, y, "empty", true);
@@ -5907,7 +6205,7 @@ for (const [nx, ny] of empties) {
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
-    if(cell.temperature > 130){
+    if(cell.temperature > 50){
       cell.element = cell.element.withTag("burnt");
       return;
     }
@@ -6206,7 +6504,7 @@ for (const [nx, ny] of empties) {
   (grid,x,y) => {
     const cell = grid.get(x,y);
 
-    if(cell.temperature > 90){
+    if(cell.temperature > 50){
       cell.element = cell.element.withTag("burnt");
       return;
     }
@@ -7885,320 +8183,247 @@ motor: new Element(
   {
     econductivity: 2,
 
-    optionMenu: (cell, menu) => {
+  optionMenu: (cell, menu, grid, x, y) => {
 
+  // ---- Init defaults ----
   if (cell.spinSpeed == null) cell.spinSpeed = 0.4;
-  if (cell.minAngle == null) cell.minAngle = -Math.PI/2;
-  if (cell.maxAngle == null) cell.maxAngle = Math.PI/2;
+  if (cell.minAngle == null) cell.minAngle = -Math.PI / 2;
+  if (cell.maxAngle == null) cell.maxAngle = Math.PI / 2;
   if (cell.limitAngle == null) cell.limitAngle = true;
-  if (cell.pushToggle == null) cell.pushToggle = false;
   if (cell.zeroOffset == null) cell.zeroOffset = 0;
 
-  const toDeg = r => r * 180 / Math.PI;
+
+  const toDeg = r => +(r * 180 / Math.PI).toFixed(1);
+
+  // ---- Tab state ----
+  let activeTab = "motor"; // "motor" | "keybinds" NOT USED ANYMORE
 
   menu.innerHTML = `
-  <div class="motor-panel">
+    <div class="mp-root">
 
-    <div class="motor-header">MOTOR CONTROL</div>
 
-    <div class="speed-section">
-      <div class="label">
-        Torque Speed
-        <span id="speedVal">${cell.spinSpeed.toFixed(2)}</span>
+      <!-- ===== MOTOR TAB ===== -->
+      <div class="mp-panel" id="mp-motor">
+
+        <div class="motor-header">MOTOR CONTROL</div>
+
+        <div class="speed-section">
+          <div class="label">
+            Torque Speed
+            <span id="speedVal">${cell.spinSpeed.toFixed(2)}</span>
+          </div>
+          <input type="range" min="0" max="2" step="0.05"
+                 value="${cell.spinSpeed}" id="speedSlider">
+        </div>
+
+        <div class="motor-core" id="angleBox">
+          <div class="gear-ring"></div>
+          <svg class="angle-arc-svg" viewBox="0 0 150 150">
+            <path id="angleArc" class="angle-arc"></path>
+          </svg>
+          <div id="minLine" class="angle-line min"></div>
+          <div id="maxLine" class="angle-line max"></div>
+          <div id="zeroArrow" class="zero-arrow"></div>
+          <div class="motor-center"></div>
+        </div>
+
+        <div class="switch-row">
+          <div class="switch-label">ANGLE LIMIT</div>
+          <div id="limitSwitch" class="industrial-switch"></div>
+        </div>
+
       </div>
-      <input type="range" min="0" max="2" step="0.05"
-             value="${cell.spinSpeed}" id="speedSlider">
+
+
     </div>
-
-    <div class="motor-core" id="angleBox">
-      <div class="gear-ring"></div>
-
-      <svg class="angle-arc-svg" viewBox="0 0 150 150">
-        <path id="angleArc" class="angle-arc"></path>
-      </svg>
-
-      <div id="minLine" class="angle-line min"></div>
-      <div id="maxLine" class="angle-line max"></div>
-      <div id="zeroArrow" class="zero-arrow"></div>
-      <div class="motor-center"></div>
-    </div>
-
-    <div class="switch-row">
-      <div class="switch-label">ANGLE LIMIT</div>
-      <div id="limitSwitch" class="industrial-switch"></div>
-    </div>
-
-  </div>
   `;
 
+  // ---- Styles (injected once) ----
   if (!document.getElementById("motorMenuStyles")) {
     const style = document.createElement("style");
     style.id = "motorMenuStyles";
     style.innerHTML = `
-      .motor-panel{
-        width:220px;
-        padding:14px;
-        border-radius:14px;
-        background:linear-gradient(145deg,#1a1a1a,#111);
-        border:2px solid #333;
-        box-shadow:inset 0 0 12px #000, 0 4px 15px rgba(0,0,0,0.6);
-        font-family:monospace;
-        color:#ddd;
+      .mp-root {
+        width: 240px;
+        background: linear-gradient(145deg,#1a1a1a,#111);
+        border-radius: 14px;
+        border: 2px solid #333;
+        box-shadow: inset 0 0 12px #000, 0 4px 15px rgba(0,0,0,.6);
+        font-family: monospace;
+        color: #ddd;
+        overflow: hidden;
       }
 
-      .motor-header{
-        text-align:center;
-        font-size:13px;
-        letter-spacing:2px;
-        color:#888;
-        margin-bottom:10px;
-      }
+      
+      .mp-panel { padding: 14px; }
 
-      .speed-section{ margin-bottom:12px; }
-
-      .label{
-        display:flex;
-        justify-content:space-between;
-        font-size:12px;
-        margin-bottom:4px;
+      /* ---- motor tab (existing styles kept) ---- */
+      .motor-header {
+        text-align: center;
+        font-size: 13px;
+        letter-spacing: 2px;
+        color: #888;
+        margin-bottom: 10px;
       }
-
-      input[type=range]{
-        width:100%;
-        accent-color:#00ffff;
+      .speed-section { margin-bottom: 12px; }
+      .label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 4px;
       }
-
-      .motor-core{
-        position:relative;
-        width:150px;
-        height:150px;
-        margin:14px auto;
-        border-radius:50%;
-        background:radial-gradient(circle at 30% 30%, #2a2a2a, #111 70%);
-        border:3px solid #444;
-        box-shadow:inset 0 0 15px #000;
+      input[type=range] { width: 100%; accent-color: #00ffff; }
+      .motor-core {
+        position: relative;
+        width: 150px;
+        height: 150px;
+        margin: 14px auto;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%,#2a2a2a,#111 70%);
+        border: 3px solid #444;
+        box-shadow: inset 0 0 15px #000;
       }
-
-      .gear-ring{
-        position:absolute;
-        inset:10px;
-        border-radius:50%;
-        border:2px dashed #333;
-        opacity:0.6;
+      .gear-ring {
+        position: absolute;
+        inset: 10px;
+        border-radius: 50%;
+        border: 2px dashed #333;
+        opacity: .6;
       }
-
-      .angle-arc-svg{
-        position:absolute;
-        inset:0;
-        pointer-events:none;
+      .angle-arc-svg { position: absolute; inset: 0; pointer-events: none; }
+      .angle-arc { fill: none; stroke: #00ffff; stroke-width: 4; opacity: .6; filter: drop-shadow(0 0 6px #00ffff); }
+      .angle-line {
+        position: absolute;
+        width: 4px; height: 60px;
+        left: 73px; top: 15px;
+        border-radius: 3px;
+        transform-origin: bottom center;
+        cursor: pointer;
+        box-shadow: 0 0 6px currentColor;
       }
-
-      .angle-arc{
-        fill:none;
-        stroke:#00ffff;
-        stroke-width:4;
-        opacity:0.6;
-        filter:drop-shadow(0 0 6px #00ffff);
+      .angle-line.min { background: #00ffff; color: #00ffff; }
+      .angle-line.max { background: #ff66ff; color: #ff66ff; }
+      .zero-arrow {
+        position: absolute;
+        width: 6px; height: 45px;
+        left: 72px; top: 30px;
+        border-radius: 3px;
+        background: #ffff00;
+        transform-origin: bottom center;
+        cursor: pointer;
+        box-shadow: 0 0 10px #ffff00;
       }
-
-      .angle-line{
-        position:absolute;
-        width:4px;
-        height:60px;
-        left:73px;
-        top:15px;
-        border-radius:3px;
-        transform-origin:bottom center;
-        cursor:pointer;
-        box-shadow:0 0 6px currentColor;
+      .motor-center {
+        position: absolute;
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: radial-gradient(circle,#555,#222);
+        top: 50%; left: 50%;
+        transform: translate(-50%,-50%);
+        border: 2px solid #666;
+        box-shadow: inset 0 0 8px #000;
       }
-
-      .angle-line.min{
-        background:#00ffff;
-        color:#00ffff;
+      .switch-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+        gap: 6px;
+        font-size: 11px;
       }
-
-      .angle-line.max{
-        background:#ff66ff;
-        color:#ff66ff;
+      .switch-label { color: #777; letter-spacing: 1px; }
+      .industrial-switch {
+        width: 40px; height: 18px;
+        background: #222;
+        border-radius: 20px;
+        border: 1px solid #444;
+        position: relative;
+        cursor: pointer;
+        transition: .2s;
+        box-shadow: inset 0 0 5px #000;
       }
-
-      .zero-arrow{
-        position:absolute;
-        width:6px;
-        height:45px;
-        left:72px;
-        top:30px;
-        border-radius:3px;
-        background:#ffff00;
-        transform-origin:bottom center;
-        cursor:pointer;
-        box-shadow:0 0 10px #ffff00;
+      .industrial-switch::after {
+        content: "";
+        position: absolute;
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        background: linear-gradient(#eee,#aaa);
+        top: 2px; left: 2px;
+        transition: .2s;
       }
+      .industrial-switch.on { background: #064d4d; }
+      .industrial-switch.on::after { left: 22px; }
 
-      .motor-center{
-        position:absolute;
-        width:30px;
-        height:30px;
-        border-radius:50%;
-        background:radial-gradient(circle,#555,#222);
-        top:50%;
-        left:50%;
-        transform:translate(-50%,-50%);
-        border:2px solid #666;
-        box-shadow:inset 0 0 8px #000;
-      }
-
-      .switch-row{
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        margin-top:8px;
-        gap:6px;
-        font-size:11px;
-      }
-
-      .switch-label{
-        color:#777;
-        letter-spacing:1px;
-      }
-
-      .industrial-switch{
-        width:40px;
-        height:18px;
-        background:#222;
-        border-radius:20px;
-        border:1px solid #444;
-        position:relative;
-        cursor:pointer;
-        transition:0.2s;
-        box-shadow:inset 0 0 5px #000;
-      }
-
-      .industrial-switch::after{
-        content:"";
-        position:absolute;
-        width:14px;
-        height:14px;
-        border-radius:50%;
-        background:linear-gradient(#eee,#aaa);
-        top:2px;
-        left:2px;
-        transition:0.2s;
-      }
-
-      .industrial-switch.on{
-        background:#064d4d;
-      }
-
-      .industrial-switch.on::after{
-        left:22px;
-      }
     `;
     document.head.appendChild(style);
   }
 
+
+
+  // ==================== MOTOR TAB LOGIC (unchanged) ====================
   const speedSlider = menu.querySelector("#speedSlider");
-  const speedVal = menu.querySelector("#speedVal");
-  const minLine = menu.querySelector("#minLine");
-  const maxLine = menu.querySelector("#maxLine");
-  const zeroArrow = menu.querySelector("#zeroArrow");
-  const angleBox = menu.querySelector("#angleBox");
+  const speedVal    = menu.querySelector("#speedVal");
+  const minLine     = menu.querySelector("#minLine");
+  const maxLine     = menu.querySelector("#maxLine");
+  const zeroArrow   = menu.querySelector("#zeroArrow");
+  const angleBox    = menu.querySelector("#angleBox");
   const limitSwitch = menu.querySelector("#limitSwitch");
-  const angleArc = menu.querySelector("#angleArc");
+  const angleArc    = menu.querySelector("#angleArc");
 
   speedSlider.oninput = () => {
     cell.spinSpeed = parseFloat(speedSlider.value);
     speedVal.textContent = cell.spinSpeed.toFixed(2);
   };
 
-  function updateLines(){
-    minLine.style.transform = `rotate(${toDeg(cell.minAngle)}deg)`;
-    maxLine.style.transform = `rotate(${toDeg(cell.maxAngle)}deg)`;
+  function updateLines() {
+    minLine.style.transform  = `rotate(${toDeg(cell.minAngle)}deg)`;
+    maxLine.style.transform  = `rotate(${toDeg(cell.maxAngle)}deg)`;
     zeroArrow.style.transform = `rotate(${toDeg(cell.zeroOffset)}deg)`;
     updateArc();
   }
 
-  function updateArc(){
-    const size = 150;
-    const center = size / 2;
-    const radius = 55;
-
-    let start = cell.minAngle;
-    let end = cell.maxAngle;
-
+  function updateArc() {
+    const size = 150, center = size / 2, radius = 55;
+    let start = cell.minAngle, end = cell.maxAngle;
     while (end < start) end += Math.PI * 2;
-
     const largeArc = (end - start) > Math.PI ? 1 : 0;
-
     const x1 = center + radius * Math.sin(start);
     const y1 = center - radius * Math.cos(start);
     const x2 = center + radius * Math.sin(end);
     const y2 = center - radius * Math.cos(end);
-
-    const d = `M ${x1} ${y1}
-               A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
-
-    angleArc.setAttribute("d", d);
+    angleArc.setAttribute("d", `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`);
     angleArc.style.opacity = cell.limitAngle ? "0.6" : "0";
   }
 
   updateLines();
 
-  function enableDrag(line, isMin){
+  function enableDrag(line, isMin) {
     let dragging = false;
-
-    line.onmousedown = e => {
-      dragging = true;
-      e.stopPropagation();
-    };
-
+    line.onmousedown = e => { dragging = true; e.stopPropagation(); };
     window.addEventListener("mouseup", () => dragging = false);
-
     window.addEventListener("mousemove", e => {
-      if(!dragging) return;
-
+      if (!dragging) return;
       const rect = angleBox.getBoundingClientRect();
-      const cx = rect.left + rect.width/2;
-      const cy = rect.top + rect.height/2;
-
-      const dx = e.clientX - cx;
-      const dy = e.clientY - cy;
-
-      let angle = Math.atan2(dy, dx) + Math.PI/2;
-
-      if(isMin) cell.minAngle = angle;
-      else cell.maxAngle = angle;
-
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top  + rect.height / 2);
+      const angle = Math.atan2(dy, dx) + Math.PI / 2;
+      if (isMin) cell.minAngle = angle; else cell.maxAngle = angle;
       updateLines();
     });
   }
 
-  function enableZeroDrag(){
+  function enableZeroDrag() {
     let dragging = false;
-
-    zeroArrow.onmousedown = e => {
-      dragging = true;
-      e.stopPropagation();
-    };
-
+    zeroArrow.onmousedown = e => { dragging = true; e.stopPropagation(); };
     window.addEventListener("mouseup", () => dragging = false);
-
     window.addEventListener("mousemove", e => {
       if (!dragging) return;
-
       const rect = angleBox.getBoundingClientRect();
-      const cx = rect.left + rect.width/2;
-      const cy = rect.top + rect.height/2;
-
-      const dx = e.clientX - cx;
-      const dy = e.clientY - cy;
-
-      let angle = Math.atan2(dy, dx) + Math.PI/2;
-
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top  + rect.height / 2);
+      let angle = Math.atan2(dy, dx) + Math.PI / 2;
       const snap = Math.PI / 2;
       angle = Math.round(angle / snap) * snap;
-
       cell.zeroOffset = angle;
       updateLines();
     });
@@ -8209,15 +8434,15 @@ motor: new Element(
   enableZeroDrag();
 
   if (cell.limitAngle) limitSwitch.classList.add("on");
-
   limitSwitch.onclick = () => {
     cell.limitAngle = !cell.limitAngle;
     limitSwitch.classList.toggle("on", cell.limitAngle);
     updateArc();
   };
 
-}
-  },
+
+},
+},
 
  (grid, x, y) => {
 
@@ -8334,7 +8559,15 @@ motor: new Element(
   // ROTATION STEP
   // =====================================================
   motor.angle += motor.spinSpeed * motor.direction;
-
+// Auto-stop when reaching a goto target
+if (motor._gotoTarget != null) {
+  const diff = motor.angle - motor._gotoTarget;
+  if (Math.abs(diff) < motor.spinSpeed * 1.5) {
+    motor.angle = motor._gotoTarget;
+    motor.on = false;
+    motor._gotoTarget = null;
+  }
+}
   if (motor.limitAngle) {
     if (motor.angle >= motor.maxAngle) {
       motor.angle = motor.maxAngle;
@@ -17292,6 +17525,7 @@ apple: new Element(
       hidden: true,
       behavior: (grid,x,y) => {
         const cell = grid.get(x,y);
+        if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
         cell.color ??= Math.random() < 0.5 ? "#A11515" : "#F7D5D5";
         const dirs = [
           [0, 1],
@@ -17320,9 +17554,11 @@ apple: new Element(
 },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+    if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
     if(cell.chopped){
       cell.element = cell.element.withTag("chopped");
     }
+    
     powderPhysics(grid,x,y);
 
   }
@@ -17351,6 +17587,7 @@ juice: new Element(
         color: "#821151",
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
+          if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
            const dirs = [
       [0, 1],
       [0, -1]
@@ -17397,7 +17634,7 @@ juice: new Element(
   },
   (grid, x, y) => {
     const cell = grid.get(x,y);
-
+if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
     liquidPhysics(grid,x,y);
   }
 ),
@@ -17412,6 +17649,7 @@ banana: new Element(
       hidden: true,
       behavior: (grid,x,y) => {
         const cell = grid.get(x,y);
+        if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
         cell.color ??= Math.random() < 0.5 ? "#FFBB00" : "#F7DC8F";
         powderPhysics(grid,x,y);
       }
@@ -17421,7 +17659,9 @@ banana: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
       if(cell.chopped){
+
       cell.element = cell.element.withTag("sliced");
     }
     powderPhysics(grid,x,y);
@@ -17434,6 +17674,7 @@ blackberry: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
     if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17452,6 +17693,7 @@ blueberry: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
      if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17475,6 +17717,7 @@ cherry: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
      if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17498,6 +17741,7 @@ grape: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
       if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17516,6 +17760,7 @@ wine: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 120) grid.set(x,y,ELEMENTS.steam);
     liquidPhysics(grid,x,y);
   }
 ),
@@ -17526,6 +17771,7 @@ orange: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
       if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17544,6 +17790,7 @@ peach: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
      if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17563,6 +17810,7 @@ pear: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
      if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17582,6 +17830,7 @@ raspberry: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
       if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17600,6 +17849,7 @@ strawberry: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
         if(cell.chopped){
       if(Math.random() < 0.05){
         grid.set(x,y, ELEMENTS.juice);
@@ -17618,6 +17868,7 @@ watermelon: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
     cell.color ??= Math.random() < 0.2 ? "#BA1831" : "#E8193A";
        if(cell.chopped){
       if(Math.random() < 0.05){
@@ -17641,6 +17892,7 @@ pineapple: new Element(
         hidden: true,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
+           if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
           cell.color ??= Math.random() < 0.5 ? "#FFD700" : "#F5C518";
            const dirs = [
           [0, 1],
@@ -17669,6 +17921,7 @@ pineapple: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
     cell.color ??= Math.random() < 0.5 ? "#7A5C10" : "#9B7520";
       if(cell.chopped){
       if(Math.random() < 0.05){
@@ -17690,6 +17943,7 @@ kiwi: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
     cell.color ??= Math.random() < 0.8 ? "#5D8A2E" : "#4B7025";
     powderPhysics(grid,x,y);
   }
@@ -17705,6 +17959,7 @@ coconut: new Element(
         hidden: true,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
+           if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
           cell.color ??= Math.random() < 0.5 ? "#EDEDED" : "#D6D6D6";
           powderPhysics(grid,x,y);
         }
@@ -17713,6 +17968,7 @@ coconut: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 40) grid.set(x,y,ELEMENTS.ash);
       if(cell.chopped){
       if(Math.random() < 0.05){
        
@@ -17812,6 +18068,7 @@ fat_oil: new Element(
   {},
   (grid,x,y) => {
   const cell = grid.get(x,y);
+   if(cell.temperature > 150) grid.set(x,y,ELEMENTS.steam);
   liquidPhysics(grid,x,y);
   }
 ),
@@ -17822,6 +18079,7 @@ egg: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 100) grid.set(x,y,ELEMENTS.ash);
     cell.fall ??= 0;
     if(grid.isInside(x,y+1) && grid.get(x,y+1).element === ELEMENTS.empty){
       grid.swap(x,y, x, y+1);
@@ -17983,6 +18241,7 @@ cocoa_bean: new Element(
         color: "#402B16",
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
+           if(cell.temperature > 60) grid.set(x,y,ELEMENTS.ash);
           cell.color ??= Math.random() < 0.5 ? "#402B16" : "#522714";
           const dirs = [
             [0, 1],
@@ -18010,6 +18269,7 @@ cocoa_bean: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 60) grid.set(x,y,ELEMENTS.ash);
     cell.color ??= Math.random() < 0.5 ? "#F0DAC5" : "#CFC8C0";
     if(cell.chopped){
       if(Math.random() < 0.02){
@@ -18032,6 +18292,7 @@ chocolate: new Element(
         hidden: true,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
+           if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
           if(cell.temperature < 29){
             grid.set(x,y,ELEMENTS.chocolate);
             return;
@@ -18064,17 +18325,1340 @@ honey: new Element(
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
+     if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
     liquidPhysics(grid,x,y);
   }
-)
+),
+sodium: new Element(
+  "sodium",
+  "#878787",
+  "Solids",
+  {shiny: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(grid.touching(x,y,"water")){
+      grid.set(x,y,ELEMENTS.empty);
+      explode(x, y, Math.floor(Math.random() * 3 + 1));
+    }
+
+      function explode(cx, cy, maxRadius) {
+  const steps = 18;
+  const delay = 2;
+  let step = 1;
+
+  // Pre-bake embers — fewer, angles pre-computed
+  const emberCount = Math.min(12, Math.floor(maxRadius * 1.5));
+  const embers = Array.from({ length: emberCount }, () => ({
+    angle:  Math.random() * Math.PI * 2,
+    speed:  0.5 + Math.random() * 0.8,
+    wobble: (Math.random() - 0.5) * 3,
+    color:  Math.random() < 0.5 ? "#FFEE44" : Math.random() < 0.5 ? "#FF6600" : "#FF2200",
+  }));
+
+  // Shrapnel: fewer rays, pre-baked
+  const shrapnelAngles = Array.from({ length: 8 }, (_, i) =>
+    (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
+  );
+
+  // Heat halo: run ONCE at the start, not every tick
+  const heatRange = 4;
+  const heatOuter = maxRadius + heatRange;
+  for (let dy = -heatOuter; dy <= heatOuter; dy++) {
+    for (let dx = -heatOuter; dx <= heatOuter; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (!grid.isInside(x, y)) continue;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d > 0 && d <= heatOuter) {
+        const cell = grid.get(x, y);
+        const falloff = 1 - Math.max(0, (d - maxRadius) / heatRange);
+        const addedTemp = 1800 * falloff * falloff;
+        if (cell.temperature === undefined) cell.temperature = 0;
+        cell.temperature = Math.max(cell.temperature, addedTemp);
+      }
+    }
+  }
+
+  // Push: run ONCE up front
+  const pushMoves = [];
+  for (let dy = -maxRadius; dy <= maxRadius; dy++) {
+    for (let dx = -maxRadius; dx <= maxRadius; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (!grid.isInside(x, y)) continue;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= 0 || d >= maxRadius) continue;
+      const cell = grid.get(x, y);
+      if(cell.element === ELEMENTS.sodium){
+         grid.set(x,y, ELEMENTS.empty);
+          explode(x, y, Math.floor(Math.random() * 3 + 1));
+         
+      }
+      if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx || cell.element === ELEMENTS.sodium) continue;
+      const br = cell.element?.properties?.blastResistance ?? 99;
+      if (d <= maxRadius * 0.5 && br < 2 && Math.random() < 0.7) {
+        grid.set(x, y, ELEMENTS.empty);
+        continue;
+      }
+      const nx = dx / d, ny = dy / d;
+      const force = (maxRadius - d) / maxRadius;
+      const pushDist = Math.max(1, Math.round(force * 3));
+      let lastEmptyX = x, lastEmptyY = y;
+      for (let p = 1; p <= pushDist; p++) {
+        const tx = x + Math.round(nx * p);
+        const ty = y + Math.round(ny * p);
+        if (!grid.isInside(tx, ty)) break;
+        if (grid.get(tx, ty).element === ELEMENTS.empty) { lastEmptyX = tx; lastEmptyY = ty; }
+        else break;
+      }
+      if (lastEmptyX !== x || lastEmptyY !== y) pushMoves.push({ x, y, tx: lastEmptyX, ty: lastEmptyY });
+    }
+  }
+  const pushed = new Set();
+  for (const { x, y, tx, ty } of pushMoves) {
+    const key = `${x},${y}`, destKey = `${tx},${ty}`;
+    if (pushed.has(key) || pushed.has(destKey)) continue;
+    if (grid.get(tx, ty).element !== ELEMENTS.empty) continue;
+    grid.swap(x, y, tx, ty);
+    pushed.add(key);
+    pushed.add(destKey);
+  }
+
+  function tick() {
+    const t      = step / steps;
+    const tEase  = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    const radius = Math.floor(tEase * maxRadius);
+
+    // Flash — first 2 frames only
+    if (step <= 2) {
+      const flashR = Math.floor(maxRadius * 0.7);
+      for (let dy = -flashR; dy <= flashR; dy++) {
+        for (let dx = -flashR; dx <= flashR; dx++) {
+          const x = cx + dx, y = cy + dy;
+          if (!grid.isInside(x, y)) continue;
+          if (Math.sqrt(dx * dx + dy * dy) > flashR) continue;
+          const cell = grid.get(x, y);
+          if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+            grid.set(x, y, ELEMENTS.vfx);
+            const v = grid.get(x, y);
+            v.color = step === 1 ? "#FFFFFF" : "#FFF8CC";
+            v.age   = -2;
+          }
+        }
+      }
+      step++;
+      if (step <= steps) schedule(tick, delay);
+      return;
+    }
+
+    // Fireball VFX
+    const coolFactor = Math.max(0, (t - 0.55) * 2.2);
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const x = cx + dx, y = cy + dy;
+        if (!grid.isInside(x, y)) continue;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > radius) continue;
+        const cell = grid.get(x, y);
+        if (cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx) continue;
+        grid.set(x, y, ELEMENTS.vfx);
+        const v = grid.get(x, y);
+        const norm = radius > 0 ? d / radius : 0;
+        if      (norm < 0.12) { v.color = "#FFFFFF";  v.age = -3; }
+        else if (norm < 0.28) { v.color = coolFactor > 0.3 ? "#FFCC44" : "#FFFAAA"; v.age = -4; }
+        else if (norm < 0.50) { v.color = coolFactor > 0.4 ? "#CC4400" : "#FF8800"; v.age = -6; }
+        else if (norm < 0.72) { v.color = coolFactor > 0.3 ? "#661100" : "#FF3300"; v.age = -7; }
+        else                  { v.color = Math.random() < 0.4 ? "#3A1800" : "#5C2200"; v.age = -10; }
+      }
+    }
+
+    // Shockwave ring — skip every other tick to save cost
+    if (t < 0.7 && step % 2 === 0) {
+      const ringR = radius + 2;
+      for (let dy = -(ringR + 2); dy <= ringR + 2; dy++) {
+        for (let dx = -(ringR + 2); dx <= ringR + 2; dx++) {
+          const x = cx + dx, y = cy + dy;
+          if (!grid.isInside(x, y)) continue;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d >= ringR && d <= ringR + 2.2) {
+            const cell = grid.get(x, y);
+            if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+              grid.set(x, y, ELEMENTS.vfx);
+              const v = grid.get(x, y);
+              v.color = Math.random() < 0.5 ? "#FFEE99" : "#FFAA33";
+              v.age   = -3;
+            }
+          }
+        }
+      }
+    }
+
+    // Shrapnel rays — early phase only, skip every other tick
+    if (t < 0.5 && step % 2 === 0) {
+      const rayLen = Math.floor(t * maxRadius * 2.2);
+      for (const angle of shrapnelAngles) {
+        for (let r = 1; r <= rayLen; r++) {
+          const sx = cx + Math.round(Math.cos(angle) * r);
+          const sy = cy + Math.round(Math.sin(angle) * r);
+          if (!grid.isInside(sx, sy)) continue;
+          const cell = grid.get(sx, sy);
+          if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+            grid.set(sx, sy, ELEMENTS.vfx);
+            const v = grid.get(sx, sy);
+            v.age   = -4;
+            v.color = r < rayLen * 0.4 ? "#FFFFFF" : r < rayLen * 0.7 ? "#FFDD44" : "#FF6600";
+          }
+        }
+      }
+    }
+
+    // Embers — skip every other tick
+    if (step % 2 === 0) {
+      for (const ember of embers) {
+        const dist = ember.speed * maxRadius * t * 1.6;
+        const ex = cx + Math.round(Math.cos(ember.angle) * dist + ember.wobble * t * 3);
+        const ey = cy + Math.round(Math.sin(ember.angle) * dist + ember.wobble * t * 3);
+        if (!grid.isInside(ex, ey)) continue;
+        const cell = grid.get(ex, ey);
+        if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+          grid.set(ex, ey, ELEMENTS.vfx);
+          const v = grid.get(ex, ey);
+          v.age   = -5;
+          v.color = ember.color;
+        }
+      }
+    }
+
+    // Ground pressure wave
+    const waveLen = Math.floor(t * maxRadius * 2.0);
+    for (let dx = -waveLen; dx <= waveLen; dx++) {
+      const x = cx + dx, y = cy;
+      if (!grid.isInside(x, y)) continue;
+      const cell = grid.get(x, y);
+      if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.vfx) {
+        grid.set(x, y, ELEMENTS.vfx);
+        const v = grid.get(x, y);
+        const prog = Math.abs(dx) / waveLen;
+        v.color = prog < 0.4 ? "#FFFF99" : prog < 0.75 ? "#FFAA22" : "#AA3300";
+        v.age   = -5;
+      }
+    }
+
+    step++;
+    if (step <= steps) schedule(tick, delay);
+  }
+
+  tick();
+}
+
+  }
+),
+titanium: new Element(
+  "titanium",
+  "#A1A1A1",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#E3BF20",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           if(cell.temperature < 1638) grid.set(x,y,ELEMENTS.titanium);
+           if(cell.temperature > 3286) grid.set(x,y, ELEMENTS.plasma);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 1668) cell.element = cell.element.withTag("molten");
+    // Example titanium gradient: dark gray -> silver -> bright bluish-white
+const titaniumColors = [
+  [161, 161, 161],   // #A1A1A1 base gray
+  [192, 192, 192],   // medium silver
+  [224, 224, 240],   // light bluish silver
+  [255, 255, 255]    // white-hot
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 1200, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, titaniumColors);
+  }
+),
+zinc: new Element(
+  "zinc",
+  "#BABABA",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#E3BF20",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           if(cell.temperature < 400) grid.set(x,y,ELEMENTS.zinc);
+           if(cell.temperature > 1286) grid.set(x,y, ELEMENTS.plasma);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 719) cell.element = cell.element.withTag("molten");
+
+const colors = [
+  [189, 189, 189], 
+  [186, 158, 149],   
+  [227, 160, 89],   
+  [255, 219, 150] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 719, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+  }
+),
+tin: new Element(
+  "tin",
+  "#9E9E9E",
+  "Solids",
+  {
+    shiny: true,
+     variants: {
+      molten: {
+        color: "#E3BF20",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           if(cell.temperature < 400) grid.set(x,y,ELEMENTS.tin);
+           if(cell.temperature > 1286) grid.set(x,y, ELEMENTS.plasma);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+     if(cell.temperature > 419) cell.element = cell.element.withTag("molten");
+
+const colors = [
+  [158, 158, 158], 
+  [255, 219, 150] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 419, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+  }
+),
+lead: new Element(
+  "lead",
+  "#525151",
+  "Solids",
+  {
+    shiny: true,
+     variants: {
+      molten: {
+        color: "#E3BF20",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           if(cell.temperature < 370) grid.set(x,y,ELEMENTS.lead);
+           if(cell.temperature > 7286) grid.set(x,y, ELEMENTS.plasma);
+
+const colors = [
+  [227, 114, 16], 
+  [245, 219, 196] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 7080, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+     if(cell.temperature > 380) cell.element = cell.element.withTag("molten");
+
+const colors = [
+  [82, 81, 81], 
+  [227, 114, 16] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 380, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+  }
+),
+platinum: new Element(
+  "platinum",
+  "#E0E0E0",
+  "Solids",
+  {
+    shiny: true,
+     variants: {
+      molten: {
+        color: "#E3BF20",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           if(cell.temperature < 1600) grid.set(x,y,ELEMENTS.platinum);
+           if(cell.temperature > 10286) grid.set(x,y, ELEMENTS.plasma);
+
+const colors = [
+  [227, 114, 16], 
+  [245, 219, 196] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 10080, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+     if(cell.temperature > 1740) cell.element = cell.element.withTag("molten");
+
+const colors = [
+  [224, 224, 224], 
+  [227, 114, 16] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 1600, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+  }
+),
+tungsten: new Element(
+  "tungsten",
+  "#9C9C9C",
+  "Solids",
+  {
+    conductivity: 10,
+     variants: {
+      molten: {
+        color: "#E3BF20",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           if(cell.temperature < 15000) grid.set(x,y,ELEMENTS.platinum);
+           if(cell.temperature > 20286) grid.set(x,y, ELEMENTS.plasma);
+
+const colors = [
+  [156, 219, 207], 
+  [55, 189, 230] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 20080, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+     if(cell.temperature > 15300) cell.element = cell.element.withTag("molten");
+
+const colors = [
+  [156, 156, 156], 
+  [240, 28, 24],
+  [240, 138, 24],
+  [255, 220, 219],
+  [156, 219, 207] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 15000, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+cell.lightLevel = Math.floor(t * 16);
+cell.lightColor = cell.color;
+  }
+),
+chlorine: new Element(
+  "chlorine",
+  "#88D12E",
+  "Gas",
+  {
+
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    gasPhysics(grid,x,y);
+  }
+),
+indium: new Element(
+  "indium",
+  "#707070",
+  "Solids",
+  {shiny: true,
+    variants: {
+      melted: {
+        color: "#858585",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature > 2164) grid.set(x,y,ELEMENTS.plasma);
+          if(cell.temperature < 150) grid.set(x,y, ELEMENTS.indium);
+          liquidPhysics(grid,x,y);
+
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 156) cell.element = cell.element.withTag("melted");
+
+  }
+),
+potassium: new Element(
+  "potassium",
+  "#B0AEAE",
+  "Solids",
+  {shiny: true,
+    variants: {
+      melted: {
+        color: "#999999",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature > 757) grid.set(x,y,ELEMENTS.plasma);
+          if(cell.temperature < 60) grid.set(x,y,ELEMENTS.potassium);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 63) cell.element = cell.element.withTag("melted");
+
+  }
+),
+calcium: new Element(
+  "calcium",
+  "#A19B8C",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#696251",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature > 1484) grid.set(x,y,ELEMENTS.plasma);
+          if(cell.temperature < 840) grid.set(x,y,ELEMENTS.calcium);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 842) cell.element = cell.element.withTag("molten");
+
+  }
+),
+plutonium: new Element(
+  "plutonium",
+  "#B3B3B3",
+  "Solids",
+  {shiny: true, conductivity: 10},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(grid.touching(x,y,"empty")){
+      cell.age++;
+    }
+    const t = Math.min(Math.max(cell.age / 150, 0), 1);
+    const colors = [
+ [179, 179, 179],
+ [69, 69, 69]
+];
+
+if(t > 0.1){
+  cell.temperature += 0.1 * t;
+}
+cell.color = blendColors(t, colors);
+
+
+  }
+),
+nickel: new Element(
+  "nickel",
+  "#BDB299",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#E05619",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature > 2730) grid.set(x,y,ELEMENTS.plasma);
+          if(cell.temperature < 1400) grid.set(x,y,ELEMENTS.nickel);
+
+const colors = [
+  [224, 86, 25], 
+  [247, 185, 92]
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max((cell.temperature - 1400) / 1300, 0), 1);
+// Apply the gradient
+cell.color = blendColors(t, colors);
+cell.lightLevel = Math.floor(t * 6);
+cell.lightColor = cell.color;
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 1455) cell.element = cell.element.withTag("molten");
+
+
+const colors = [
+  [189, 178, 153], 
+  [224, 86, 25]
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 1400, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+  }
+),
+sulfur_crystal: new Element(
+  "sulfur_crystal",
+  "#EDD72F",
+  "Solids",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const dirs = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0]
+    ];
+     for(const [dx, dy] of dirs){
+    
+     
+      const cx = x+dx, cy = y+dy;
+      if(!grid.isInside(cx,cy)) continue;
+      if(grid.get(cx,cy).element === ELEMENTS.water){
+        grid.set(cx,cy,ELEMENTS.sulfurous_acid);
+     
+      
+    }
+     }
+    if(cell.crystal && cell.growth > 0){
+      for(const [dx, dy] of dirs){
+        const cx = x+dx, cy = y+dy;
+        if(!grid.isInside(cx,cy)) continue;
+        if(grid.get(cx,cy).element === ELEMENTS.empty){
+          if(Math.random() < 0.001){
+          grid.set(cx,cy,ELEMENTS.sulfur_crystal);
+          const c = grid.get(cx,cy);
+            c.crystal = true;
+          c.growth = cell.growth - 1;
+          cell.growth = false;
+          break;
+        }
+      }
+      }
+    }
+  }
+),
+sulfur_deposit: new Element(
+  "sulfur_deposit",
+  "#7D7748",
+  "Solids",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const dirs = [
+      [0, 1],
+      [0,-1],
+      [1, 0],
+      [-1, 0]
+    ];
+    if(!cell.grown){
+    for(const [dx, dy] of dirs){
+      const cx = x+dx, cy = y+ dy;
+      if(!grid.isInside(cx,cy)) continue;
+      if(grid.get(cx,cy).element === ELEMENTS.empty){
+        if(Math.random() < 0.001){
+          grid.set(cx,cy,ELEMENTS.sulfur_crystal);
+          const c = grid.get(cx,cy);
+          c.crystal = true;
+          c.growth = Math.floor(Math.random() * 3 + 0);
+          cell.grown = true;
+          break;
+        }
+      }
+      }
+
+    }
+  }
+),
+
+magnesium: new Element(
+  "magnesium",
+  "#ADACAC",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#B3B1B1",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature < 640) grid.set(x,y,ELEMENTS.magnesium);
+          if(celll.temperature > 5091) grid.set(x,y,ELEMENTS.plasma);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 650) cell.element = cell.element.withTag("molten");
+
+  }
+),
+aluminium: new Element(
+  "aluminium",
+  "#BFBFBF",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#CFCCCC",
+        hidden: true, 
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature < 650) grid.set(x,y,ELEMENTS.aluminium);
+          if(cell.temperature > 2470) grid.set(x,y,ELEMENTS.plasma);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 660) cell.element = cell.element.withTag("molten");
+  }
+),
+sulfur_dioxide: new Element(
+  "sulfur_dioxide",
+  "#BDA840",
+  "Gas",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const dirs = [
+      [0,1],
+      [0,-1],
+      [1,0],
+      [-1,0]
+    ];
+    for(const [dx,dy] of dirs){
+      const cx = x+dx, cy = y+dy;
+      if(!grid.isInside(cx,cy)) continue;
+      if(grid.get(cx,cy).element === ELEMENTS.water){
+        grid.set(cx,cy,ELEMENTS.sulfurous_acid);
+        grid.set(x,y,ELEMENTS.empty);
+      }
+    }
+    gasPhysics(grid,x,y);
+  }
+),
+sulfurous_acid: new Element(
+  "sulfurous_acid",
+  "#D4BF5B",
+  "Liquids",
+  {density: 1.2},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(Math.random() < 0.001){
+      grid.set(x,y,ELEMENTS.sulfur_dioxide);
+    }
+    liquidPhysics(grid,x,y);
+  }
+),
+
+mouse: new Element(
+  "mouse",
+  "#8A8A8A",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x, y);
+
+  // ── Debug toggle ────────────────────────────────────────────────────────
+  const SHOW_PATH = false; // set to false to hide path visualization
+
+  // === Death / transformation ===
+  if (cell.chopped) { grid.set(x, y, ELEMENTS.blood); return; }
+  if (cell.temperature > 43 && Math.random() < 0.1) { return grid.set(x, y, ELEMENTS.fire); }
+  if (cell.temperature < -10 && Math.random() < 0.2) {
+    grid.set(x, y, ELEMENTS.ice);
+    return;
+  }
+
+  // === Init ===
+  if (!cell.settings) cell.settings = { jumpHeight: 2 };
+  if (!cell.state) cell.state = {
+    target: { x: null, y: null },
+    task: null,
+    emotion: "neutral",
+    inventory: [null, null, null, null, null, null, null, null, null],
+  };
+  if (!cell.pfState) cell.pfState = {
+    path: null,
+    prevPath: null,
+    pathStep: 0,
+    retargetCooldown: 0,
+    jumpCooldown: 0,
+    moveTick: 0,
+    fleeing: false,
+    seekingFood: false,
+    restTicks: 0,
+  };
+  const pf = cell.pfState;
+
+  // ── Eat adjacent food ──────────────────────────────────────────────────
+  const foodDirs = [[0,1],[0,-1],[-1,0],[1,0]];
+  for (const [dx, dy] of foodDirs) {
+    const cx = x + dx, cy = y + dy;
+    if (grid.isInside(cx, cy) && grid.get(cx, cy).element.category === "Food") {
+      if (Math.random() < 0.05) {
+        grid.set(cx, cy, ELEMENTS.empty);
+      }
+    }
+  }
+
+  // ── move ──────────────────────────────────────────────────────────────────
+  function move(tx, ty) {
+    if (!grid.isInside(tx, ty) || grid.get(tx, ty).element !== ELEMENTS.empty) return false;
+    grid.swap(x, y, tx, ty);
+    return true;
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function isGround(tx, ty) {
+    if (!grid.isInside(tx, ty + 1)) return true;
+    const e = grid.get(tx, ty + 1).element;
+    return e !== ELEMENTS.empty;
+  }
+
+  function isClearFeet(tx, ty) {
+    if (!grid.isInside(tx, ty)) return false;
+    return grid.get(tx, ty).element === ELEMENTS.empty;
+  }
+
+  function isDangerous(tx, ty) {
+    if (!grid.isInside(tx, ty)) return false;
+    const c = grid.get(tx, ty);
+    if (c.temperature > 38 || c.temperature < -5) return true;
+    if (c.element && c.element.properties && c.element.properties.harmful === true) return true;
+    return false;
+  }
+
+  function isFood(tx, ty) {
+    if (!grid.isInside(tx, ty)) return false;
+    return grid.get(tx, ty).element.category === "Food";
+  }
+
+  function findNearestDanger(radius) {
+    let best = null, bestDist = Infinity;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        if (isDangerous(tx, ty)) {
+          const dist = Math.abs(dx) + Math.abs(dy);
+          if (dist < bestDist) { bestDist = dist; best = { x: tx, y: ty, dist }; }
+        }
+      }
+    }
+    return best;
+  }
+
+  // Find the nearest food tile within radius
+  function findNearestFood(radius) {
+    let best = null, bestDist = Infinity;
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        if (isFood(tx, ty)) {
+          const dist = Math.abs(dx) + Math.abs(dy);
+          if (dist < bestDist) { bestDist = dist; best = { x: tx, y: ty, dist }; }
+        }
+      }
+    }
+    return best;
+  }
+
+  function pickFleeTarget(danger) {
+    const awayX = x - danger.x;
+    const awayY = y - danger.y;
+    const len = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
+    const nx = awayX / len;
+    const ny = awayY / len;
+
+    const range = 25;
+    let best = null, bestScore = -Infinity;
+
+    for (let dy = -range; dy <= range; dy++) {
+      for (let dx = -range; dx <= range; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (tx === x && ty === y) continue;
+        if (!isClearFeet(tx, ty)) continue;
+        if (!isGround(tx, ty)) continue;
+        if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) continue;
+        const ddx = tx - x, ddy = ty - y;
+        const score = ddx * nx + ddy * ny;
+        if (score > bestScore) { bestScore = score; best = { x: tx, y: ty }; }
+      }
+    }
+    return best;
+  }
+
+  // Pick a walkable tile adjacent to (or near) the food tile
+  function pickFoodApproachTarget(food) {
+    // Try tiles directly adjacent to the food first, then expand search
+    const adjacent = [[0,1],[0,-1],[-1,0],[1,0]];
+    for (const [dx, dy] of adjacent) {
+      const tx = food.x + dx, ty = food.y + dy;
+      if (!grid.isInside(tx, ty)) continue;
+      if (!isClearFeet(tx, ty)) continue;
+      if (!isGround(tx, ty)) continue;
+      if (isDangerous(tx, ty)) continue;
+      return { x: tx, y: ty };
+    }
+    // Fallback: find any walkable tile near the food
+    const range = 5;
+    let best = null, bestDist = Infinity;
+    for (let dy = -range; dy <= range; dy++) {
+      for (let dx = -range; dx <= range; dx++) {
+        const tx = food.x + dx, ty = food.y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        if (!isClearFeet(tx, ty)) continue;
+        if (!isGround(tx, ty)) continue;
+        if (isDangerous(tx, ty)) continue;
+        const dist = Math.abs(dx) + Math.abs(dy);
+        if (dist < bestDist) { bestDist = dist; best = { x: tx, y: ty }; }
+      }
+    }
+    return best;
+  }
+
+  // ── A* ────────────────────────────────────────────────────────────────────
+  function nodeKey(nx, ny) { return nx + "," + ny; }
+  function heuristic(ax, ay, bx, by) { return Math.abs(ax - bx) + Math.abs(ay - by); }
+
+  function tileCost(tx, ty) {
+    if (isDangerous(tx, ty)) return 200;
+    return 1;
+  }
+
+  function getNeighbors(cx, cy, jumpHeight, nodeGrounded) {
+    const result = [];
+    if (nodeGrounded) {
+      for (const dx of [-1, 1]) {
+        if (isClearFeet(cx + dx, cy))
+          result.push({ x: cx + dx, y: cy });
+        if (isClearFeet(cx + dx, cy + 1))
+          result.push({ x: cx + dx, y: cy + 1 });
+      }
+      for (let rise = 1; rise <= jumpHeight; rise++) {
+        const jy = cy - rise;
+        if (!grid.isInside(cx, jy) || !isClearFeet(cx, jy)) break;
+        for (const dx of [-1, 0, 1]) {
+          const jx = cx + dx;
+          if (!grid.isInside(jx, jy)) continue;
+          if (isClearFeet(jx, jy))
+            result.push({ x: jx, y: jy });
+        }
+      }
+    }
+    if (isClearFeet(cx, cy + 1))
+      result.push({ x: cx, y: cy + 1 });
+    return result;
+  }
+
+  function reconstructPath(cameFrom, startKey, endKey) {
+    const path = [];
+    let cur = endKey;
+    while (cur && cur !== startKey) {
+      const [px, py] = cur.split(",").map(Number);
+      path.unshift({ x: px, y: py });
+      cur = cameFrom.get(cur);
+    }
+    return path;
+  }
+
+  function findPath(sx, sy, gx, gy, jumpHeight, maxNodes = 500) {
+    const startKey = nodeKey(sx, sy);
+    const goalKey  = nodeKey(gx, gy);
+    const openMap  = new Map();
+    const gScore   = new Map();
+    const fScore   = new Map();
+    const cameFrom = new Map();
+    const closed   = new Set();
+
+    gScore.set(startKey, 0);
+    fScore.set(startKey, heuristic(sx, sy, gx, gy));
+    openMap.set(startKey, { x: sx, y: sy });
+
+    let iters = 0;
+    while (openMap.size > 0 && iters++ < maxNodes) {
+      let curKey = null, curF = Infinity;
+      for (const [k] of openMap) {
+        const f = fScore.get(k) ?? Infinity;
+        if (f < curF) { curF = f; curKey = k; }
+      }
+      if (!curKey) break;
+      if (curKey === goalKey) return reconstructPath(cameFrom, startKey, goalKey);
+
+      const cur = openMap.get(curKey);
+      openMap.delete(curKey);
+      closed.add(curKey);
+
+      const nodeGrounded = isGround(cur.x, cur.y);
+      for (const nb of getNeighbors(cur.x, cur.y, jumpHeight, nodeGrounded)) {
+        const nbKey = nodeKey(nb.x, nb.y);
+        if (closed.has(nbKey)) continue;
+        const tentG = (gScore.get(curKey) ?? Infinity) + tileCost(nb.x, nb.y);
+        if (tentG < (gScore.get(nbKey) ?? Infinity)) {
+          cameFrom.set(nbKey, curKey);
+          gScore.set(nbKey, tentG);
+          fScore.set(nbKey, tentG + heuristic(nb.x, nb.y, gx, gy));
+          openMap.set(nbKey, nb);
+        }
+      }
+    }
+    return null;
+  }
+
+  // ── Target picking (wander) ───────────────────────────────────────────────
+  function pickNewTarget() {
+    const range = 20;
+    const candidates = [];
+    for (let dy = -range; dy <= range; dy++) {
+      for (let dx = -range; dx <= range; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (tx === x && ty === y) continue;
+        if (!isClearFeet(tx, ty)) continue;
+        if (!isGround(tx, ty)) continue;
+        if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) continue;
+        candidates.push({ x: tx, y: ty });
+      }
+    }
+    if (!candidates.length) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // ── AI tick ───────────────────────────────────────────────────────────────
+  const jumpHeight = cell.settings.jumpHeight;
+  const grounded   = isGround(x, y);
+
+  if (pf.retargetCooldown > 0) pf.retargetCooldown--;
+  if (pf.jumpCooldown    > 0) pf.jumpCooldown--;
+
+  const tgt = cell.state.target;
+
+  // ── PRIORITY 1: Danger / flee ─────────────────────────────────────────────
+  const danger = findNearestDanger(5);
+  if (danger) {
+    if (!pf.fleeing || tgt.x === null) {
+      const fleeTgt = pickFleeTarget(danger);
+      if (fleeTgt) {
+        const newPath = findPath(x, y, fleeTgt.x, fleeTgt.y, jumpHeight);
+        if (newPath) {
+          pf.path = newPath;
+          pf.pathStep = 0;
+          tgt.x = fleeTgt.x; tgt.y = fleeTgt.y;
+          cell.state.target = fleeTgt;
+          pf.fleeing = true;
+          pf.seekingFood = false;
+          pf.retargetCooldown = 30;
+        }
+      }
+    }
+  } else {
+    // No longer in danger — clear flee state
+    if (pf.fleeing) {
+      pf.fleeing = false;
+      tgt.x = null; tgt.y = null;
+      cell.state.target = { x: null, y: null };
+      pf.path = null; pf.pathStep = 0;
+      pf.retargetCooldown = 0;
+    }
+
+    // ── PRIORITY 2: Food seeking (preference, not forced) ─────────────────
+    // Check for nearby food. If found, bias strongly toward going to it,
+    // but only pick a new food target when not already heading to one.
+    const nearFood = findNearestFood(35);
+
+    if (nearFood) {
+      // If we're already seeking food, check if we've arrived or food is gone
+      if (pf.seekingFood) {
+        const arrivedAtTarget = tgt.x !== null && x === tgt.x && y === tgt.y;
+        const foodGone = !isFood(nearFood.x, nearFood.y);
+        if (arrivedAtTarget || foodGone) {
+          pf.seekingFood = false;
+          tgt.x = null; tgt.y = null;
+          cell.state.target = { x: null, y: null };
+          pf.path = null; pf.pathStep = 0;
+          pf.retargetCooldown = 0;
+        }
+      }
+
+      // Strong preference for food — 95% chance, interrupts wandering too
+      if (!pf.seekingFood && pf.retargetCooldown === 0) {
+        if (Math.random() < 0.95) {
+          const foodTgt = pickFoodApproachTarget(nearFood);
+          if (foodTgt) {
+            const newPath = findPath(x, y, foodTgt.x, foodTgt.y, jumpHeight);
+            if (newPath) {
+              pf.path = newPath;
+              pf.pathStep = 0;
+              tgt.x = foodTgt.x; tgt.y = foodTgt.y;
+              cell.state.target = foodTgt;
+              pf.seekingFood = true;
+              pf.retargetCooldown = 20;
+            }
+          }
+        }
+      }
+      // Also interrupt an active wander if food is close enough
+      if (!pf.seekingFood && nearFood.dist < 12 && Math.random() < 0.15) {
+        const foodTgt = pickFoodApproachTarget(nearFood);
+        if (foodTgt) {
+          const newPath = findPath(x, y, foodTgt.x, foodTgt.y, jumpHeight);
+          if (newPath) {
+            pf.path = newPath;
+            pf.pathStep = 0;
+            tgt.x = foodTgt.x; tgt.y = foodTgt.y;
+            cell.state.target = foodTgt;
+            pf.seekingFood = true;
+            pf.retargetCooldown = 20;
+          }
+        }
+      }
+    } else {
+      // No food visible — clear food-seeking state
+      if (pf.seekingFood) {
+        pf.seekingFood = false;
+        tgt.x = null; tgt.y = null;
+        cell.state.target = { x: null, y: null };
+        pf.path = null; pf.pathStep = 0;
+        pf.retargetCooldown = 0;
+      }
+    }
+
+    // ── PRIORITY 3: Wander (with occasional resting) ──────────────────────
+    if (!pf.seekingFood) {
+      // Resting — count down and skip movement
+      if (pf.restTicks > 0) {
+        pf.restTicks--;
+        if (!grounded) move(x, y + 1); // still fall if airborne
+        return;
+      }
+
+      if (tgt.x !== null && x === tgt.x && y === tgt.y) {
+        pf.path = null; pf.pathStep = 0;
+        tgt.x = null; tgt.y = null;
+        cell.state.target = { x: null, y: null };
+        // ~35% chance to rest after reaching a wander target
+        if (Math.random() < 0.35) {
+          pf.restTicks = 30 + Math.floor(Math.random() * 90); // rest 0.5–2 sec
+          pf.retargetCooldown = 0;
+          if (!grounded) move(x, y + 1);
+          return;
+        }
+        pf.retargetCooldown = 20;
+      }
+
+      if (tgt.x === null || pf.retargetCooldown === 0) {
+        pf.path = null; pf.pathStep = 0;
+        const newTgt = pickNewTarget();
+        if (newTgt) { cell.state.target = newTgt; tgt.x = newTgt.x; tgt.y = newTgt.y; }
+        pf.retargetCooldown = 60 + Math.floor(Math.random() * 60);
+      }
+
+      if (tgt.x !== null && (!pf.path || pf.pathStep >= pf.path.length)) {
+        pf.path = findPath(x, y, tgt.x, tgt.y, jumpHeight);
+        pf.pathStep = 0;
+        if (!pf.path) {
+          tgt.x = null; tgt.y = null;
+          cell.state.target = { x: null, y: null };
+          pf.retargetCooldown = 15;
+        }
+      }
+    } else {
+      // Seeking food — recompute path if needed
+      if (tgt.x !== null && (!pf.path || pf.pathStep >= pf.path.length)) {
+        pf.path = findPath(x, y, tgt.x, tgt.y, jumpHeight);
+        pf.pathStep = 0;
+        if (!pf.path) {
+          pf.seekingFood = false;
+          tgt.x = null; tgt.y = null;
+          cell.state.target = { x: null, y: null };
+          pf.retargetCooldown = 15;
+        }
+      }
+    }
+  }
+
+  // ── Execute next path step ────────────────────────────────────────────────
+  pf.moveTick++;
+  if (pf.moveTick % 2 === 0 && pf.path && pf.pathStep < pf.path.length) {
+    const next = pf.path[pf.pathStep];
+    const nx = next.x, ny = next.y;
+
+    if (isDangerous(nx, ny) || isDangerous(nx, ny - 1)) {
+      pf.path = null;
+      tgt.x = null; tgt.y = null;
+      cell.state.target = { x: null, y: null };
+      pf.fleeing = false;
+      pf.seekingFood = false;
+      pf.retargetCooldown = 0;
+    } else if (ny < y) {
+      if (grounded && pf.jumpCooldown === 0) {
+        if (move(nx, ny)) { pf.pathStep++; pf.jumpCooldown = 4; }
+      }
+    } else if (nx !== x) {
+      if (grounded) {
+        if (move(nx, ny)) { pf.pathStep++; }
+        else { pf.path = null; pf.pathStep = 0; }
+      }
+    } else {
+      if (move(nx, ny)) { pf.pathStep++; }
+      else { pf.path = null; pf.pathStep = 0; }
+    }
+  }
+
+  // ── Path visualization ────────────────────────────────────────────────────
+  const PATH_FADE_TICKS = 2;
+  if (!cell.pfState.tick) cell.pfState.tick = 0;
+  cell.pfState.tick++;
+  const nowTick = cell.pfState.tick;
+
+  if (SHOW_PATH) {
+    if (pf.path) {
+      for (let i = pf.pathStep; i < pf.path.length; i++) {
+        const step = pf.path[i];
+        if (!grid.isInside(step.x, step.y)) continue;
+        const pathCell = grid.get(step.x, step.y);
+        if (pathCell.element === ELEMENTS.empty) {
+          const t = pf.path.length <= 1 ? 0 : (i - pf.pathStep) / (pf.path.length - 1 - pf.pathStep);
+          const r = Math.round(t * 255).toString(16).padStart(2, '0');
+          const g = Math.round((1 - t) * 255).toString(16).padStart(2, '0');
+          pathCell.color = `#${r}${g}00`;
+          pathCell.pathTick = nowTick;
+        }
+      }
+    }
+
+    const scanRadius = 80;
+    for (let dy = -scanRadius; dy <= scanRadius; dy++) {
+      for (let dx = -scanRadius; dx <= scanRadius; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        const c = grid.get(tx, ty);
+        if (c.element === ELEMENTS.empty && c.pathTick !== undefined) {
+          if (nowTick - c.pathTick >= PATH_FADE_TICKS) {
+            c.color = null;
+            c.pathTick = undefined;
+          }
+        }
+      }
+    }
+  } else {
+    const scanRadius = 80;
+    for (let dy = -scanRadius; dy <= scanRadius; dy++) {
+      for (let dx = -scanRadius; dx <= scanRadius; dx++) {
+        const tx = x + dx, ty = y + dy;
+        if (!grid.isInside(tx, ty)) continue;
+        const c = grid.get(tx, ty);
+        if (c.element === ELEMENTS.empty && c.pathTick !== undefined) {
+          c.color = null;
+          c.pathTick = undefined;
+        }
+      }
+    }
+  }
+
+  // Gravity
+  if (!grounded) move(x, y + 1);
+  }
+),
+
+
 
 
     };
     
+
+function blendColors(t, colors) {
+  t = Math.min(Math.max(t, 0), 1); // clamp 0..1
+
+  const n = colors.length - 1;
+  const scaledT = t * n;
+  const idx = Math.floor(scaledT);
+  const frac = scaledT - idx;
+
+  const c1 = colors[idx];
+  const c2 = colors[Math.min(idx + 1, n)];
+
+  const r = Math.floor(c1[0] + (c2[0] - c1[0]) * frac);
+  const g = Math.floor(c1[1] + (c2[1] - c1[1]) * frac);
+  const b = Math.floor(c1[2] + (c2[2] - c1[2]) * frac);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
     let currentScreenId = 0;
 selectedElement = ELEMENTS.empty;
 
 // elements global variables
+
     function planHive(hive, cx, cy) {
   if (hive.cells && hive.cells.length > 0) return;
 
