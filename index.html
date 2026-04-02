@@ -518,6 +518,12 @@ canvas {
 <div class="catalog-scroll">
 
 <div class="catalog-entry">
+   <div class="catalog-entry-version">Va1.3.1 - Bug fix</div>
+  <div class= "catalog-item">Fixed Molten Magnesium Crashing The Game</div>
+</div>
+</div>
+  
+<div class="catalog-entry">
    <div class="catalog-entry-version">Va1.3 - All the Elements</div>
 
 
@@ -783,7 +789,7 @@ canvas {
 </div>
   <script>
     // version
-    const CURRENT_VERSION = "Va1.3";
+    const CURRENT_VERSION = "Va1.3.1";
     document.getElementById("version").textContent = CURRENT_VERSION;
 
     // canvas
@@ -19044,7 +19050,7 @@ magnesium: new Element(
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
           if(cell.temperature < 640) grid.set(x,y,ELEMENTS.magnesium);
-          if(celll.temperature > 5091) grid.set(x,y,ELEMENTS.plasma);
+          if(cell.temperature > 5091) grid.set(x,y,ELEMENTS.plasma);
           liquidPhysics(grid,x,y);
         }
       }
