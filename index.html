@@ -517,19 +517,29 @@ canvas {
   <div style="font-size: 40px; margin: 10px; color: white; font-weight: bold;">Catalog</div>
 <div class="catalog-scroll">
 
-  
 <div class="catalog-entry">
-   <div class="catalog-entry-version">Va1.3.2 - Bug fix 2</div>
-  <div class= "catalog-item">Added back black hole (accidently deleted it somehow)</div>
+   <div class="catalog-entry-version">Va1.4 - Disasters And More Disasters</div>
+
+
+<div class="catalog-entry-content">
+  <div class="catalog-category">Elements</div>
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px;">Disasters</div>
+  <div class="catalog-item">Tornado</div>
+  <div class="catalog-item">Asteroid Strike</div>
+    <div class="catalog-item">Volcano</div>
+        <div class="catalog-item">lightning</div>
+          <div class="catalog-item">Volcanic Rock</div>
+
+
+
+ 
+
+  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">System</div>
+  <div class="catalog-item">Faucet</div>
+
 </div>
 </div>
-  
-<div class="catalog-entry">
-   <div class="catalog-entry-version">Va1.3.1 - Bug fix</div>
-  <div class= "catalog-item">Fixed Molten Magnesium Crashing The Game</div>
-</div>
-</div>
-  
 <div class="catalog-entry">
    <div class="catalog-entry-version">Va1.3 - All the Elements</div>
 
@@ -796,7 +806,7 @@ canvas {
 </div>
   <script>
     // version
-    const CURRENT_VERSION = "Va1.3.2";
+    const CURRENT_VERSION = "Va1.4";
     document.getElementById("version").textContent = CURRENT_VERSION;
 
     // canvas
@@ -807,6 +817,7 @@ canvas {
     // element/brush stuff
     let selectedElement = null;
     let currentCategory = "All";
+
 function setArtTool(method, btn) {
   document.querySelectorAll('.art-tool-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -814,6 +825,7 @@ function setArtTool(method, btn) {
   var sel = document.getElementById('brushMethod');
   if (sel) { sel.value = method; sel.dispatchEvent(new Event('change')); }
 }
+
     const Brush = {
   size: 4,
   method: "paint",
@@ -891,7 +903,9 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
       }
       if(keybinds) return;
       
-     
+      if (e.key === "e"){
+        Brush.method = "erase";
+      }
       // step once (always available)
       if (e.key === "+" || e.key === "=") {
         stepOnce = true;
@@ -943,6 +957,12 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
           firstPoint = null;
           shiftClearTimer = null;
         }, 3000);
+      }
+
+      if(e.key === "e"){
+        if(Brush.method === "erase"){
+          Brush.method = "Paint";
+        }
       }
      
     });
@@ -4574,7 +4594,7 @@ human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true
     if (feet.humanId) head.humanId = feet.humanId;
   }
 }),
-      
+
 blackhole: new Element(
   "blackhole",
   "#0A0A0A",
@@ -18873,7 +18893,7 @@ tungsten: new Element(
         hidden: true, 
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
-           if(cell.temperature < 15000) grid.set(x,y,ELEMENTS.platinum);
+           if(cell.temperature < 15000) grid.set(x,y,ELEMENTS.tungsten);
            if(cell.temperature > 20286) grid.set(x,y, ELEMENTS.plasma);
 
 const colors = [
@@ -19740,8 +19760,918 @@ mouse: new Element(
   if (!grounded) move(x, y + 1);
   }
 ),
+lightning: new Element(
+  "lightning",
+  "#F7ED2F",
+  "Energy",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    cell.placed ??= true;
+    cell.isBranch ??= false;
+    cell.age ??= 0;
+    cell.length ??= 0;
+
+    cell.age++;
+    cell.lightLevel = 5;
+    cell.color = "#F7ED2F";
+    cell.lightColor = "#2FE6F7";
+
+    const MAX_MAIN = Infinity;
+    const MAX_BRANCH = 13;
+
+    if (cell.age > 10 && Math.random() < 0.3) {
+      grid.set(x, y, ELEMENTS.empty);
+      return;
+    }
+
+    if (!cell.placed) return;
+    cell.placed = false;
+
+    let cx = x;
+    let cy = y;
+    let cur = cell;
+
+    while (
+      grid.isInside(cx, cy) &&
+      (grid.get(cx, cy).element === ELEMENTS.empty ||
+       grid.get(cx, cy).element === ELEMENTS.lightning ||
+       grid.get(cx, cy).element === ELEMENTS.fire ||
+       grid.get(cx, cy).element === ELEMENTS.smoke ||
+       grid.get(cx, cy).element === ELEMENTS.plasma)
+    ) {
+      grid.set(cx, cy, ELEMENTS.lightning);
+      const next = grid.get(cx, cy);
+
+      next.length = (cur.length ?? 0) + 1;
+      next.isBranch = cur.isBranch;
+      next.placed = false;
+
+      // Stop conditions
+      if (cur.isBranch && next.length > MAX_BRANCH) break;
+      if (!cur.isBranch && next.length > MAX_MAIN) break;
+
+      // ── CREATE BRANCH (separate path) ──
+      if (!cur.isBranch && Math.random() < 0.15) {
+        const bx = cx + (Math.random() < 0.5 ? 1 : -1);
+        const by = cy + 1;
+
+        if (grid.isInside(bx, by)) {
+          grid.set(bx, by, ELEMENTS.lightning);
+          const b = grid.get(bx, by);
+
+          b.isBranch = true;
+          b.length = next.length;
+          b.placed = true; // branch updates next tick
+        }
+      }
+
+      // ── TARGET SELECTION ──
+      // Find closest non-empty, non-lightning cell within 8 radius
+      let target = null;
+      let bestDist = Infinity;
+
+      for (let dy = -8; dy <= 8; dy++) {
+        if (dy === 0) continue;
+        for (let dx = -8; dx <= 8; dx++) {
+          const nx = cx + dx;
+          const ny = cy + dy;
+          const n = grid.get(nx, ny);
+          if (!n) continue;
+          if (n.element === ELEMENTS.empty || n.element === ELEMENTS.lightning) continue;
+
+          const dist = Math.abs(dx) + Math.abs(dy);
+          if (dist < bestDist) {
+            bestDist = dist;
+            target = { nx, ny };
+          }
+        }
+      }
+
+      // ── MOVEMENT ──
+      let stepX, stepY;
+
+      if (target && Math.random() < 0.7) {
+        stepX = Math.sign(target.nx - cx);
+        stepY = Math.sign(target.ny - cy);
+        if (stepY < 0) stepY = 1; // bias downward
+      } else {
+        // less erratic random movement
+        stepX = Math.random() < 0.6 ? (cur.lastStepX ?? 0) : (Math.random() < 0.5 ? 1 : -1);
+        stepY = 1;
+      }
+
+      cur.lastStepX = stepX; // remember last X direction
+      cx += stepX;
+      cy += stepY;
+
+      cur = next;
+    }
+    if(cur.isBranch === false){
+    strike(cx, cy);
+    }
+
+    function strike(cx, cy) {
+      vfx.shake(10, 500);
+      const r = 5;
+      for (let rx = cx - r; rx < cx + r; rx++) {
+        for (let ry = cy - r; ry < cy + r; ry++) {
+          const dx = rx - cx;
+          const dy = ry - cy;
+          if (dx * dx + dy * dy <= r * r) {
+            if (!grid.isInside(rx, ry)) continue;
+            grid.get(rx,ry).e = 10000;
+            if(grid.get(rx,ry).element === ELEMENTS.empty){
+            if(Math.random() < 0.7){
+            grid.set(rx, ry, ELEMENTS.plasma);
+            }
+          }
+          }
+        }
+      }
+    }
+  },
+  (grid, x, y) => {
+    vfx.bloom(1000, 10);
+  }
+),
+tornado: new Element(
+  "tornado",
+  "#BABABA",
+  "Energy",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    cell.age ??= 0;
+    cell.prevX ??= -1;
+    cell.swirl ??= 0;
+    cell.curveX ??= 0;
+    cell.curveVX ??= 0;
+    // tint tracking: 0=none, 1=water, 2=fire/lava
+    cell.tintType ??= 0;
+    cell.tintStrength ??= 0;
+
+    if (!cell.placed) {
+      if (Math.random() < 0.6) {
+        grid.set(x, y, ELEMENTS.empty);
+      }
+      return;
+    }
+
+    cell.age++;
+    const CON_LVL = Math.min(cell.age / 100, 1);
+    const MAX_WIDTH = Math.floor(13 * CON_LVL);
+    cell.swirl += 0.07;
+
+    // Keep core at top row
+    if (y > 0) grid.swap(x, y, x, 0);
+
+    if (cell.prevX == null) {
+      cell.prevX = Math.random() < 0.5 ? -1 : 1;
+    }
+
+    if (Math.random() < 0.05) {
+      cell.prevX *= -1;
+    }
+
+    if (Math.random() < 0.1) {
+      const cx = x + cell.prevX;
+      if (grid.isInside(cx, y)) {
+        grid.swap(x, y, cx, y);
+      }
+    }
+
+    // Curve drift
+    cell.curveVX += (Math.random() - 0.5) * 0.18;
+    cell.curveVX *= 0.92;
+    cell.curveX += cell.curveVX;
+    cell.curveX = Math.max(-12, Math.min(12, cell.curveX));
+
+    const coreX = x;
+    const totalRows = grid.rows;
+
+    // ── TINT DECAY (fade out when no matching elements present) ──────────────
+    cell.tintStrength = Math.max(0, cell.tintStrength - 0.008);
+    if (cell.tintStrength === 0) cell.tintType = 0;
+
+ // ── SUCTION ──────────────────────────────────────────────────────────────
+if (CON_LVL > 0.02) {
+  const suckRadius = Math.floor(2 + MAX_WIDTH * 1.2);
+  let didSuck = false;
+
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const rawT = 0.05 + Math.random() * 0.95;
+    const dy = Math.min(Math.floor(rawT * totalRows), totalRows - 1);
+
+    const curveBend = cell.curveX * (rawT * rawT);
+    const funnelCx = Math.round(coreX + curveBend);
+
+    let taper;
+    if (rawT < 0.82) {
+      taper = 1 - rawT / 0.82;
+    } else {
+      taper = ((rawT - 0.82) / 0.18) * 0.28;
+    }
+    const halfW = Math.max(0, Math.floor(MAX_WIDTH * taper));
+
+    for (let tx = funnelCx - suckRadius; tx <= funnelCx + suckRadius; tx++) {
+      if (!grid.isInside(tx, dy)) continue;
+
+      const target = grid.get(tx, dy);
+      if (
+        target.element === ELEMENTS.empty ||
+        target.element === ELEMENTS.tornado ||
+        target.element === ELEMENTS.vfx ||
+        target.element === ELEMENTS.blackhole ||
+        target.element === ELEMENTS.faucet
+      ) continue;
+
+      const dist = Math.abs(tx - funnelCx);
+      if (dist > suckRadius) continue;
+
+      didSuck = true;
+
+      // ── TINT DETECTION ────────────────────────────────────────────────────
+      const isWater = target.element === ELEMENTS.water;
+      const isFire  = target.element === ELEMENTS.fire
+                   || target.element === ELEMENTS.lava
+                   || (target.element?.hasTag && target.element.hasTag("molten"));
+
+      if (isWater) {
+        cell.tintType = 1;
+        cell.tintStrength = Math.min(1, cell.tintStrength + 0.04);
+      } else if (isFire) {
+        cell.tintType = 2;
+        cell.tintStrength = Math.min(1, cell.tintStrength + 0.05);
+      }
+
+      const distRatio = dist / suckRadius;
+      const pullChance = (1 - distRatio * 0.2) * 0.98;
+      if (Math.random() > pullChance) continue;
+
+      // ── Spiral orbit logic ──
+      const angle = Math.atan2(dy - 0, tx - funnelCx);
+      const tangentX = Math.round(-Math.sin(angle + cell.swirl * 0.5));
+      const radialX = tx < funnelCx ? 1 : -1;
+      const orbitStrength = dist <= halfW + 4 ? 0.8 : 0.25;
+      const spiralDY = -1;
+
+      let spiralDX;
+      if (Math.random() < orbitStrength) {
+        spiralDX = tangentX || radialX;
+      } else {
+        spiralDX = radialX;
+      }
+
+      const steps = dist <= halfW + 3 ? 3 : dist <= halfW + 8 ? 2 : 1;
+      let cx = tx;
+      let cy = dy;
+
+      for (let s = 0; s < steps; s++) {
+        const nx = cx + spiralDX;
+        const ny = cy + spiralDY;
+
+        if (!grid.isInside(nx, ny)) break;
+        const neighbor = grid.get(nx, ny);
+        if (
+          neighbor.element !== ELEMENTS.empty &&
+          neighbor.element !== ELEMENTS.tornado
+        ) break;
+
+        grid.swap(cx, cy, nx, ny);
+        cx = nx;
+        cy = ny;
+
+        if (cy < 6) {
+          grid.set(cx, cy, ELEMENTS.empty);
+          break;
+        }
+      }
+    }
+  }
+
+  // ── DEBRIS CLOUD AT TIP (when nothing to suck) ───────────────────────────
+if (!didSuck && CON_LVL > 0.3 && Math.random() < 0.55) {
+    const tipRawT = 0.92 + Math.random() * 0.07;
+    const tipDY = Math.min(Math.floor(tipRawT * totalRows), totalRows - 1);
+    const tipCurveBend = cell.curveX * (tipRawT * tipRawT);
+    const tipCX = Math.round(coreX + tipCurveBend);
+
+    const tipTaper = ((tipRawT - 0.82) / 0.18) * 0.28;
+    const tipHalfW = Math.max(1, Math.floor(MAX_WIDTH * tipTaper));
+
+    const numParticles = 9 + Math.floor(Math.random() * 4);
+    for (let p = 0; p < numParticles; p++) {
+      const spreadX = Math.round((Math.random() - 0.5) * 2 * (tipHalfW + 10));
+      const spreadY = Math.round(Math.random() * 10);
+      const px = tipCX + spreadX;
+      const py = tipDY + spreadY;
+
+      if (!grid.isInside(px, py)) continue;
+      const pTarget = grid.get(px, py);
+      if (pTarget.element !== ELEMENTS.empty) continue;
+
+      grid.set(px, py, ELEMENTS.vfx);
+      const vc = grid.get(px, py);
+
+      const lifetime = 4 + Math.floor(Math.random() * 10);
+      vc.age = -lifetime;
+
+      const distRatio = Math.abs(spreadX) / (tipHalfW + 10);
+      const alpha = (1 - distRatio * 0.5) * (0.7 + Math.random() * 0.3) * Math.max(0.6, CON_LVL);
+      const baseR = 148, baseG = 122, baseB = 88;
+      const dr = Math.round(baseR * alpha);
+      const dg = Math.round(baseG * alpha);
+      const db = Math.round(baseB * alpha);
+
+      let tr = dr, tg = dg, tb = db;
+      if (cell.tintStrength > 0.2) {
+        const ts = cell.tintStrength * 0.3;
+        if (cell.tintType === 1) {
+          tb = Math.min(255, Math.round(tb + 18 * ts));
+        } else if (cell.tintType === 2) {
+          tr = Math.min(255, Math.round(tr + 22 * ts));
+          tg = Math.min(255, Math.round(tg + 8 * ts));
+        }
+      }
+
+      vc.color = `rgb(${tr},${tg},${tb})`;
+    }
+  }
+}
+    // ── RENDER ────────────────────────────────────────────────────────────────
+    for (let dy = 0; dy < totalRows; dy++) {
+      const rawT = dy / (totalRows - 1);
+
+      let taper;
+      if (rawT < 0.82) {
+        taper = 1 - rawT / 0.82;
+      } else {
+        taper = ((rawT - 0.82) / 0.18) * 0.28;
+      }
+
+      const halfW = Math.max(0, Math.floor(MAX_WIDTH * taper));
+      const curveBend = cell.curveX * (rawT * rawT * 1.5);
+      const swirlOffset = Math.sin(cell.swirl + dy * 0.15) * halfW * 0.3;
+
+      for (let dx = -halfW; dx <= halfW; dx++) {
+        const tx = Math.round(coreX + dx + curveBend + swirlOffset * (dx / (halfW || 1)));
+        const ty = dy;
+        if (!grid.isInside(tx, ty)) continue;
+        if (tx === coreX && ty === 0) continue;
+
+        const target = grid.get(tx, ty);
+        if (target.element !== ELEMENTS.empty) continue;
+
+        const distRatio = halfW > 0 ? Math.abs(dx) / halfW : 0;
+        const spawnChance = (0.88 - distRatio * 0.45) * (0.4 + CON_LVL * 0.6);
+        if (Math.random() > spawnChance) continue;
+
+        grid.set(tx, ty, ELEMENTS.tornado);
+        const nc = grid.get(tx, ty);
+
+        const depthT = rawT;
+        const centerT = 1 - distRatio;
+
+        // Base grey palette
+        const topR = 80,  topG = 80,  topB = 85;
+        const midR = 130, midG = 130, midB = 135;
+        const botR = 175, botG = 175, botB = 178;
+
+        let r, g, b;
+        if (depthT < 0.5) {
+          const t2 = depthT * 2;
+          r = topR + (midR - topR) * t2;
+          g = topG + (midG - topG) * t2;
+          b = topB + (midB - topB) * t2;
+        } else {
+          const t2 = (depthT - 0.5) * 2;
+          r = midR + (botR - midR) * t2;
+          g = midG + (botG - midG) * t2;
+          b = midB + (botB - midB) * t2;
+        }
+
+        r = Math.min(200, Math.round(r + centerT * 22));
+        g = Math.min(200, Math.round(g + centerT * 22));
+        b = Math.min(205, Math.round(b + centerT * 25));
+
+        const conMix = 0.5 + CON_LVL * 0.5;
+        r = Math.round(r * conMix + 160 * (1 - conMix));
+        g = Math.round(g * conMix + 160 * (1 - conMix));
+        b = Math.round(b * conMix + 165 * (1 - conMix));
+
+        const jitter = (Math.random() - 0.5) * 12;
+        r = Math.min(210, Math.max(0, Math.round(r + jitter)));
+        g = Math.min(210, Math.max(0, Math.round(g + jitter)));
+        b = Math.min(215, Math.max(0, Math.round(b + jitter)));
+
+        // ── TINT APPLICATION ──────────────────────────────────────────────────
+        if (cell.tintStrength > 0) {
+          const ts = cell.tintStrength;
+          if (cell.tintType === 1) {
+  if(nc.temperature > 0){
+            nc.temperature -= 20;
+            }
+            // Water: shift toward cool blue-cyan
+            r = Math.round(r * (1 - ts * 0.6) + 60  * ts * 0.6);
+            g = Math.round(g * (1 - ts * 0.4) + 160 * ts * 0.4);
+            b = Math.round(b * (1 - ts * 0.3) + 230 * ts * 0.3 + ts * 40);
+          } else if (cell.tintType === 2) {
+            if(nc.temperature < 1000){
+            nc.temperature+= 400;
+            }
+  // Fire/lava: stronger warm glow (red/orange/yellow)
+  r = Math.round(r * (1 - ts * 0.2) + 255 * ts * 0.8 + ts * 40);
+  g = Math.round(g * (1 - ts * 0.5) + 140 * ts * 0.6 + ts * 20);
+  b = Math.round(b * (1 - ts * 0.9) + 10  * ts * 0.4);
+}
+          r = Math.min(255, Math.max(0, r));
+          g = Math.min(255, Math.max(0, g));
+          b = Math.min(255, Math.max(0, b));
+        } 
+
+        nc.color = `rgb(${r},${g},${b})`;
+
+        const swirlPhase = (cell.swirl + dy * 0.15) % (Math.PI * 2);
+        const onArm = Math.abs(Math.sin(swirlPhase) * distRatio) < 0.2 && CON_LVL > 0.2;
+        if (onArm) {
+          nc.color = `rgb(${Math.min(255, r + 18)},${Math.min(255, g + 18)},${Math.min(255, b + 20)})`;
+        }
+      }
+    }
+  },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    cell.placed = true;
+  }
+),
+asteroid_strike: new Element(
+  "asteroid_strike",
+  "#59200A",
+  "Tool",
+  {tool: false},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    const cx = Math.floor(Math.random() * grid.rows);
+    grid.set(cx, 0, ELEMENTS.asteroid);
+    const a = grid.get(cx, 0);
+    a.target = {x, y};
+
+  }
+),
+asteroid: new Element(
+  "asteroid",
+  "#7A3518",
+  "hidden",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    // INIT
+    cell.fx ??= x + 0.5;
+    cell.fy ??= y + 0.5;
+    cell.speed ??= 5;
+    cell.tick ??= 0;
+    cell.tick++;
+
+    // Asteroid body: pulsing heat-glow on dark volcanic rock
+    const pulse = 0.5 + 0.5 * Math.sin(cell.tick * 0.4);
+    const rr = Math.floor(110 + pulse * 30);
+    const rg = Math.floor(40 + pulse * 15);
+    cell.color = `rgb(${rr},${rg},12)`;
+
+    // DIRECTION INIT
+    if (!cell.dx && !cell.dy && cell.target) {
+      const tx = cell.target.x + 0.5;
+      const ty = cell.target.y + 0.5;
+      const dist = Math.hypot(tx - cell.fx, ty - cell.fy);
+      if (dist !== 0) {
+        cell.dx = (tx - cell.fx) / dist;
+        cell.dy = (ty - cell.fy) / dist;
+      }
+    }
+    if (!cell.dx && !cell.dy) return;
+
+    // VOLCANIC ROCK SHELL - spawn glowing rock chunks around the asteroid body
+    const rockOffsets = [
+      [-1,-1],[0,-1],[1,-1],
+      [-1, 0],      [1, 0],
+      [-1, 1],[0, 1],[1, 1],
+      [-2,0],[2,0],[0,-2],[0,2],
+    ];
+    for (const [ox, oy] of rockOffsets) {
+      const rx = x + ox, ry = y + oy;
+      if (!grid.isInside(rx, ry)) continue;
+      const rc = grid.get(rx, ry);
+      if (rc.element === ELEMENTS.empty || rc.element === ELEMENTS.vfx) {
+        if (Math.random() < 0.35) {
+          grid.set(rx, ry, ELEMENTS.vfx);
+
+          const v = grid.get(rx, ry);
+          v.color = ELEMENTS.volcanic_rock.color;
+
+          v.temperature = 800 + Math.random() * 280;
+          v.asteroidChunk = true;
+        }
+      }
+    }
+
+    // FIERY TRAIL - leave embers and fire behind the asteroid
+    const trailX = x - Math.round(cell.dx * 1.5);
+    const trailY = y - Math.round(cell.dy * 1.5);
+    for (let ti = 0; ti < 4; ti++) {
+      const tx2 = trailX + Math.round((Math.random() - 0.5) * 3);
+      const ty2 = trailY + Math.round((Math.random() - 0.5) * 3);
+      if (!grid.isInside(tx2, ty2)) continue;
+      const tc = grid.get(tx2, ty2);
+      if (tc.element === ELEMENTS.empty || tc.element === ELEMENTS.vfx) {
+        grid.set(tx2, ty2, ELEMENTS.vfx);
+        const v = grid.get(tx2, ty2);
+        v.age = -6;
+        const r = Math.random();
+        if (r < 0.25)      v.color = "#FFFFFF";
+        else if (r < 0.5)  v.color = "#FFEE44";
+        else if (r < 0.75) v.color = "#FF7700";
+        else               v.color = "#CC2200";
+      }
+    }
+
+    // MOVE
+    cell.fx += cell.dx * cell.speed;
+    cell.fy += cell.dy * cell.speed;
+    const gx = Math.round(cell.fx);
+    const gy = Math.round(cell.fy);
+
+    if (gx === x && gy === y) return;
+
+    if (!grid.isInside(gx, gy)) {
+      asteroidExplode(grid, x, y, 14);
+      grid.set(x, y, ELEMENTS.empty);
+      return;
+    }
+
+    const nextCell = grid.get(gx, gy);
+    if (nextCell && nextCell.element !== ELEMENTS.empty &&
+        nextCell.element !== ELEMENTS.vfx &&
+        nextCell.element !== ELEMENTS.fire &&
+        nextCell.element !== ELEMENTS.smoke &&
+        nextCell.element !== ELEMENTS.volcanic_rock &&
+        nextCell.element !== ELEMENTS.asteroid) {
+      asteroidExplode(grid, x, y, 14);
+      grid.set(x, y, ELEMENTS.empty);
+      return;
+    }
+
+    grid.swap(x, y, gx, gy);
+
+    // Leave molten rock or fire where the asteroid was
+    if (Math.random() < 0.5) {
+    grid.set(x, y, ELEMENTS.fire);
+      const left = grid.get(x, y);
+      left.color = Math.random() < 0.5 ? "#FF7700" : "#FF4400";
+    } else {
+      grid.set(x, y, ELEMENTS.fire);
+      const left = grid.get(x, y);
+      left.color = Math.random() < 0.5 ? "#FF7700" : "#FF4400";
+    }
+
+    function asteroidExplode(grid, cx, cy, maxRadius) {
+      vfx.shake(18, 700);
+      const steps = 26;
+      const delay = 12;
+      let step = 1;
+
+      // Ejecta: rock chunks and embers blasted outward
+      const ejectaCount = Math.floor(maxRadius * 4);
+      const ejecta = Array.from({ length: ejectaCount }, () => ({
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.3 + Math.random() * 0.9,
+        type: Math.random(), // <0.5 = rock, >=0.5 = ember
+      }));
+
+      // Dust column emitters
+      const dustCols = Array.from({ length: 12 }, () => ({
+        ox: Math.round((Math.random() - 0.5) * maxRadius * 0.8),
+        spread: 0.5 + Math.random() * 1.2,
+      }));
+
+      function tick() {
+        const t = step / steps;
+        const radius = Math.floor(t * maxRadius);
+
+        // A. INITIAL FLASH
+        if (step <= 3) {
+          const flashR = maxRadius * 0.7 * (step / 3);
+          for (let dy = -Math.ceil(flashR); dy <= Math.ceil(flashR); dy++) {
+            for (let dx = -Math.ceil(flashR); dx <= Math.ceil(flashR); dx++) {
+              const fx = cx + dx, fy = cy + dy;
+              if (!grid.isInside(fx, fy)) continue;
+              const d = Math.sqrt(dx*dx + dy*dy);
+              if (d > flashR) continue;
+              const fc = grid.get(fx, fy);
+              if (fc.element !== ELEMENTS.empty && fc.element !== ELEMENTS.vfx) continue;
+              grid.set(fx, fy, ELEMENTS.vfx);
+              const v = grid.get(fx, fy);
+              const norm = d / Math.max(flashR, 1);
+              v.age = -2;
+              if (norm < 0.3)      v.color = "#FFFFFF";
+              else if (norm < 0.6) v.color = "#FFFFCC";
+              else                 v.color = "#FFDD44";
+            }
+          }
+        }
+
+        // B. MAIN FIREBALL
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const fx = cx + dx, fy = cy + dy;
+            if (!grid.isInside(fx, fy)) continue;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d > radius) continue;
+            const fc = grid.get(fx, fy);
+            if (fc.element !== ELEMENTS.empty && fc.element !== ELEMENTS.vfx) continue;
+            grid.set(fx, fy, ELEMENTS.vfx);
+            const v = grid.get(fx, fy);
+            const norm = d / Math.max(radius, 1);
+            if      (norm < 0.12) { v.color = "#FFFAEE"; v.age = -2; }
+            else if (norm < 0.28) { v.color = "#FFDD44"; v.age = -3; }
+            else if (norm < 0.48) { v.color = "#FF8800"; v.age = -4; }
+            else if (norm < 0.65) { v.color = "#DD3300"; v.age = -5; }
+            else if (norm < 0.80) { v.color = "#882200"; v.age = -7; }
+            else                  { v.color = "#3D1400"; v.age = -10; }
+            if (norm > 0.55 && Math.random() < 0.35) {
+              v.color = Math.random() < 0.5 ? "#774422" : "#331100";
+              v.age = -9;
+            }
+          }
+        }
+
+        // C. EXPANDING SHOCKWAVE RING
+        const ringR = radius + 2;
+        const ringW = 3;
+        for (let dy = -(ringR+ringW); dy <= (ringR+ringW); dy++) {
+          for (let dx = -(ringR+ringW); dx <= (ringR+ringW); dx++) {
+            const fx = cx + dx, fy = cy + dy;
+            if (!grid.isInside(fx, fy)) continue;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d < ringR || d > ringR + ringW) continue;
+            const fc = grid.get(fx, fy);
+            if (fc.element !== ELEMENTS.empty && fc.element !== ELEMENTS.vfx) continue;
+            grid.set(fx, fy, ELEMENTS.vfx);
+            const v = grid.get(fx, fy);
+            v.age = -3;
+            if (t < 0.4)       v.color = Math.random() < 0.6 ? "#FFEE88" : "#FF9900";
+            else if (t < 0.7)  v.color = Math.random() < 0.5 ? "#CC6600" : "#884400";
+            else               v.color = Math.random() < 0.5 ? "#553322" : "#2A1100";
+          }
+        }
+
+        // D. ROCK EJECTA flying outward
+        ejecta.forEach(e => {
+          const dist = e.speed * maxRadius * t * 1.6;
+          const scatter = (Math.random() - 0.5) * 3;
+          const ex = cx + Math.round(Math.cos(e.angle) * dist + scatter);
+          const ey = cy + Math.round(Math.sin(e.angle) * dist + scatter);
+          if (!grid.isInside(ex, ey)) return;
+          const ec = grid.get(ex, ey);
+          if (ec.element !== ELEMENTS.empty && ec.element !== ELEMENTS.vfx) return;
+          if (e.type < 0.5) {
+            grid.set(ex, ey, ELEMENTS.vfx);
+            const v = grid.get(ex, ey);
+            const r = Math.random();
+              v.color = r < 0.3 ? "#FFFF66" : r < 0.6 ? "#FF8800" : "#CC3300";
+            v.temperature = 600 + Math.random() * 400;
+          } else {
+            grid.set(ex, ey, ELEMENTS.vfx);
+            const v = grid.get(ex, ey);
+            v.age = -5;
+            const r = Math.random();
+            v.color = r < 0.3 ? "#FFFF66" : r < 0.6 ? "#FF8800" : "#CC3300";
+          }
+        });
+
+       
+        
+
+        // F. HEAT PULSE
+        const heatRange = 9;
+        const maxTemp = 1200;
+        for (let dy = -(radius + heatRange); dy <= (radius + heatRange); dy++) {
+          for (let dx = -(radius + heatRange); dx <= (radius + heatRange); dx++) {
+            const fx = cx + dx, fy = cy + dy;
+            if (!grid.isInside(fx, fy)) continue;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 0 && d <= radius + heatRange) {
+              const fc = grid.get(fx, fy);
+              const falloff = 1 - Math.max(0, (d - radius) / heatRange);
+              const addedTemp = maxTemp * falloff * falloff;
+              if (fc.temperature === undefined) fc.temperature = 0;
+              fc.temperature += addedTemp;
+            }
+          }
+        }
+
+        // G. DESTRUCTION + CRATER PUSHBACK
+        const destroyR = radius * 0.55;
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const fx = cx + dx, fy = cy + dy;
+            if (!grid.isInside(fx, fy)) continue;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d <= 0) continue;
+            const fc = grid.get(fx, fy);
+            if (fc.element === ELEMENTS.vfx || fc.element === ELEMENTS.empty) continue;
+            if (d <= destroyR) {
+              const br = fc.element?.properties?.blastResistance ?? 99;
+              if (br < 3 && Math.random() < 0.75) {
+                grid.set(fx, fy, ELEMENTS.empty);
+                continue;
+              }
+            }
+            if (d <= radius && fc.element !== ELEMENTS.grenade) {
+              const nx = dx / d, ny = dy / d;
+              const pushDist = Math.ceil((radius - d + 1) * 0.7);
+              const tx = fx + Math.round(nx * pushDist);
+              const ty = fy + Math.round(ny * pushDist);
+              if (grid.isInside(tx, ty) && grid.get(tx, ty).element === ELEMENTS.empty) {
+                grid.swap(fx, fy, tx, ty);
+              }
+            }
+          }
+        }
+
+        // H. RADIAL STREAK RAYS (16 rays for asteroid impact starburst)
+        if (step < steps * 0.5) {
+          const rayAngles = Array.from({ length: 16 }, (_, i) => (i / 16) * Math.PI * 2);
+          const rayLen = Math.floor(t * maxRadius * 2.2);
+          rayAngles.forEach(angle => {
+            for (let r = 1; r <= rayLen; r++) {
+              const sx = cx + Math.round(Math.cos(angle) * r);
+              const sy = cy + Math.round(Math.sin(angle) * r);
+              if (!grid.isInside(sx, sy)) continue;
+              const sc = grid.get(sx, sy);
+              if (sc.element !== ELEMENTS.empty && sc.element !== ELEMENTS.vfx) continue;
+              grid.set(sx, sy, ELEMENTS.vfx);
+              const v = grid.get(sx, sy);
+              const norm = r / Math.max(rayLen, 1);
+              v.age = -4;
+              if (norm < 0.3)      v.color = "#FFFFAA";
+              else if (norm < 0.6) v.color = "#FF8822";
+              else                 v.color = "#882200";
+            }
+          });
+        }
+
+        step++;
+        if (step <= steps) schedule(tick, delay);
+      }
+      tick();
+    }
+  }
+),
 
 
+volcano: new Element(
+  "volcano",
+  "#D94D07",
+  "Tool",
+  { tool: false },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (!cell.started) {
+      cell.started = true;
+      cell.height = 0;
+
+      const BASE_Y = grid.rows - 1; // start from bottom
+      const MAX_HEIGHT = BASE_Y - y;
+      const MAX_WIDTH = Math.floor(MAX_HEIGHT * 0.9);
+      const VENT_RADIUS = 2;
+
+      function growStep() {
+        const h = cell.height;
+        if (h > MAX_HEIGHT) return;
+
+        const cy = BASE_Y - h;
+
+        // smoother, more stable width falloff
+        const t = h / MAX_HEIGHT;
+        const baseWidth = (1 - t) * MAX_WIDTH;
+
+        // softer noise (less hole-causing)
+        const n = smoothNoise(h * 0.12) * 0.3 + 0.85;
+        const width = Math.max(1, Math.floor(baseWidth * n));
+
+        // fill FULL horizontal span (prevents holes)
+        for (let dx = -width; dx <= width; dx++) {
+          const cx = x + dx;
+          if (!grid.isInside(cx, cy)) continue;
+
+          const dist = Math.abs(dx);
+
+          // lava core (continuous column)
+          if (dist <= VENT_RADIUS) {
+            if(h === MAX_HEIGHT){
+              grid.set(cx,y + 4,ELEMENTS.faucet);
+              grid.get(cx,cy).targetE = ELEMENTS.lava;
+            } else {
+            grid.set(cx, cy, ELEMENTS.lava);
+            }
+          } else {
+            grid.set(cx, cy, ELEMENTS.volcanic_rock);
+          }
+        }
+
+        // optional: thicken walls (prevents diagonal gaps)
+        for (let dx = -width; dx <= width; dx++) {
+          const cx = x + dx;
+          const cyBelow = cy + 1;
+
+          if (!grid.isInside(cx, cyBelow)) continue;
+
+          const below = grid.get(cx, cyBelow);
+          if (!below || below.id === "empty") {
+            grid.set(cx, cyBelow, ELEMENTS.volcanic_rock);
+          }
+        }
+
+        cell.height++;
+        schedule(growStep, 3);
+      }
+
+      growStep();
+    }
+
+    function smoothNoise(x) {
+      const i = Math.floor(x);
+      const f = x - i;
+
+      const a = fract(Math.sin(i * 127.1) * 43758.5453);
+      const b = fract(Math.sin((i + 1) * 127.1) * 43758.5453);
+
+      const t = f * f * (3 - 2 * f);
+      return a * (1 - t) + b * t;
+    }
+
+    function fract(v) {
+      return v - Math.floor(v);
+    }
+  }
+),
+volcanic_rock: new Element(
+  "volcanic_rock",
+  "#4D251C",
+  "Solids",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    cell.rc ??= Math.random() < 0.5 ? [77, 37, 28] : [77, 28, 17];
+    const t = Math.min(Math.max(cell.temperature / 1080, 0), 1);
+    const colors = [
+      cell.rc,
+      [224, 43, 7]
+    ];
+    cell.color = blendColors(t, colors);
+
+
+  }
+),
+faucet: new Element(
+  "faucet",
+  "#07E0C7",
+  "System",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const dirs = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0]
+    ];
+    if(cell.targetE){
+      cell.color = cell.targetE.color;
+    }
+    for(const [dx, dy] of dirs){
+      const cx = x + dx, cy = y + dy;
+      if(!grid.isInside(cx,cy)) continue;
+
+      if(!cell.targetE){
+        if(grid.get(cx,cy).element !== ELEMENTS.empty && grid.get(cx,cy).element !== ELEMENTS.faucet){
+          cell.targetE = grid.get(cx,cy).element;
+        }  
+      }
+
+      if(cell.targetE && grid.get(cx,cy).element === ELEMENTS.empty){
+        if(Math.random() < 0.1){
+        grid.set(cx,cy, cell.targetE);
+        }
+      }
+    }
+  }
+)
 
 
     };
@@ -20335,6 +21265,7 @@ diffuseHeat(dt = 0.1) {
     }
   }
 }
+
 diffuseE(dt = 1, propagationSteps = 1) {
   const DIRS = [
     { dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 1 },
@@ -20357,7 +21288,7 @@ diffuseE(dt = 1, propagationSteps = 1) {
       if (cell.element.properties.isPowerSource) {
         powered[y][x] = true;
         stack.push({ x, y });
-        cell.e = MAX_ENERGY; // source instantly full
+        cell.e = 10000; // source instantly full
       }
     }
   }
