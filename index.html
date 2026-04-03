@@ -517,6 +517,13 @@ canvas {
   <div style="font-size: 40px; margin: 10px; color: white; font-weight: bold;">Catalog</div>
 <div class="catalog-scroll">
 
+  
+<div class="catalog-entry">
+   <div class="catalog-entry-version">Va1.3.2 - Bug fix 2</div>
+  <div class= "catalog-item">Added back black hole (accidently deleted it somehow)</div>
+</div>
+</div>
+  
 <div class="catalog-entry">
    <div class="catalog-entry-version">Va1.3.1 - Bug fix</div>
   <div class= "catalog-item">Fixed Molten Magnesium Crashing The Game</div>
@@ -789,7 +796,7 @@ canvas {
 </div>
   <script>
     // version
-    const CURRENT_VERSION = "Va1.3.1";
+    const CURRENT_VERSION = "Va1.3.2";
     document.getElementById("version").textContent = CURRENT_VERSION;
 
     // canvas
@@ -4567,6 +4574,104 @@ human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true
     if (feet.humanId) head.humanId = feet.humanId;
   }
 }),
+      
+blackhole: new Element(
+  "blackhole",
+  "#0A0A0A",
+  "Energy",
+  {},
+  (grid, x, y) => {
+
+
+
+    const radius = 30;          // smaller for performance
+    const killRadius = 3;       // destroy cells very close
+    const directRadius = 3;     // straight pull zone
+    const maxTemperature = 5000;
+    const maxMovesPerTick = 500; // limit to avoid overload
+
+    let moves = [];
+    let moveCount = 0;
+
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+
+        if (moveCount >= maxMovesPerTick) break;
+
+        const nx = x + dx;
+        const ny = y + dy;
+
+        if (dx === 0 && dy === 0) continue;
+        if (!grid.isInside(nx, ny)) continue;
+
+        const cell = grid.get(nx, ny);
+        if (!cell || cell.element === ELEMENTS.empty) continue;
+
+        const distX = nx - x;
+        const distY = ny - y;
+        const dist = Math.max(0.5, Math.hypot(distX, distY));
+
+      if (dist <= killRadius) {
+ 
+  grid.set(nx, ny, ELEMENTS.empty);
+  continue;
+}
+
+
+        // Temperature
+     const t = Math.max(0, 1 - dist / radius);  
+const tempAdd = Math.round(maxTemperature * Math.pow(t, 8)); // closer = bigger
+cell.temperature += tempAdd;
+
+        // Motion
+        let stepX = 0;
+        let stepY = 0;
+
+        if (dist > directRadius) {
+          // Spiral motion
+          const orbitX = -distY / dist;
+          const orbitY = distX / dist;
+          const orbitSpeed = 1 + (radius - dist) / radius * 2;
+          const pullStrength = 0.5 + (radius - dist) / radius * 0.5;
+
+          stepX = orbitX * orbitSpeed + (-distX / dist) * pullStrength;
+          stepY = orbitY * orbitSpeed + (-distY / dist) * pullStrength;
+
+        } else {
+          // Direct pull
+          const directSpeed = 0.5 + (directRadius - dist) / directRadius * 5;
+          stepX = -distX / dist * directSpeed;
+          stepY = -distY / dist * directSpeed;
+        }
+
+        // Ensure movement
+        if (Math.round(stepX) === 0 && Math.round(stepY) === 0) {
+          if (Math.abs(distX) > Math.abs(distY)) stepX = Math.sign(-distX);
+          else stepY = Math.sign(-distY);
+        }
+
+        let tx = nx + Math.round(stepX);
+        let ty = ny + Math.round(stepY);
+
+        // Clamp to grid
+        tx = Math.min(grid.width - 1, Math.max(0, tx));
+        ty = Math.min(grid.height - 1, Math.max(0, ty));
+
+       const targetCell = grid.get(tx, ty);
+if (targetCell && targetCell.element === ELEMENTS.empty) {
+    moves.push({fromX: nx, fromY: ny, toX: tx, toY: ty});
+    moveCount++;
+}
+      }
+    }
+
+    // Apply all moves after calculations
+    for (let m of moves) {
+      grid.swap(m.fromX, m.fromY, m.toX, m.toY);
+    }
+
+  }
+),
 glitch: new Element(
   "glitch",
   "#000000",
