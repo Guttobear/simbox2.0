@@ -104,6 +104,7 @@ canvas {
   margin: auto;         /* centers vertically in viewport */
   display: block;
 }
+
  #hoverInfo {
     position: fixed;
     bottom: 30px;
@@ -455,6 +456,40 @@ canvas {
   animation: moveDown 0.4s ease forwards;
   background: #444;
 }
+.tool-dropdown {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-content {
+  position: absolute;
+
+  top: 0;          /* align tops */
+  right: 100%;     /* push fully to the left of button */
+
+  display: none;
+  flex-direction: row;
+
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 4px;
+  gap: 4px;
+
+  z-index: 100;
+}
+
+.dropdown-content .art-tool-btn {
+  width: 36px;
+  height: 36px;
+}
+
+.dropdown-content .art-tool-btn:hover {
+  background: #333;
+}
+
+.tool-dropdown.open .dropdown-content {
+  display: flex;
+}
 
  .cmd { color: #7bf; }
   .result { color: #0f0; }
@@ -465,6 +500,7 @@ canvas {
   </style>
 </head>
 <body>
+
 
  <div class="toolbar" id="menubar">
 
@@ -570,113 +606,8 @@ canvas {
 </div>
 
 </div>
-<div class="catalog-entry">
-   <div class="catalog-entry-version">Va1.2 - Steamin Bakin</div>
 
-<div class="catalog-entry-content">
-  <div class="catalog-category">System</div>
-  <div class="catalog-item"><b> * Added Brush settings toolbar on the right </b> </div>
-  <div class="catalog-item">Added Rect tool</div>
-  <div class="catalog-item">Added Fill tool</div>
-  <div class="catalog-item">Added Circle tool</div>
-  <div class="catalog-item">Added Eraser tool</div>
-  <div class="catalog-item"><b>* Added tool elements to the right of the element selector</b></div>
-</div>
-
-<div class="catalog-entry-content">
-  <div class="catalog-category">Elements</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px;">Food › Dairy</div>
-  <div class="catalog-item">Cheese, Melted Cheese</div>
-  <div class="catalog-item">Liquid Fat, Butter</div>
-  <div class="catalog-item">Heavy Cream, Ice Cream, Milk Curd, Milk Whey</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Food › Baking</div>
-  <div class="catalog-item">Flour, Bread</div>
-  <div class="catalog-item">Vanilla Bean, Vanilla Extract</div>
-  <div class="catalog-item">Yeast</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Food › Ingredients</div>
-  <div class="catalog-item">Cornstarch, Vinegar</div>
-    <div class="catalog-item">Vodka, Wine, </div>
-  <div class="catalog-item">Chocolate, Cocoa bean, Crushed Cacoa bean, Honey </div>
-
-
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Food › Fruits</div>
-  <div class="catalog-item">Apple, Banana, Blackberry, Blueberry, Cherry, Grape</div>
-  <div class="catalog-item">Orange, Peach, Pear, Raspberry, Strawberry</div>
-  <div class="catalog-item">Watermelon, Pineapple, Kiwi, Coconut</div>
-    <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Food › Juices</div>
-  <div class="catalog-item">Apple Juice, Blackberry Juice, Blueberry Juice, Cherry Juice, Grape Juice</div>
-    <div class="catalog-item">Orange Juice, Peach juice, Pear Juice, Raspberry Juice, Strawberry Juice</div>
-    <div class="catalog-item">Watermelon Juice, Pineapple Juice</div>
-      <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Food › Meat</div>
-    <div class="catalog-item">Bacon, Cooked Bacon</div>
-    <div class="catalog-item">Egg, Egg White, Egg Yolk</div>
-    
-
-
-
-
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Tools</div>
-  <div class="catalog-item">Chop, Mix</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px; margin-top:4px;">Machine</div>
-  <div class="catalog-item">Microwave Wave Guide, Microwave Control Section</div>
-  <div class="catalog-item">Screen Panel, Screen Control</div>
-  <div class="catalog-item">Blender Blade, Blender</div>
-  <div class="catalog-item">Filter</div>
-
-</div>
-
-</div>
-
-  <div class="catalog-entry">
-   <div class="catalog-entry-version">Va1.1 - The First Canopy</div>
-
-<div class="catalog-entry-content">
-  <div class="catalog-category">System</div>
-  <div class="catalog-item">Added Catalog</div>
-</div>
-
-<div class="catalog-entry-content">
-  <div class="catalog-category">Elements</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-bottom:2px;">FLORA</div>
-  <div class="catalog-item">Flower Seed, Flower Stem, Flower Petal, Flower Leaf</div>
-  <div class="catalog-item">Mushroom Spore, Mushroom Stem, Mushroom Cap</div>
-  <div class="catalog-item">Oak Sapling, Oak Leaf</div>
-  <div class="catalog-item">Bamboo, Tumbleweed</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-top:6px; margin-bottom:2px;">CARNIVOROUS PLANTS</div>
-  <div class="catalog-item">Pitcher Plant Seed, Pitcher Plant Stem, Pitcher Plant Leaf, Pitcher Plant Pitcher</div>
-  <div class="catalog-item">Drosera Capensis Seed, Drosera Capensis Stem, Drosera Capensis Leaf, Drosera Capensis Tentacle <em style="color:#666; font-size:0.85em;">(hidden)</em></div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-top:6px; margin-bottom:2px;">INSECTS</div>
-  <div class="catalog-item">Fly</div>
-  <div class="catalog-item">Ant Egg, Ant Larva, Ant, Ant Head <em style="color:#666; font-size:0.85em;">(hidden)</em>, Ant Abdomen <em style="color:#666; font-size:0.85em;">(hidden)</em></div>
-  <div class="catalog-item">Bee, Honeycomb, Honeycomb Outer <em style="color:#666; font-size:0.85em;">(variant)</em>, Hive Wall</div>
-
-  <div class="catalog-item" style="color:#aaa; font-size:0.8em; margin-top:6px; margin-bottom:2px;">FAUNA</div>
-  <div class="catalog-item">Frog, Frog Tongue <em style="color:#666; font-size:0.85em;">(hidden)</em></div>
-</div>
-
-<div class="catalog-entry-content">
-  <div class="catalog-category">Q.O.L.</div>
-  <div class="catalog-item">Added Wiki link to toolbar</div>
-  <div class="catalog-item">Added X and Y coordinates to hover info</div>
-  <div class="catalog-item">Added grid display to top left</div>
-</div>
-  </div>
-
-  <div class="catalog-entry">
-    <div class="catalog-entry-version">Va1.0</div>
-    <div class="catalog-entry-content">
-      <div class="catalog-category">Initial Alpha Release!</div>
-    </div>
-  </div>
+ 
 </div>
  
 
@@ -686,32 +617,57 @@ canvas {
 
 <div id="toolMenu">
 
+ 
+ 
+<button class="art-tool-btn" title="Select" onclick="setArtTool('select', this)">
+  <svg viewBox="0 0 18 18"  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 2 L4 13 L7 10 L10 16 L12 15 L9 9 L13 9 Z" fill="#ccc" stroke="none"/>
+  </svg>
+</button>
   <button class="art-tool-btn active" title="Pencil" onclick="setArtTool('paint', this)">
     <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 14L5 13L13.5 4.5a1.2 1.2 0 00-1.7-1.7L3.5 11.5z"/>
       <line x1="3" y1="14" x2="4" y2="15"/>
     </svg>
   </button>
-
-  <button class="art-tool-btn" title="Line" onclick="setArtTool('line', this)">
-    <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.6" stroke-linecap="round">
-      <circle cx="4" cy="14" r="1.5" fill="#ccc" stroke="none"/>
-      <circle cx="14" cy="4" r="1.5" fill="#ccc" stroke="none"/>
-      <line x1="4" y1="14" x2="14" y2="4"/>
-    </svg>
-  </button>
-
-  <button class="art-tool-btn" title="Rectangle" onclick="setArtTool('rect', this)">
-    <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="5" width="12" height="9" rx="1"/>
-    </svg>
-  </button>
-
-  <button class="art-tool-btn" title="Circle" onclick="setArtTool('circle', this)">
+<div class="tool-dropdown">
+  <button class="art-tool-btn" id="shapeDropdownBtn" title="Shapes">
+    <!-- merged shapes icon -->
     <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.4">
-      <ellipse cx="9" cy="9" rx="9" ry="9"/>
+    
+      <rect x="3" y="5" width="8" height="6" rx="1"/>
+      <circle cx="12.5" cy="12.5" r="2.5"/>
     </svg>
   </button>
+
+  <div class="dropdown-content">
+
+    <!-- LINE -->
+    <button class="art-tool-btn" title="Line"
+      onclick="setArtTool('line', this)">
+      <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.6" stroke-linecap="round">
+        <line x1="4" y1="14" x2="14" y2="4"/>
+      </svg>
+    </button>
+
+    <!-- RECT -->
+    <button class="art-tool-btn" title="Rectangle"
+      onclick="setArtTool('rect', this)">
+      <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="12" height="9" rx="1"/>
+      </svg>
+    </button>
+
+    <!-- CIRCLE -->
+    <button class="art-tool-btn" title="Circle"
+      onclick="setArtTool('circle', this)">
+      <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.6">
+        <ellipse cx="9" cy="9" rx="6" ry="6"/>
+      </svg>
+    </button>
+
+  </div>
+</div>
 <button class="art-tool-btn" title="Fill" onclick="setArtTool('fill', this)">
   <svg viewBox="140 195 370 330" xmlns="http://www.w3.org/2000/svg" fill="none"
        style="width:100%;height:100%;">
@@ -752,6 +708,48 @@ canvas {
     </svg>
   </button>
 
+  <button class="art-tool-btn" title="Measure" onclick="setArtTool('measure', this)">
+  <svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1">
+    <g transform="translate(9,9) rotate(-45) translate(-9,-9)">
+    <rect x="1" y="6" width="16" height="6" rx="0.5"/>
+<line x1="5"  y1="6" x2="5"  y2="8.5"/>
+<line x1="9"  y1="6" x2="9"  y2="9"/>
+<line x1="13" y1="6" x2="13" y2="8.5"/>
+<line x1="17" y1="6" x2="17" y2="8.5"/>
+    </g>
+  </svg>
+</button>
+
+ <button class="art-tool-btn" title="Transform" onclick="setArtTool('transform', this)">
+  <svg viewBox="0 0 20 20" fill="none" stroke="#ddd" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round">
+    <defs>
+      <marker id="ah" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto" markerUnits="strokeWidth">
+        <polygon points="0,0 3,1.5 0,3" fill="#ddd" stroke="none"/>
+      </marker>
+      <marker id="aht" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto-start-reverse" markerUnits="strokeWidth">
+        <polygon points="0,0 3,1.5 0,3" fill="#ddd" stroke="none"/>
+      </marker>
+    </defs>
+
+    <!-- Rotate arc: thinner, bigger sweep -->
+    <path d="M 9,1.5 A 7,7 0 0,1 18,10" fill="none" stroke="#ddd" stroke-width="0.4" marker-end="url(#ah)"/>
+
+    <!-- Scale: bolder corner bracket bottom-left -->
+    <polyline points="2.5,13.5 2.5,17.5 6.5,17.5" fill="none" stroke="#ddd" stroke-width="1.1"/>
+
+    <!-- Move cross: bolder, longer arms -->
+    <!-- up -->
+    <line x1="10" y1="6" x2="10" y2="3.5" stroke-width="1.1" marker-end="url(#ah)"/>
+    <!-- down -->
+    <line x1="10" y1="14" x2="10" y2="16.5" stroke-width="1.1" marker-end="url(#ah)"/>
+    <!-- left -->
+    <line x1="6" y1="10" x2="3.5" y2="10" stroke-width="1.1" marker-end="url(#ah)"/>
+    <!-- right -->
+    <line x1="14" y1="10" x2="16.5" y2="10" stroke-width="1.1" marker-end="url(#ah)"/>
+  </svg>
+</button>
+
+
   <div class="tool-divider"></div>
 
   <label>Size<input id="brushSize" type="range" min="0" max="30" value="4"></label>
@@ -764,6 +762,7 @@ canvas {
   </label>
 
   <select id="brushMethod" style="display:none">
+    <option value="select">Select</option>
     <option value="paint">Paint</option>
     <option value="spray">Spray</option>
     <option value="line">Line</option>
@@ -771,6 +770,11 @@ canvas {
     <option value="circle">Circle</option>
     <option value="erase">Erase</option>
     <option value="fill">Fill</option>
+        <option value="measure">Measure</option>
+                <option value="transform">Transform</option>
+
+
+
   </select>
 
 </div>
@@ -804,6 +808,7 @@ canvas {
   <canvas id="sim" width="800" height="600"></canvas>
   <div id="gridDisplay">grid: normal</div>
 </div>
+
   <script>
     // version
     const CURRENT_VERSION = "Va1.4";
@@ -817,13 +822,76 @@ canvas {
     // element/brush stuff
     let selectedElement = null;
     let currentCategory = "All";
+// Cursor SVGs per tool (serialized as data URIs)
+const TOOL_CURSORS = {
+  
+  line:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="14" x2="14" y2="4"/></svg>`,
+  rect:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="12" height="9" rx="1"/></svg>`,
+  circle:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.6">
+  <ellipse cx="9" cy="9" rx="6" ry="6"/>
+</svg>`,
+  fill:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="140 195 370 330" fill="none"><g stroke="white" fill-opacity="0"><rect transform="rotate(32.8877 311 405.5)" rx="5" stroke-width="10" x="220" y="301" width="182" height="209" stroke="white"/><ellipse stroke-width="10" rx="24" ry="22.5" cx="319" cy="342.5" stroke="white"/><rect transform="rotate(33.7951 365.984 314.077)" rx="10" x="252.43536" y="308.32997" width="227.09807" height="11.49361" fill="white" fill-opacity="1" stroke="none"/><rect rx="5" x="312" y="204" width="13" height="148" fill="white" fill-opacity="1" stroke="none"/><rect rx="5" x="309" y="204" width="19" height="11" fill="white" fill-opacity="1" stroke="none"/><path stroke="white" stroke-width="5" fill="white" fill-opacity="1" d="m459.55982,505.4462c-13.17926,-5.16363 -22.62571,-21.57095 -20.47891,-35.56937c1.35371,-8.82707 29.91352,-62.41352 32.40769,-60.80622c0.81407,0.5246 8.05823,13.01785 16.09815,27.76278c12.8791,23.61983 14.61802,28.0242 14.61802,37.02478c0,18.2438 -14.00303,33.18754 -30.81657,32.88681c-4.90643,-0.08777 -10.22921,-0.67222 -11.82839,-1.29877l0,0zm13.20412,-9.17596c0.43624,-2.36192 -0.58279,-3.51382 -3.10855,-3.51382c-5.75645,0 -13.74159,-7.60195 -15.52559,-14.78055c-1.90304,-7.65761 -6.94886,-8.56833 -7.69416,-1.38871c-1.43591,13.83256 23.90921,32.78061 26.3283,19.68309l0,0z"/><line stroke-width="10" x1="178.09524" y1="443.80952" x2="390.47619" y2="452.38095" stroke="white"/></g></svg>`,
+ 
+  spray: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="8" width="6" height="7" rx="1.5"/><line x1="9" y1="10" x2="13" y2="8"/><line x1="13" y1="8" x2="13" y2="5"/><circle cx="11" cy="4.5" r="0.8" fill="white" stroke="none"/><circle cx="14.5" cy="12" r="0.8" fill="white" stroke="none"/><circle cx="15.5" cy="9" r="0.8" fill="white" stroke="none"/><circle cx="16" cy="6" r="0.8" fill="white" stroke="none"/></svg>`,
+  measure:`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none" stroke="white" stroke-width="1"><g transform="translate(9,9) rotate(-45) translate(-9,-9)"><rect x="1" y="6" width="16" height="6" rx="0.5"/><line x1="5" y1="6" x2="5" y2="8.5"/><line x1="9" y1="6" x2="9" y2="9"/><line x1="13" y1="6" x2="13" y2="8.5"/><line x1="17" y1="6" x2="17" y2="8.5"/></g></svg>`,
+};
+function svgToCursor(svgStr, size = 32) {
+  const encoded = 'data:image/svg+xml;base64,' + btoa(svgStr);
+  const center = size / 2;
+  return `url("${encoded}") ${center} ${center}, crosshair`;
+}
 
+const dropdown = document.querySelector('.tool-dropdown');
+const btn = document.getElementById('shapeDropdownBtn');
+
+btn.onclick = () => {
+  dropdown.classList.toggle('open');
+};
+
+// close if clicking outside
+document.addEventListener('click', (e) => {
+  if (!dropdown.contains(e.target)) {
+    dropdown.classList.remove('open');
+  }
+});
 function setArtTool(method, btn) {
+  // remove active from all
   document.querySelectorAll('.art-tool-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  firstPoint = null; // clear any pending start point
-  var sel = document.getElementById('brushMethod');
-  if (sel) { sel.value = method; sel.dispatchEvent(new Event('change')); }
+
+  // activate clicked button
+  if (btn) btn.classList.add('active');
+
+  const shapeBtn = document.getElementById('shapeDropdownBtn');
+  const shapeTools = ['line', 'rect', 'circle'];
+
+  // if selecting a shape → activate dropdown button instead
+  if (shapeTools.includes(method)) {
+    if (btn) btn.classList.remove('active'); // remove from inner button
+    if (shapeBtn) shapeBtn.classList.add('active');
+  }
+
+  // reset drawing state
+  firstPoint = null;
+
+  // sync hidden select
+  const sel = document.getElementById('brushMethod');
+  if (sel) {
+    sel.value = method;
+    sel.dispatchEvent(new Event('change'));
+  }
+
+  // cursor
+  const svg = TOOL_CURSORS[method];
+  if (svg) {
+    canvas.style.cursor = svgToCursor(svg, 18);
+  } else {
+
+    canvas.style.cursor = sel.value = "select" ? 'crosshair' : sel.value = "crosshair" ? 'crosshair' : 'default';
+  }
+
+  // close dropdown after selection (optional but recommended)
+  const dropdown = document.querySelector('.tool-dropdown');
+  if (dropdown) dropdown.classList.remove('open');
 }
 
     const Brush = {
@@ -833,6 +901,8 @@ function setArtTool(method, btn) {
   replaceTarget: "stone",
 
 };
+
+
 
 document.querySelectorAll('.toolbar-category').forEach(details => {
   details.addEventListener('toggle', () => {
@@ -850,6 +920,9 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
     let firstPoint = null; // for line tool
     const measurements = []; // for mesurements
     let measureStart = null;
+     const selections = []; // for mesurements
+    let selectStart = null;
+    let selectedCells = new Set(); // cells with .Sselected
     let hoveredMeasurementIndex = -1;
     let keybinds = false;
 
@@ -876,6 +949,19 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
     let simAccumulator = 0;
     let paused = false;
     let activeOptionRenderer = null;
+
+    // Transform indicator state
+    let transformDragging = null; // null | 'move' | 'rotate' | 'scaleX' | 'scaleY' | 'scaleXY'
+    let transformDragStart = null; // { x, y } in canvas pixels
+    const TRANSFORM_HANDLE_RADIUS = 10; // px hit radius for indicators
+    let transformOrigin = { x: 0, y: 0 }; // canvas-px origin for move drag
+    let lastCellOffset = { x: 0, y: 0 }; // cumulative cell-space offset for move
+    // Rotate state
+    let rotateStartAngle = 0;   // angle (rad) from center to drag-start point
+    let rotateLastAngleDeg = 0; // last snapped 90° step applied
+    // Scale state — stores the original cell snapshot before a scale drag begins
+    let scaleSnapshot = null;   // Map<"x,y", cellData> | null
+    let scaleLastFactor = 1;
  
 
       // --- ELEMENT SELECTION UI ---
@@ -989,30 +1075,71 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
       const rect = canvas.getBoundingClientRect();
       mouse.x = Math.floor((e.clientX - rect.left) / voxelsize);
       mouse.y = Math.floor((e.clientY - rect.top) / voxelsize);
+    
 
       // Place while dragging left button (but not for click-to-click tools)
       const nodrag = ["line","rect","circle","fill"];
       if (mouse.down && !nodrag.includes(Brush.method)) placeAtMouse(e);
     });
+    
+    
 
     canvas.addEventListener("mousedown", (e) => {
-      if (e.ctrlKey) return;
+      if (Brush.method === "measure" || Brush.method === "select" || Brush.method === "transform") return;
       if (e.button === 0) { // left click
         mouse.down = true;
+      
         placeAtMouse(e);
+        
       }
     });
+    
 
     window.addEventListener("mouseup", (e) => {
       if (e.button === 0) {
+        // finalize select drag
+        if (Brush.method === "select" && selectStart) {
+          const rect = canvas.getBoundingClientRect();
+          const x = Math.floor((e.clientX - rect.left) / voxelsize);
+          const y = Math.floor((e.clientY - rect.top) / voxelsize);
+          const minX = Math.min(selectStart.x, x);
+          const maxX = Math.max(selectStart.x, x);
+          const minY = Math.min(selectStart.y, y);
+          const maxY = Math.max(selectStart.y, y);
+          selectedCells.clear();
+          for (let cy = minY; cy <= maxY; cy++) {
+            for (let cx = minX; cx <= maxX; cx++) {
+              if (grid.isInside(cx, cy) && grid.get(cx, cy).element.name !== "empty") {
+                selectedCells.add(cx + "," + cy);
+              }
+            }
+          }
+        }
+        selectStart = null;
         mouse.down = false;
         Brush.replaceTarget = null;
       }
     });
     
+    // select tool – drag to select
+    canvas.addEventListener("mousedown", (e) => {
+  if (Brush.method !== "select") return;
+  if (e.button !== 0) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / voxelsize);
+  const y = Math.floor((e.clientY - rect.top) / voxelsize);
+
+  if (!grid.isInside(x, y)) return;
+
+  selectStart = { x, y };
+  selectedCells.clear();
+
+  e.preventDefault();
+});
     // measurment controls
     canvas.addEventListener("mousedown", (e) => {
-  if (!e.ctrlKey) return;
+  if (Brush.method !== "measure") return;
 
   const rect = canvas.getBoundingClientRect();
   const x = Math.floor((e.clientX - rect.left) / voxelsize);
@@ -1036,7 +1163,168 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
   e.preventDefault();
 });
 
-    canvas.addEventListener("mousemove", () => {
+    // transform tool – click indicators
+    canvas.addEventListener("mousedown", (e) => {
+  if (Brush.method !== "transform") return;
+  if (e.button !== 0) return;
+  if (selectedCells.size === 0) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+
+  const hit = hitTestTransformHandle(px, py);
+  if (!hit) return;
+
+  transformDragging = hit;
+  transformDragStart = { x: px, y: py };
+
+  const bounds = getSelectionBounds();
+  const h = getTransformHandles();
+
+  if (hit === "move") {
+    // Store the canvas-px position of the move handle at drag start,
+    // and reset the incremental cell offset tracker.
+    transformOrigin = { x: px, y: py };
+    lastCellOffset = { x: 0, y: 0 };
+  }
+
+  if (hit === "rotate" && h) {
+    // Compute the angle from center → drag-start so we can track deltas.
+    rotateStartAngle = Math.atan2(py - h.center.y, px - h.center.x);
+    rotateLastAngleDeg = 0;
+    // Take a snapshot of current selection so we can re-apply rotations cleanly.
+    scaleSnapshot = takeSelectionSnapshot();
+  }
+
+  if ((hit === "scaleX" || hit === "scaleY" || hit === "scaleXY") && h) {
+    scaleSnapshot = takeSelectionSnapshot();
+    scaleLastFactor = 1;
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+});
+canvas.addEventListener("mousemove", (e) => {
+  if (Brush.method !== "transform" || !transformDragging || !transformDragStart) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+
+  const dx = px - transformDragStart.x;
+  const dy = py - transformDragStart.y;
+
+  // ── MOVE ──────────────────────────────────────────────────────────────────
+  if (transformDragging === "move") {
+    const totalDx = px - transformOrigin.x;
+    const totalDy = py - transformOrigin.y;
+
+    const cellDx = Math.round(totalDx / voxelsize);
+    const cellDy = Math.round(totalDy / voxelsize);
+
+    const stepDx = cellDx - lastCellOffset.x;
+    const stepDy = cellDy - lastCellOffset.y;
+
+    if (stepDx === 0 && stepDy === 0) return;
+
+    // Parse selected cells as [x,y] pairs from the string-keyed Set
+    const sorted = [...selectedCells].map(k => k.split(",").map(Number)).sort((a, b) => {
+      if (stepDx > 0) return b[0] - a[0];
+      if (stepDx < 0) return a[0] - b[0];
+      if (stepDy > 0) return b[1] - a[1];
+      if (stepDy < 0) return a[1] - b[1];
+      return 0;
+    });
+
+    const newSelected = new Set();
+
+    for (const [x, y] of sorted) {
+      const nx = x + stepDx;
+      const ny = y + stepDy;
+
+      if (!grid.isInside(nx, ny)) {
+        newSelected.add(x + "," + y);
+        continue;
+      }
+      grid.swap(x, y, nx, ny);
+      newSelected.add(nx + "," + ny);
+    }
+
+    selectedCells = newSelected;
+    lastCellOffset = { x: cellDx, y: cellDy };
+
+  // ── ROTATE ────────────────────────────────────────────────────────────────
+  } else if (transformDragging === "rotate" && scaleSnapshot) {
+    const h = getTransformHandles();
+    if (!h) return;
+
+    // Current angle from center to mouse
+    const currentAngle = Math.atan2(py - h.center.y, px - h.center.x);
+    const deltaRad = currentAngle - rotateStartAngle;
+    const deltaDeg = deltaRad * 180 / Math.PI;
+
+    // Snap to 15° increments
+    const snapped = Math.round(deltaDeg / 15) * 15;
+    if (snapped === rotateLastAngleDeg) return;
+    rotateLastAngleDeg = snapped;
+
+    // Restore snapshot, then apply the full snapped rotation
+    restoreSelectionSnapshot(scaleSnapshot);
+    if (snapped !== 0) {
+      rotateSelection(snapped);
+    }
+
+  // ── SCALE X ───────────────────────────────────────────────────────────────
+  } else if (transformDragging === "scaleX" && scaleSnapshot) {
+    const h = getTransformHandles();
+    if (!h) return;
+    // Factor based on drag distance from the handle's origin
+    const rawFactor = 1 + dx / (Math.max(50, (scaleSnapshot.width || 1) * voxelsize));
+    const factor = Math.max(0.1, rawFactor);
+    const snapped = Math.round(factor * 4) / 4; // snap to 0.25 increments
+    if (snapped === scaleLastFactor) return;
+    scaleLastFactor = snapped;
+    restoreSelectionSnapshot(scaleSnapshot);
+    scaleSelection(snapped, 1);
+
+  // ── SCALE Y ───────────────────────────────────────────────────────────────
+  } else if (transformDragging === "scaleY" && scaleSnapshot) {
+    const h = getTransformHandles();
+    if (!h) return;
+    const rawFactor = 1 + dy / (Math.max(50, (scaleSnapshot.height || 1) * voxelsize));
+    const factor = Math.max(0.1, rawFactor);
+    const snapped = Math.round(factor * 4) / 4;
+    if (snapped === scaleLastFactor) return;
+    scaleLastFactor = snapped;
+    restoreSelectionSnapshot(scaleSnapshot);
+    scaleSelection(1, snapped);
+
+  // ── SCALE XY ──────────────────────────────────────────────────────────────
+  } else if (transformDragging === "scaleXY" && scaleSnapshot) {
+    const h = getTransformHandles();
+    if (!h) return;
+    const mag = Math.hypot(dx, dy) * Math.sign(dx + dy);
+    const rawFactor = 1 + mag / (Math.max(70, Math.hypot(scaleSnapshot.width || 1, scaleSnapshot.height || 1) * voxelsize));
+    const factor = Math.max(0.1, rawFactor);
+    const snapped = Math.round(factor * 4) / 4;
+    if (snapped === scaleLastFactor) return;
+    scaleLastFactor = snapped;
+    restoreSelectionSnapshot(scaleSnapshot);
+    scaleSelection(snapped, snapped);
+  }
+});
+    window.addEventListener("mouseup", (e) => {
+  if (e.button !== 0 || !transformDragging) return;
+  if (Brush.method !== "transform") return;
+
+  transformDragging = null;
+  transformDragStart = null;
+  scaleSnapshot = null;
+  scaleLastFactor = 1;
+  rotateLastAngleDeg = 0;
+});
+      canvas.addEventListener("mousemove", () => {
       if (!grid.isInside(mouse.x, mouse.y)) {
         hoverInfo.textContent = "";
         return;
@@ -1538,6 +1826,7 @@ function impactFrame(duration = 120) {
     }
   });
 }
+
 const vfx = new VFX("sim");
   
     // ELEMENT SYSTEM
@@ -1561,11 +1850,11 @@ const vfx = new VFX("sim");
     // 🧩 NEW:
     this.tags = properties.tags || []; // ["dirty", "acidic"]
     this.variants = properties.variants || {}; // { dirty: {color:"#507", behavior:(grid,x,y)=>{...}} }
+
   }
 
   // Clone + add or remove tags dynamically
  withTag(tag) {
-  // If the tag already exists, just return a clone without adding it again
   if (this.tags.includes(tag)) {
     const clone = new Element(
       this.name,
@@ -1575,11 +1864,10 @@ const vfx = new VFX("sim");
       this.behavior,
       this.onplace
     );
-    clone.tags = [...this.tags]; // keep existing tags
+    clone.tags = [...this.tags];
     return clone;
   }
 
-  // Otherwise, add the new tag
   const clone = new Element(
     this.name,
     this.color,
@@ -1595,11 +1883,11 @@ const vfx = new VFX("sim");
     const v = this.variants[tag];
     if (v.color) clone.color = v.color;
     if (v.behavior) clone.behavior = v.behavior;
+    if (v.onplace) clone.onplace = v.onplace; // <-- add this
   }
 
   return clone;
 }
-
   withoutTag(tag) {
     const clone = new Element(
       this.name,
@@ -2181,12 +2469,110 @@ if (!moved) {
   "oakwood",
   "#754023",
   "Life",
-  { density: 0.7, flammable: true, conductivity: 0.15 },
+  { density: 0.7, flammable: true, conductivity: 0.15,
+    variants: {
+      burnt: {
+        color: "#140C0C",
+        hidden: true,
+        behavior: (grid,x,y) => {
+            const cell = grid.get(x, y);
+if (cell.temperature > 250) {
+  cell.smolder ??= Math.random() < 0.7 ? false : true;
+}
+if(cell.smolder){
+   // Base orange
+    let r = 250;
+    let g = 34;
+    let b = 10;
+
+    // Flicker (quick brightness jitter)
+    const flicker = (Math.random() - 0.5) * 60; // intensity
+
+    r += flicker;
+    g += flicker * 0.6; // keep it orange, not white
+    b += flicker * 0.2;
+
+    // Clamp
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+
+    cell.color = `rgb(${r|0},${g|0},${b|0})`;
+} 
+          // interactions
+          if(grid.touching(x, y, ELEMENTS.fire)){
+  cell.temperature += 50;
+}
+if(grid.touching(x, y, "water")){
+  cell.temperature = 20;
+
+}
+// temp
+if(cell.temperature > 9000){
+ if(Math.random() < 0.5){
+  grid.set(x, y, ELEMENTS.plasma);
+ }
+}
+// temp
+    const directions = [
+  [0, -1], // up
+  [0, 1],  // down
+  [-1, 0], // left
+  [1, 0],  // right
+];
+
+if(cell.temperature > 150){
+
+
+for (const [dx, dy] of directions) {
+  const nx = x + dx;
+  const ny = y + dy;
+  if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "oakwood" && grid.get(nx,ny).element.doesNotHaveTag("burnt")){
+    if(Math.random() < 0.1){
+    grid.get(nx,ny).element = grid.get(nx,ny).element.withTag("burnt");
+    }
+  }
+}
+}
+if(cell.temperature > 800){
+  grid.set(x,y,ELEMENTS.ash);
+}
+          if(cell.temperature > 400){
+       
+
+            if(Math.random() < 0.0005){
+              if(Math.random() < 0.5){
+            grid.set(x, y, ELEMENTS.ash);
+              } else {
+                  grid.set(x, y, ELEMENTS.empty);
+              }
+            }
+          }
+
+          if(cell.temperature > 190){
+  
+
+for (const [dx, dy] of directions) {
+  const nx = x + dx;
+  const ny = y + dy;
+  if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
+    if(Math.random() < 0.2){
+    grid.set(nx, ny, ELEMENTS.fire);
+    }
+  }
+}
+
+          }
+        }
+      }
+    }
+   },
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
+
     // ── FIRE BEHAVIOR ──
-    if (cell.temperature > 220) {
+    if (cell.temperature > 150) {
       const directions = [[0,-1],[0,1],[-1,0],[1,0]];
       for (const [dx, dy] of directions) {
         const nx = x + dx, ny = y + dy;
@@ -2194,9 +2580,10 @@ if (!moved) {
           if (Math.random() < 0.5) grid.set(nx, ny, ELEMENTS.fire);
         }
       }
-      if (Math.random() < 0.1) { grid.set(x, y, ELEMENTS.burntwood); return; }
+      if (Math.random() < 0.1) { cell.element = cell.element.withTag("burnt"); return; }
     }
 
+    if(cell.element.hasTag("burnt")) return;
     // ── TREE GROWTH ──
     const mem = cell.treeMemory;
     if (!mem || mem.stage === "done") return;
@@ -2390,72 +2777,8 @@ if (!moved) {
   
 
 ),
-  burntwood: new Element(
-        "burntwood",
-        "rgb(20, 12, 12)",
-        "Solids",
-        { density: 0.7, flammable: true, conductivity: 0.65, hidden: true },
-        (grid, x, y) => {
-          const cell = grid.get(x, y);
-          // interactions
-          if(grid.touching(x, y, ELEMENTS.fire)){
-  cell.temperature += 50;
-}
-if(grid.touching(x, y, "water")){
-  cell.temperature = 20;
 
-}
-// temp
-if(cell.temperature > 9000){
- if(Math.random() < 0.5){
-  grid.set(x, y, ELEMENTS.plasma);
- }
-}
-// temp
-    const directions = [
-  [0, -1], // up
-  [0, 1],  // down
-  [-1, 0], // left
-  [1, 0],  // right
-];
-
-if(cell.temperature > 200){
-
-
-for (const [dx, dy] of directions) {
-  const nx = x + dx;
-  const ny = y + dy;
-  if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "oakwood") {
-    if(Math.random() < 0.5){
-    grid.set(nx, ny, ELEMENTS.burntwood);
-    }
-  }
-}
-}
-          if(cell.temperature > 240){
-       
-
-            if(Math.random() < 0.1){
-            grid.set(x, y, ELEMENTS.empty);
-            }
-          }
-
-          if(cell.temperature > 130){
   
-
-for (const [dx, dy] of directions) {
-  const nx = x + dx;
-  const ny = y + dy;
-  if (grid.isInside(nx, ny) && grid.get(nx, ny).element.name === "empty") {
-    if(Math.random() < 0.2){
-    grid.set(nx, ny, ELEMENTS.fire);
-    }
-  }
-}
-
-          }
-        } // doesn't move
-      ),
        glass: new Element(
         "glass",
         "#0A1929",
@@ -2937,8 +3260,10 @@ if(Math.random() < 0.001){
     variants: {
       molten:{
         color: "orange",
+        hidden: true,
         behavior: (grid,x, y) => {
            const cell = grid.get(x, y);
+         
       // color
     // normalize temperature 0–1200°C
    const t = Math.min(Math.max((cell.temperature - 600) / (1538 - 600), 0), 1); 
@@ -2983,8 +3308,13 @@ if (cell.temperature < 1138) {
 
   liquidPhysics(grid, x, y);
 
+        },
+        onplace: (grid,x,y) => {
+          grid.get(x,y).temperature = 1300;
         }
+      
       }
+
     }
      },
   (grid, x, y) => {
@@ -3078,14 +3408,17 @@ if (cell.temperature > 1538) {
 ),
   random: new Element(
     "random",
-    "white",
+    "#FFFFFF",
     "Tool",
       {tool: false},
       (grid, x, y) => {
      const keys = Object.keys(ELEMENTS);
 const randomKey = keys[Math.floor(Math.random() * keys.length)];
+
 const relement = ELEMENTS[randomKey];
+if(relement.category !== "Tool" && relement !== ELEMENTS.nuke){
 grid.set(x, y, relement);
+}
 
       }
 
@@ -3587,13 +3920,11 @@ orbital_laser: new Element(
 
         const bigScale = Math.min(1, t / bigGrowTime) * pulse;
 
-        // Escalating shake
-        const chargeShake = Math.min(50, (t / bigGrowTime) * 50);
-        vfx.shake(chargeShake, 120, 0.05);
+       
 
-        // Random flicker
+        // Random shake
         if (Math.random() < 0.004) {
-          vfx.flashbang(80, 0.5);
+          vfx.shake(10, 500);
         }
 
         // Orbiters
@@ -6052,6 +6383,7 @@ quartz: new Element(
      }
   }
 ),
+
 moss: new Element(
   "moss",
   "#41C710",
@@ -6061,6 +6393,7 @@ moss: new Element(
     variants: {
       burnt: {
         color: "#0E1F08",
+        hidden: true,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
           if(cell.temperature > 160){
@@ -6117,13 +6450,15 @@ copper: new Element(
   "Solids",
   { conductivity: 1.75,
     econductivity: 20,
+    mix: true,
     variants: {
       molten: {
         color: "#F2992E",
+        hidden: true,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
 
-          if(cell.temperature < 1400){
+          if(cell.temperature < 900){
             grid.set(x,y,ELEMENTS.copper);
           }
           if(cell.temperature > 10000){
@@ -6179,7 +6514,7 @@ cell.color = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
   (grid, x, y) => {
    const cell = grid.get(x, y);
 
-if (cell.temperature > 3000) {
+if (cell.temperature > 1000) {
   cell.element = cell.element.withTag("molten");
   return;
 }
@@ -8203,8 +8538,7 @@ copper_pump: new Element(
       cell.pumpForward = null;
     }
 
-    if (cell.e <= 3) return;
-
+    if(cell.on === false) return;
     const dirs = [
       {dx:1,dy:0},
       {dx:-1,dy:0},
@@ -15614,7 +15948,7 @@ mix: new Element(
   {},
   (grid, x, y) => {
     const cell = grid.get(x, y);
-   if(cell.element.category !== "Food" && cell.element.category !== "Life" && cell.element.category !== "Liquids" && cell.element !== ELEMENTS.empty) return;
+   if(cell.element.category !== "Food" && cell.element.category !== "Life" && cell.element.category !== "Liquids" && cell.element !== ELEMENTS.empty && cell.element.properties.mix !== true) return;
     cell.mix = true;
     
 
@@ -18760,6 +19094,7 @@ tin: new Element(
   "Solids",
   {
     shiny: true,
+    mix: true,
      variants: {
       molten: {
         color: "#E3BF20",
@@ -18768,6 +19103,30 @@ tin: new Element(
           const cell = grid.get(x,y);
            if(cell.temperature < 400) grid.set(x,y,ELEMENTS.tin);
            if(cell.temperature > 1286) grid.set(x,y, ELEMENTS.plasma);
+           const dirs = [
+            [0, 1],
+            [0, -1],
+            [1, 0],
+            [-1, 0]
+           ];
+
+           if(cell.mix){
+            
+           for(const [dx,dy] of dirs){
+           
+            const cx = x+dx, cy = y+dy;
+            if(!grid.isInside(cx,cy))continue;
+            if(grid.get(cx,cy).element === ELEMENTS.copper){
+            const e = grid.get(cx,cy);
+              if(e.temperature > 800){
+              
+                grid.set(x,y,ELEMENTS.bronze);
+                grid.set(cx,cy,ELEMENTS.bronze);
+              }
+            }
+           }
+           cell.mix = false;
+          }
           liquidPhysics(grid,x,y);
         }
       }
@@ -20671,12 +21030,1161 @@ faucet: new Element(
       }
     }
   }
-)
+),
+bronze: new Element(
+  "bronze",
+  "#8C5C27",
+  "Solids",
+  {shiny: true,
+    variants: {
+      molten: {
+        color: "#D98416",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature > 4000) grid.set(x,y,ELEMENTS.plasma);
+          if(cell.temperature < 860) grid.set(x,y,ELEMENTS.bronze);
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 880) cell.element = cell.element.withTag("molten");
+
+
+const colors = [
+  [140, 92, 39], 
+  [232, 132, 21] 
+];
+
+// Normalize temperature as before
+const t = Math.min(Math.max(cell.temperature / 880, 0), 1);
+
+// Apply the gradient
+cell.color = blendColors(t, colors);
+  }
+),
+clay: new Element(
+  "clay",
+  "#7E8C8C",
+  "Powders",
+  {mix: true,
+    variants: {
+      fired: {
+        color: "#E8D67D",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+        }
+      },
+      wet: {
+        color: "#5C6666",
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          cell.age++;
+          if(cell.temperature > 400){
+            grid.set(x,y,ELEMENTS.clay.withTag("fired"));
+          }
+          if(cell.age > 600){
+            grid.set(x,y,ELEMENTS.clay);
+          }
+          liquidPhysics(grid,x,y);
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const dirs = [
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 0],
+    ];
+    if(cell.mix){
+    for(const [dx, dy] of dirs){
+      const cx = x+dx, cy = y+dy;
+      if(!grid.isInside(cx,cy)) continue;
+      if(grid.get(cx,cy).element === ELEMENTS.water || grid.get(cx,cy).element.hasTag("wet")){
+        cell.element = cell.element.withTag("wet");
+       if(grid.get(cx,cy).element === ELEMENTS.water) grid.set(cx,cy,ELEMENTS.empty);
+
+      }
+    }
+    cell.mix = false;
+  }
+    powderPhysics(grid,x,y);
+  }
+),
+thunderstorm: new Element(
+  "thunderstorm",
+  "#919191",
+  "Energy",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if(y < 40){
+      grid.swap(x,y,x,50);
+    }
+
+    cell.tick    ??= 0;
+    cell.breathe ??= Math.random() * Math.PI * 2;
+    cell.puffs   ??= null;
+
+    cell.tick++;
+    cell.breathe += 0.018;
+    
+
+    const STORM_W = 60;
+    const STORM_H = 38;
+
+    // ── PUFF INIT ─────────────────────────────────────────
+    if (!cell.puffs) {
+      cell.puffs = [];
+
+      // puff templates — depth and color are now independent
+      // depth: 1=back, 5=front (render order only)
+      // shade: 0=darkest, 1=lightest (visual only)
+      const templates = [
+        // back layer — mix of dark and mid tones
+        { depth: 1, shade: 0.0, count: 3, yRange: [-STORM_H,       -STORM_H * 0.55], rRange: [5, 8],  speed: 0.006 },
+        { depth: 1, shade: 0.2, count: 2, yRange: [-STORM_H * 0.8, -STORM_H * 0.4 ], rRange: [6, 9],  speed: 0.007 },
+
+        // mid-back
+        { depth: 2, shade: 0.1, count: 3, yRange: [-STORM_H * 0.75,-STORM_H * 0.3 ], rRange: [7, 11], speed: 0.010 },
+        { depth: 2, shade: 0.4, count: 2, yRange: [-STORM_H * 0.6, -STORM_H * 0.2 ], rRange: [8, 12], speed: 0.011 },
+
+        // mid — mostly lighter but some dark ones peeking through
+        { depth: 3, shade: 0.2, count: 2, yRange: [-STORM_H * 0.55,-STORM_H * 0.15], rRange: [9, 13], speed: 0.014 },
+        { depth: 3, shade: 0.6, count: 3, yRange: [-STORM_H * 0.45,-6              ], rRange: [9, 14], speed: 0.015 },
+        { depth: 3, shade: 0.3, count: 1, yRange: [-STORM_H * 0.5, -STORM_H * 0.1 ], rRange: [7, 10], speed: 0.013 },
+
+        // mid-front
+        { depth: 4, shade: 0.5, count: 2, yRange: [-STORM_H * 0.4, -4              ], rRange: [10,15], speed: 0.018 },
+        { depth: 4, shade: 0.8, count: 2, yRange: [-STORM_H * 0.35,-3              ], rRange: [11,16], speed: 0.019 },
+        { depth: 4, shade: 0.2, count: 1, yRange: [-STORM_H * 0.45,-8              ], rRange: [8, 11], speed: 0.017 },
+
+        // front — bright puffy ones but also some dark moody ones
+        { depth: 5, shade: 0.9, count: 3, yRange: [-STORM_H * 0.3, -2              ], rRange: [12,18], speed: 0.022 },
+        { depth: 5, shade: 0.6, count: 2, yRange: [-STORM_H * 0.35,-4              ], rRange: [10,14], speed: 0.021 },
+        { depth: 5, shade: 0.1, count: 1, yRange: [-STORM_H * 0.25,-2              ], rRange: [9, 12], speed: 0.023 },
+      ];
+
+      for (const cfg of templates) {
+        for (let i = 0; i < cfg.count; i++) {
+          const spreadX = (Math.random() - 0.5) * STORM_W * 0.85;
+          const spreadY = cfg.yRange[0] + Math.random() * (cfg.yRange[1] - cfg.yRange[0]);
+          const r       = cfg.rRange[0] + Math.random() * (cfg.rRange[1] - cfg.rRange[0]);
+
+          // puff shape type — gives variety
+          const shapeType = Math.floor(Math.random() * 3); // 0=round, 1=wide, 2=tall-lumpy
+
+          cell.puffs.push({
+            ox:        spreadX,
+            oy:        spreadY,
+            r:         r,
+            baseR:     r,
+            depth:     cfg.depth,
+            shade:     cfg.shade,
+            shapeType: shapeType,
+            vx:        (Math.random() - 0.5) * cfg.speed,
+            phase:     Math.random() * Math.PI * 2,
+            wobble:    0.25 + Math.random() * 0.5,
+            grow:      0,
+            // sub-lobes: 2-4 smaller circles offset from center for lumpy shape
+            lobes: generateLobes(r, shapeType),
+          });
+        }
+      }
+    }
+
+    // generates lumpy sub-lobes per puff for organic cloud shape
+    function generateLobes(r, shapeType) {
+      const lobes = [{ ox: 0, oy: 0, r: 1.0 }]; // main body always included
+
+      if (shapeType === 0) {
+        // round — 2 small bumps on top
+        lobes.push({ ox: -r * 0.35, oy: -r * 0.3,  r: 0.55 });
+        lobes.push({ ox:  r * 0.35, oy: -r * 0.25, r: 0.50 });
+      } else if (shapeType === 1) {
+        // wide — spread horizontally with bumps
+        lobes.push({ ox: -r * 0.55, oy: -r * 0.15, r: 0.60 });
+        lobes.push({ ox:  r * 0.55, oy: -r * 0.10, r: 0.58 });
+        lobes.push({ ox: -r * 0.25, oy: -r * 0.35, r: 0.42 });
+        lobes.push({ ox:  r * 0.25, oy: -r * 0.30, r: 0.45 });
+      } else {
+        // lumpy — irregular bumps all around
+        lobes.push({ ox: -r * 0.4,  oy: -r * 0.4,  r: 0.50 });
+        lobes.push({ ox:  r * 0.45, oy: -r * 0.3,  r: 0.48 });
+        lobes.push({ ox:  r * 0.2,  oy: -r * 0.5,  r: 0.38 });
+        lobes.push({ ox: -r * 0.5,  oy:  r * 0.1,  r: 0.40 });
+      }
+
+      return lobes;
+    }
+
+    // shade 0→1 maps to dark stormy → bright white
+    function shadeToColor(shade) {
+      const dark  = [32,  34,  48 ];
+      const mid   = [110, 113, 128];
+      const light = [215, 215, 220];
+
+      let r, g, b;
+      if (shade < 0.5) {
+        const t = shade * 2;
+        r = dark[0] + (mid[0] - dark[0]) * t;
+        g = dark[1] + (mid[1] - dark[1]) * t;
+        b = dark[2] + (mid[2] - dark[2]) * t;
+      } else {
+        const t = (shade - 0.5) * 2;
+        r = mid[0] + (light[0] - mid[0]) * t;
+        g = mid[1] + (light[1] - mid[1]) * t;
+        b = mid[2] + (light[2] - mid[2]) * t;
+      }
+      return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+    }
+
+    // ── ANIMATE PUFFS ─────────────────────────────────────
+    for (const puff of cell.puffs) {
+      puff.grow = Math.min(1, puff.grow + 0.015);
+
+      puff.ox += puff.vx;
+      const maxDrift = STORM_W * 0.45 - puff.r;
+      if (Math.abs(puff.ox) > maxDrift) puff.vx *= -0.8;
+
+      puff.phase += 0.018 + puff.depth * 0.002;
+      const wobbleY = Math.sin(puff.phase) * puff.wobble;
+      puff.r = puff.baseR * (0.95 + 0.05 * Math.sin(puff.phase * 0.6));
+      puff._ry = puff.oy + wobbleY;
+    }
+
+    // ── CLEAR OLD ─────────────────────────────────────────
+    if (cell.cloudCells) {
+      for (const key of cell.cloudCells.keys()) {
+        const [cx, cy] = key.split(",").map(Number);
+        if (!grid.isInside(cx, cy)) continue;
+        if (grid.get(cx, cy).element === ELEMENTS.vfx) {
+          grid.set(cx, cy, ELEMENTS.empty);
+        }
+      }
+    }
+
+    // ── REBUILD ───────────────────────────────────────────
+    cell.cloudCells = new Map();
+
+    // sort by depth: back first so front paints over
+    const sorted = [...cell.puffs].sort((a, b) => a.depth - b.depth);
+
+    for (const puff of sorted) {
+      const scale = puff.grow;
+      const pr    = puff.r * scale;
+      const pcx   = x + Math.round(puff.ox);
+      const pcy   = y + Math.round(puff._ry);
+
+      // render each lobe of this puff
+      for (const lobe of puff.lobes) {
+        const lx  = pcx + Math.round(lobe.ox * scale);
+        const ly  = pcy + Math.round(lobe.oy * scale);
+        const lr  = pr * lobe.r;
+        const lry = lr * 0.60; // ellipse: flatter vertically
+
+        for (let dx = -Math.ceil(lr); dx <= Math.ceil(lr); dx++) {
+          for (let dy = -Math.ceil(lry); dy <= Math.ceil(lry); dy++) {
+            const ellipseDist = (dx * dx) / (lr * lr) + (dy * dy) / (lry * lry);
+            if (ellipseDist > 1) continue;
+
+            const tx = lx + dx;
+            const ty = ly + dy;
+            if (!grid.isInside(tx, ty)) continue;
+            if (tx === x && ty === y) continue;
+
+            // organic edge using perlin — frozen coords so no flicker
+            if (ellipseDist > 0.72) {
+              const n = (perlin.noise(tx * 0.14 + puff.depth * 7, ty * 0.14 + puff.depth * 7) + 1) * 0.5;
+              const edgeZone = (ellipseDist - 0.72) / 0.28;
+              if (n < edgeZone * 0.88) continue;
+            }
+
+            // inner highlight on front puffs
+            let shade = puff.shade;
+            if (ellipseDist < 0.25 && puff.depth >= 3) {
+              shade = Math.min(1, shade + 0.15);
+            }
+
+            const color = shadeToColor(shade);
+
+            // front puffs always win, back puffs only write if nothing there
+            const existing = cell.cloudCells.get(`${tx},${ty}`);
+            if (!existing || puff.depth >= existing.depth) {
+              cell.cloudCells.set(`${tx},${ty}`, { depth: puff.depth, color });
+            }
+          }
+        }
+      // after the lobe inner loops, before closing the lobe loop
+// find the bottom of this lobe and occasionally spawn lightning
+// ── LIGHTNING SPAWN — only bottom lobes ───────────────
+  if (lobe.oy >= 0) {
+    const lobeBottomY = ly + Math.ceil(lry);
+    if (grid.isInside(lx, lobeBottomY + 1) && Math.random() < 0.001) {
+      const target = grid.get(lx, lobeBottomY + 1);
+      if (target.element === ELEMENTS.empty) {
+        grid.set(lx, lobeBottomY + 1, ELEMENTS.lightning);
+      
+      }
+    }
+  }
+      }
+    }
+
+    // ── RENDER ────────────────────────────────────────────
+    for (const [key, value] of cell.cloudCells) {
+      const [cx, cy] = key.split(",").map(Number);
+      if (!grid.isInside(cx, cy)) continue;
+      const target = grid.get(cx, cy);
+      if (target.element === ELEMENTS.empty || target.element === ELEMENTS.vfx) {
+        grid.set(cx, cy, ELEMENTS.vfx);
+        const vc  = grid.get(cx, cy);
+        vc.color  = value.color;
+        vc.age    = -2;
+      }
+    }
+  }
+),
+star: new Element(
+  "star",
+  "#FFB700",
+  "Energy",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (cell.temperature > 50000) {
+      explode(grid, x, y);
+      return;
+    }
+
+    cell.lightLevel = 16;
+    cell.lightColor = "#FCD568";
+
+    const radius          = 12;
+    const killRadius      = 2;
+    const maxTemperature  = 300;
+    const maxMovesPerTick = 200;
+
+    let moves     = [];
+    let moveCount = 0;
+
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        if (moveCount >= maxMovesPerTick) break;
+
+        const nx = x + dx;
+        const ny = y + dy;
+        if (dx === 0 && dy === 0) continue;
+        if (!grid.isInside(nx, ny)) continue;
+
+        const c = grid.get(nx, ny);
+        if (!c || c.element === ELEMENTS.empty) continue;
+
+        const distX = nx - x;
+        const distY = ny - y;
+        const dist  = Math.max(0.5, Math.hypot(distX, distY));
+
+        if (dist <= killRadius) {
+          grid.set(nx, ny, ELEMENTS.empty);
+          continue;
+        }
+
+        const t = Math.max(0, 1 - dist / radius);
+        c.temperature += Math.round(maxTemperature * Math.pow(t, 8));
+
+        if (dist > 5) continue;
+
+        const pullStrength = 0.08 * (1 - dist / 5);
+        const stepX = (-distX / dist) * pullStrength;
+        const stepY = (-distY / dist) * pullStrength;
+
+        if (Math.random() > pullStrength * 8) continue;
+
+        const tx = Math.round(nx + Math.sign(stepX));
+        const ty = Math.round(ny + Math.sign(stepY));
+        if (!grid.isInside(tx, ty)) continue;
+
+        const targetCell = grid.get(tx, ty);
+        if (targetCell && targetCell.element === ELEMENTS.empty) {
+          moves.push({ fromX: nx, fromY: ny, toX: tx, toY: ty });
+          moveCount++;
+        }
+      }
+    }
+
+    for (let m of moves) {
+      grid.swap(m.fromX, m.fromY, m.toX, m.toY);
+    }
+
+  function explode(grid, cx, cy) {
+
+  // ── PHASE 1: CORE COLLAPSE ────────────────────────────
+  vfx.shake(8, 400);
+  const collapseSteps = 25;
+
+  for (let s = 0; s < collapseSteps; s++) {
+    schedule(() => {
+      // pull everything inward
+      const collapseR = 20;
+      for (let dx = -collapseR; dx <= collapseR; dx++) {
+        for (let dy = -collapseR; dy <= collapseR; dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const dist = Math.hypot(dx, dy);
+          if (dist > collapseR || dist === 0) continue;
+          const c = grid.get(nx, ny);
+          if (!c || c.element === ELEMENTS.empty) continue;
+          const tx = nx + Math.sign(-dx);
+          const ty = ny + Math.sign(-dy);
+          if (!grid.isInside(tx, ty)) continue;
+          if (grid.get(tx, ty).element === ELEMENTS.empty) grid.swap(nx, ny, tx, ty);
+        }
+      }
+
+      // shrinking white-hot core
+      const progress = s / collapseSteps;
+      const coreR    = Math.max(1, Math.round(7 * (1 - progress)));
+      for (let dx = -coreR; dx <= coreR; dx++) {
+        for (let dy = -coreR; dy <= coreR; dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d > coreR) continue;
+          grid.set(nx, ny, ELEMENTS.vfx);
+          const v   = grid.get(nx, ny);
+          const norm = d / Math.max(coreR, 1);
+          // core pulses between white and gold as it collapses
+          const pulse = 0.5 + 0.5 * Math.sin(s * 0.8);
+          if      (norm < 0.2) { v.color = "#FFFFFF"; v.age = -4; }
+          else if (norm < 0.5) { v.color = `rgb(255,${Math.round(220 + pulse*35)},${Math.round(pulse*80)})`; v.age = -3; }
+          else                 { v.color = `rgb(255,${Math.round(140 + pulse*60)},0)`; v.age = -2; }
+        }
+      }
+
+      // pre-collapse energy rings — subtle shimmer before the big bang
+      if (s > 10 && s % 3 === 0) {
+        const shimmerR = 8 + (s - 10) * 0.8;
+        for (let dx = -Math.ceil(shimmerR+2); dx <= Math.ceil(shimmerR+2); dx++) {
+          for (let dy = -Math.ceil(shimmerR+2); dy <= Math.ceil(shimmerR+2); dy++) {
+            const nx = cx + dx, ny = cy + dy;
+            if (!grid.isInside(nx, ny)) continue;
+            const d = Math.hypot(dx, dy);
+            if (d < shimmerR || d > shimmerR + 2) continue;
+            if (Math.random() < 0.5) continue;
+            grid.set(nx, ny, ELEMENTS.vfx);
+            const v = grid.get(nx, ny);
+            v.color = Math.random() < 0.5 ? "#FFE566" : "#FFF4AA";
+            v.age   = -2;
+          }
+        }
+      }
+    }, s * 18);
+  }
+
+  const blastStart = collapseSteps * 18 + 60;
+
+  // ── PHASE 2: DETONATION FLASH ─────────────────────────
+  schedule(() => {
+    
+    vfx.shake(80, 1200);
+    vfx.bloom(10000, 3000);
+
+    // instant white sphere — everything in range vaporized
+    const flashR = 30;
+    for (let dx = -flashR; dx <= flashR; dx++) {
+      for (let dy = -flashR; dy <= flashR; dy++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (!grid.isInside(nx, ny)) continue;
+        const d = Math.hypot(dx, dy);
+        if (d > flashR) continue;
+        grid.set(nx, ny, ELEMENTS.vfx);
+        const v    = grid.get(nx, ny);
+        const norm = d / flashR;
+        v.age = -3;
+        if      (norm < 0.15) { v.color = "#FFFFFF"; }
+        else if (norm < 0.35) { v.color = "#FFFEF0"; }
+        else if (norm < 0.55) { v.color = "#FFFACC"; }
+        else if (norm < 0.75) { v.color = "#FFE566"; }
+        else                  { v.color = "#FFB700"; }
+        v.temperature = 999999;
+      }
+    }
+  }, blastStart);
+
+  // ── PHASE 3: PRIMARY SHOCKWAVE ────────────────────────
+  // the fast white-blue shockwave front
+  schedule(() => {
+    let shockR = 2;
+    const shockTick = () => {
+      shockR += 4;
+      if (shockR > 120) return;
+
+      const w = 5;
+      for (let dx = -(shockR+w); dx <= (shockR+w); dx++) {
+        for (let dy = -(shockR+w); dy <= (shockR+w); dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d < shockR || d > shockR + w) continue;
+
+          // blast matter outward violently
+          const c = grid.get(nx, ny);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) {
+            const pushDist = 4;
+            const tx = nx + Math.round((dx / d) * pushDist);
+            const ty = ny + Math.round((dy / d) * pushDist);
+            if (grid.isInside(tx, ty) && grid.get(tx, ty).element === ELEMENTS.empty) {
+              grid.swap(nx, ny, tx, ty);
+            } else {
+              grid.set(nx, ny, ELEMENTS.empty);
+            }
+          }
+
+          grid.set(nx, ny, ELEMENTS.vfx);
+          const v    = grid.get(nx, ny);
+          const norm = (d - shockR) / w;
+          // leading edge white-blue, trailing edge fades
+          if      (norm < 0.2) { v.color = "#FFFFFF"; v.age = -5; }
+          else if (norm < 0.5) { v.color = "#CCF0FF"; v.age = -4; }
+          else if (norm < 0.8) { v.color = "#88CCFF"; v.age = -3; }
+          else                 { v.color = "#4499DD"; v.age = -2; }
+          v.temperature = Math.round(200000 * (1 - shockR / 120));
+        }
+      }
+      schedule(shockTick, 12);
+    };
+    schedule(shockTick, 0);
+  }, blastStart + 40);
+
+  // ── PHASE 4: FIREBALL ─────────────────────────────────
+  // expands behind the shockwave, classic supernova fireball colors
+  schedule(() => {
+    let fireR = 5;
+    const fireTick = () => {
+      fireR += 2.5;
+      if (fireR > 80) return;
+
+      for (let dx = -Math.ceil(fireR); dx <= Math.ceil(fireR); dx++) {
+        for (let dy = -Math.ceil(fireR); dy <= Math.ceil(fireR); dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d > fireR) continue;
+
+          const c = grid.get(nx, ny);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) continue;
+
+          grid.set(nx, ny, ELEMENTS.vfx);
+          const v    = grid.get(nx, ny);
+          const norm = d / fireR;
+
+          // perlin noise to break up the fireball into organic blobs
+          const n = (perlin.noise(nx * 0.08 + fireR, ny * 0.08) + 1) * 0.5;
+          const noisedNorm = Math.min(1, norm + (n - 0.5) * 0.3);
+
+          if      (noisedNorm < 0.08) { v.color = "#FFFFFF";  v.age = -6; }
+          else if (noisedNorm < 0.18) { v.color = "#FFFEF5";  v.age = -5; }
+          else if (noisedNorm < 0.30) { v.color = "#FFF4AA";  v.age = -5; }
+          else if (noisedNorm < 0.42) { v.color = "#FFD700";  v.age = -4; }
+          else if (noisedNorm < 0.54) { v.color = "#FF8C00";  v.age = -4; }
+          else if (noisedNorm < 0.65) { v.color = "#FF4400";  v.age = -4; }
+          else if (noisedNorm < 0.75) { v.color = "#CC1100";  v.age = -5; }
+          else if (noisedNorm < 0.85) { v.color = "#771100";  v.age = -6; }
+          else                        { v.color = "#330800";  v.age = -8; }
+          v.temperature = Math.round(999999 * (1 - norm));
+        }
+      }
+      schedule(fireTick, 16);
+    };
+    schedule(fireTick, 0);
+  }, blastStart + 80);
+
+  // ── PHASE 5: NEBULA FILAMENTS ─────────────────────────
+  // the slow beautiful part — glowing gas streams expanding outward
+  // these are what make it look like a real supernova remnant
+  schedule(() => {
+    const filamentCount = 32;
+    for (let f = 0; f < filamentCount; f++) {
+      const angle      = (f / filamentCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+      const maxLen     = 60 + Math.random() * 50;
+      const speed      = 0.6 + Math.random() * 0.8;
+      const width      = 1 + Math.random() * 2.5;
+      const startDelay = Math.random() * 400;
+
+      // each filament gets a color theme — real nebulae have distinct zones
+      // hydrogen = red/pink, oxygen = blue/green, sulfur = orange/red
+      const colorTheme = Math.floor(Math.random() * 5);
+      const themeColors = [
+        // hydrogen alpha — red/pink/magenta
+        ["#FF6688", "#FF3366", "#CC1144", "#FF99BB", "#FFCCDD"],
+        // oxygen III — blue/teal/cyan
+        ["#44DDFF", "#22AADD", "#0066BB", "#88EEFF", "#AAFFFF"],
+        // sulfur II — deep red/orange/brown
+        ["#FF6600", "#CC3300", "#992200", "#FF9944", "#FFBB77"],
+        // helium — yellow/gold/white core
+        ["#FFFFAA", "#FFE566", "#FFB700", "#FFFFFF", "#FFF4CC"],
+        // mixed shock front — purple/violet
+        ["#CC44FF", "#8822DD", "#5500AA", "#EE88FF", "#FFAAF0"],
+      ];
+      const colors = themeColors[colorTheme];
+
+      let dist = 8;
+
+      const filamentTick = () => {
+        dist += speed;
+        if (dist > maxLen) return;
+
+        const progress = dist / maxLen;
+
+        // filaments curve slightly using perlin
+        const curvature = perlin.noise(angle * 3, dist * 0.05) * 0.4;
+        const curvedAngle = angle + curvature;
+
+        const fx = cx + Math.cos(curvedAngle) * dist;
+        const fy = cy + Math.sin(curvedAngle) * dist;
+
+        // spray cells perpendicular to filament direction for width
+        for (let w = -Math.ceil(width); w <= Math.ceil(width); w++) {
+          const perpAngle = curvedAngle + Math.PI / 2;
+          const wx = fx + Math.cos(perpAngle) * w;
+          const wy = fy + Math.sin(perpAngle) * w;
+          const gx = Math.round(wx);
+          const gy = Math.round(wy);
+
+          if (!grid.isInside(gx, gy)) continue;
+          const c = grid.get(gx, gy);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) continue;
+
+          // brightness falloff — bright near center, dims at tip
+          const edgeFade    = 1 - Math.abs(w) / (width + 1);
+          const lengthFade  = 1 - progress * 0.6;
+          const brightness  = edgeFade * lengthFade;
+          if (Math.random() > brightness * 0.85) continue;
+
+          grid.set(gx, gy, ELEMENTS.vfx);
+          const v = grid.get(gx, gy);
+
+          // color varies along filament length
+          const colorIdx = Math.min(
+            colors.length - 1,
+            Math.floor(progress * (colors.length - 1) + (Math.random() - 0.5))
+          );
+          v.color = colors[Math.max(0, colorIdx)];
+          v.age   = -(6 + Math.round(progress * 8)); // tip fades faster
+          v.temperature = Math.round(30000 * (1 - progress));
+        }
+
+        schedule(filamentTick, 20);
+      };
+
+      schedule(filamentTick, startDelay);
+    }
+  }, blastStart + 600);
+
+  // ── PHASE 6: NEBULA SHELL RINGS ───────────────────────
+  // expanding glowing shells of ionized gas
+  schedule(() => {
+    const shellDefs = [
+      { speed: 0.8, startR: 20, maxR: 100, color: "#FF4488", innerColor: "#FF99CC", w: 6  },
+      { speed: 0.6, startR: 30, maxR: 120, color: "#2288FF", innerColor: "#88CCFF", w: 5  },
+      { speed: 0.4, startR: 40, maxR: 140, color: "#FF6600", innerColor: "#FFAA44", w: 8  },
+      { speed: 0.3, startR: 50, maxR: 160, color: "#8833FF", innerColor: "#CC88FF", w: 4  },
+    ];
+
+    for (const shell of shellDefs) {
+      let shellR = shell.startR;
+
+      const shellTick = () => {
+        shellR += shell.speed;
+        if (shellR > shell.maxR) return;
+
+        const progress = (shellR - shell.startR) / (shell.maxR - shell.startR);
+
+        for (let dx = -(shellR + shell.w); dx <= (shellR + shell.w); dx++) {
+          for (let dy = -(shellR + shell.w); dy <= (shellR + shell.w); dy++) {
+            const nx = cx + dx, ny = cy + dy;
+            if (!grid.isInside(nx, ny)) continue;
+            const d = Math.hypot(dx, dy);
+            if (d < shellR || d > shellR + shell.w) continue;
+
+            // perlin breaks up the shell into clumpy knots — real nebula shells aren't perfect rings
+            const n = (perlin.noise(nx * 0.06, ny * 0.06) + 1) * 0.5;
+            if (n < 0.28 + progress * 0.25) continue;
+
+            const c = grid.get(nx, ny);
+            if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) continue;
+
+            grid.set(nx, ny, ELEMENTS.vfx);
+            const v    = grid.get(nx, ny);
+            const norm = (d - shellR) / shell.w;
+
+            // inner edge brighter, outer edge fades
+            if (norm < 0.35) {
+              v.color = shell.innerColor;
+              v.age   = -(5 + Math.round(progress * 6));
+            } else {
+              // interpolate toward dark at outer edge
+              v.color = shell.color;
+              v.age   = -(7 + Math.round(progress * 8));
+            }
+            v.temperature = Math.round(15000 * (1 - progress));
+          }
+        }
+        schedule(shellTick, 25);
+      };
+      schedule(shellTick, Math.random() * 300);
+    }
+  }, blastStart + 800);
+
+  // ── PHASE 8: BLACK HOLE REMNANT ───────────────────────
+  schedule(() => {
+    vfx.shake(30, 800);
+    vfx.bloom(4000, 500);
+
+    // clear center
+    for (let dx = -4; dx <= 4; dx++) {
+      for (let dy = -4; dy <= 4; dy++) {
+        if (!grid.isInside(cx+dx, cy+dy)) continue;
+        if (Math.hypot(dx, dy) <= 4) grid.set(cx+dx, cy+dy, ELEMENTS.empty);
+      }
+    }
+
+    grid.set(cx, cy, ELEMENTS.blackhole);
+
+    // accretion disk — flat ring of plasma, brighter on one side (doppler effect)
+    for (let dx = -10; dx <= 10; dx++) {
+      for (let dy = -3; dy <= 3; dy++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (!grid.isInside(nx, ny)) continue;
+        const d = Math.hypot(dx, dy);
+        if (d < 3 || d > 9) continue;
+        if (Math.random() < 0.35) continue;
+
+        grid.set(nx, ny, ELEMENTS.vfx);
+        const v = grid.get(nx, ny);
+        v.age   = -15;
+        // doppler: left side blueshifted, right side redshifted
+        if (dx < 0) {
+          v.color = Math.random() < 0.5 ? "#88DDFF" : "#AAEEFF";
+        } else {
+          v.color = Math.random() < 0.5 ? "#FF8800" : "#FFAA44";
+        }
+      }
+    }
+
+    // scattered plasma remnants nearby
+    for (let i = 0; i < 30; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist  = 5 + Math.random() * 12;
+      const px    = Math.round(cx + Math.cos(angle) * dist);
+      const py    = Math.round(cy + Math.sin(angle) * dist);
+      if (!grid.isInside(px, py)) continue;
+      if (grid.get(px, py).element !== ELEMENTS.empty) continue;
+      grid.set(px, py, ELEMENTS.plasma);
+    }
+  }, blastStart + 5000);
+}
+ }
+),
+supernova: new Element(
+  "supernova",
+  "#E3C164",
+  "Tool",
+  {tool: false},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    explode(grid,x,y);
+     function explode(grid, cx, cy) {
+
+  // ── PHASE 1: CORE COLLAPSE ────────────────────────────
+  vfx.shake(8, 400);
+  const collapseSteps = 25;
+
+  for (let s = 0; s < collapseSteps; s++) {
+    schedule(() => {
+      // pull everything inward
+      const collapseR = 20;
+      for (let dx = -collapseR; dx <= collapseR; dx++) {
+        for (let dy = -collapseR; dy <= collapseR; dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const dist = Math.hypot(dx, dy);
+          if (dist > collapseR || dist === 0) continue;
+          const c = grid.get(nx, ny);
+          if (!c || c.element === ELEMENTS.empty) continue;
+          const tx = nx + Math.sign(-dx);
+          const ty = ny + Math.sign(-dy);
+          if (!grid.isInside(tx, ty)) continue;
+          if (grid.get(tx, ty).element === ELEMENTS.empty) grid.swap(nx, ny, tx, ty);
+        }
+      }
+
+      // shrinking white-hot core
+      const progress = s / collapseSteps;
+      const coreR    = Math.max(1, Math.round(7 * (1 - progress)));
+      for (let dx = -coreR; dx <= coreR; dx++) {
+        for (let dy = -coreR; dy <= coreR; dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d > coreR) continue;
+          grid.set(nx, ny, ELEMENTS.vfx);
+          const v   = grid.get(nx, ny);
+          const norm = d / Math.max(coreR, 1);
+          // core pulses between white and gold as it collapses
+          const pulse = 0.5 + 0.5 * Math.sin(s * 0.8);
+          if      (norm < 0.2) { v.color = "#FFFFFF"; v.age = -4; }
+          else if (norm < 0.5) { v.color = `rgb(255,${Math.round(220 + pulse*35)},${Math.round(pulse*80)})`; v.age = -3; }
+          else                 { v.color = `rgb(255,${Math.round(140 + pulse*60)},0)`; v.age = -2; }
+        }
+      }
+
+      // pre-collapse energy rings — subtle shimmer before the big bang
+      if (s > 10 && s % 3 === 0) {
+        const shimmerR = 8 + (s - 10) * 0.8;
+        for (let dx = -Math.ceil(shimmerR+2); dx <= Math.ceil(shimmerR+2); dx++) {
+          for (let dy = -Math.ceil(shimmerR+2); dy <= Math.ceil(shimmerR+2); dy++) {
+            const nx = cx + dx, ny = cy + dy;
+            if (!grid.isInside(nx, ny)) continue;
+            const d = Math.hypot(dx, dy);
+            if (d < shimmerR || d > shimmerR + 2) continue;
+            if (Math.random() < 0.5) continue;
+            grid.set(nx, ny, ELEMENTS.vfx);
+            const v = grid.get(nx, ny);
+            v.color = Math.random() < 0.5 ? "#FFE566" : "#FFF4AA";
+            v.age   = -2;
+          }
+        }
+      }
+    }, s * 18);
+  }
+
+  const blastStart = collapseSteps * 18 + 60;
+
+  // ── PHASE 2: DETONATION FLASH ─────────────────────────
+  schedule(() => {
+    
+    vfx.shake(80, 1200);
+    vfx.bloom(10000, 3000);
+
+    // instant white sphere — everything in range vaporized
+    const flashR = 30;
+    for (let dx = -flashR; dx <= flashR; dx++) {
+      for (let dy = -flashR; dy <= flashR; dy++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (!grid.isInside(nx, ny)) continue;
+        const d = Math.hypot(dx, dy);
+        if (d > flashR) continue;
+        grid.set(nx, ny, ELEMENTS.vfx);
+        const v    = grid.get(nx, ny);
+        const norm = d / flashR;
+        v.age = -3;
+        if      (norm < 0.15) { v.color = "#FFFFFF"; }
+        else if (norm < 0.35) { v.color = "#FFFEF0"; }
+        else if (norm < 0.55) { v.color = "#FFFACC"; }
+        else if (norm < 0.75) { v.color = "#FFE566"; }
+        else                  { v.color = "#FFB700"; }
+        v.temperature = 999999;
+      }
+    }
+  }, blastStart);
+
+  // ── PHASE 3: PRIMARY SHOCKWAVE ────────────────────────
+  // the fast white-blue shockwave front
+  schedule(() => {
+    let shockR = 2;
+    const shockTick = () => {
+      shockR += 4;
+      if (shockR > 120) return;
+
+      const w = 5;
+      for (let dx = -(shockR+w); dx <= (shockR+w); dx++) {
+        for (let dy = -(shockR+w); dy <= (shockR+w); dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d < shockR || d > shockR + w) continue;
+
+          // blast matter outward violently
+          const c = grid.get(nx, ny);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) {
+            const pushDist = 4;
+            const tx = nx + Math.round((dx / d) * pushDist);
+            const ty = ny + Math.round((dy / d) * pushDist);
+            if (grid.isInside(tx, ty) && grid.get(tx, ty).element === ELEMENTS.empty) {
+              grid.swap(nx, ny, tx, ty);
+            } else {
+              grid.set(nx, ny, ELEMENTS.empty);
+            }
+          }
+
+          grid.set(nx, ny, ELEMENTS.vfx);
+          const v    = grid.get(nx, ny);
+          const norm = (d - shockR) / w;
+          // leading edge white-blue, trailing edge fades
+          if      (norm < 0.2) { v.color = "#FFFFFF"; v.age = -5; }
+          else if (norm < 0.5) { v.color = "#CCF0FF"; v.age = -4; }
+          else if (norm < 0.8) { v.color = "#88CCFF"; v.age = -3; }
+          else                 { v.color = "#4499DD"; v.age = -2; }
+          v.temperature = Math.round(200000 * (1 - shockR / 120));
+        }
+      }
+      schedule(shockTick, 12);
+    };
+    schedule(shockTick, 0);
+  }, blastStart + 40);
+
+  // ── PHASE 4: FIREBALL ─────────────────────────────────
+  // expands behind the shockwave, classic supernova fireball colors
+  schedule(() => {
+    let fireR = 5;
+    const fireTick = () => {
+      fireR += 2.5;
+      if (fireR > 80) return;
+
+      for (let dx = -Math.ceil(fireR); dx <= Math.ceil(fireR); dx++) {
+        for (let dy = -Math.ceil(fireR); dy <= Math.ceil(fireR); dy++) {
+          const nx = cx + dx, ny = cy + dy;
+          if (!grid.isInside(nx, ny)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d > fireR) continue;
+
+          const c = grid.get(nx, ny);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) continue;
+
+          grid.set(nx, ny, ELEMENTS.vfx);
+          const v    = grid.get(nx, ny);
+          const norm = d / fireR;
+
+          // perlin noise to break up the fireball into organic blobs
+          const n = (perlin.noise(nx * 0.08 + fireR, ny * 0.08) + 1) * 0.5;
+          const noisedNorm = Math.min(1, norm + (n - 0.5) * 0.3);
+
+          if      (noisedNorm < 0.08) { v.color = "#FFFFFF";  v.age = -6; }
+          else if (noisedNorm < 0.18) { v.color = "#FFFEF5";  v.age = -5; }
+          else if (noisedNorm < 0.30) { v.color = "#FFF4AA";  v.age = -5; }
+          else if (noisedNorm < 0.42) { v.color = "#FFD700";  v.age = -4; }
+          else if (noisedNorm < 0.54) { v.color = "#FF8C00";  v.age = -4; }
+          else if (noisedNorm < 0.65) { v.color = "#FF4400";  v.age = -4; }
+          else if (noisedNorm < 0.75) { v.color = "#CC1100";  v.age = -5; }
+          else if (noisedNorm < 0.85) { v.color = "#771100";  v.age = -6; }
+          else                        { v.color = "#330800";  v.age = -8; }
+          v.temperature = Math.round(999999 * (1 - norm));
+        }
+      }
+      schedule(fireTick, 16);
+    };
+    schedule(fireTick, 0);
+  }, blastStart + 80);
+
+  // ── PHASE 5: NEBULA FILAMENTS ─────────────────────────
+  // the slow beautiful part — glowing gas streams expanding outward
+  // these are what make it look like a real supernova remnant
+  schedule(() => {
+    const filamentCount = 32;
+    for (let f = 0; f < filamentCount; f++) {
+      const angle      = (f / filamentCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+      const maxLen     = 60 + Math.random() * 50;
+      const speed      = 0.6 + Math.random() * 0.8;
+      const width      = 1 + Math.random() * 2.5;
+      const startDelay = Math.random() * 400;
+
+      // each filament gets a color theme — real nebulae have distinct zones
+      // hydrogen = red/pink, oxygen = blue/green, sulfur = orange/red
+      const colorTheme = Math.floor(Math.random() * 5);
+      const themeColors = [
+        // hydrogen alpha — red/pink/magenta
+        ["#FF6688", "#FF3366", "#CC1144", "#FF99BB", "#FFCCDD"],
+        // oxygen III — blue/teal/cyan
+        ["#44DDFF", "#22AADD", "#0066BB", "#88EEFF", "#AAFFFF"],
+        // sulfur II — deep red/orange/brown
+        ["#FF6600", "#CC3300", "#992200", "#FF9944", "#FFBB77"],
+        // helium — yellow/gold/white core
+        ["#FFFFAA", "#FFE566", "#FFB700", "#FFFFFF", "#FFF4CC"],
+        // mixed shock front — purple/violet
+        ["#CC44FF", "#8822DD", "#5500AA", "#EE88FF", "#FFAAF0"],
+      ];
+      const colors = themeColors[colorTheme];
+
+      let dist = 8;
+
+      const filamentTick = () => {
+        dist += speed;
+        if (dist > maxLen) return;
+
+        const progress = dist / maxLen;
+
+        // filaments curve slightly using perlin
+        const curvature = perlin.noise(angle * 3, dist * 0.05) * 0.4;
+        const curvedAngle = angle + curvature;
+
+        const fx = cx + Math.cos(curvedAngle) * dist;
+        const fy = cy + Math.sin(curvedAngle) * dist;
+
+        // spray cells perpendicular to filament direction for width
+        for (let w = -Math.ceil(width); w <= Math.ceil(width); w++) {
+          const perpAngle = curvedAngle + Math.PI / 2;
+          const wx = fx + Math.cos(perpAngle) * w;
+          const wy = fy + Math.sin(perpAngle) * w;
+          const gx = Math.round(wx);
+          const gy = Math.round(wy);
+
+          if (!grid.isInside(gx, gy)) continue;
+          const c = grid.get(gx, gy);
+          if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) continue;
+
+          // brightness falloff — bright near center, dims at tip
+          const edgeFade    = 1 - Math.abs(w) / (width + 1);
+          const lengthFade  = 1 - progress * 0.6;
+          const brightness  = edgeFade * lengthFade;
+          if (Math.random() > brightness * 0.85) continue;
+
+          grid.set(gx, gy, ELEMENTS.vfx);
+          const v = grid.get(gx, gy);
+
+          // color varies along filament length
+          const colorIdx = Math.min(
+            colors.length - 1,
+            Math.floor(progress * (colors.length - 1) + (Math.random() - 0.5))
+          );
+          v.color = colors[Math.max(0, colorIdx)];
+          v.age   = -(6 + Math.round(progress * 8)); // tip fades faster
+          v.temperature = Math.round(30000 * (1 - progress));
+        }
+
+        schedule(filamentTick, 20);
+      };
+
+      schedule(filamentTick, startDelay);
+    }
+  }, blastStart + 600);
+
+  // ── PHASE 6: NEBULA SHELL RINGS ───────────────────────
+  // expanding glowing shells of ionized gas
+  schedule(() => {
+    const shellDefs = [
+      { speed: 0.8, startR: 20, maxR: 100, color: "#FF4488", innerColor: "#FF99CC", w: 6  },
+      { speed: 0.6, startR: 30, maxR: 120, color: "#2288FF", innerColor: "#88CCFF", w: 5  },
+      { speed: 0.4, startR: 40, maxR: 140, color: "#FF6600", innerColor: "#FFAA44", w: 8  },
+      { speed: 0.3, startR: 50, maxR: 160, color: "#8833FF", innerColor: "#CC88FF", w: 4  },
+    ];
+
+    for (const shell of shellDefs) {
+      let shellR = shell.startR;
+
+      const shellTick = () => {
+        shellR += shell.speed;
+        if (shellR > shell.maxR) return;
+
+        const progress = (shellR - shell.startR) / (shell.maxR - shell.startR);
+
+        for (let dx = -(shellR + shell.w); dx <= (shellR + shell.w); dx++) {
+          for (let dy = -(shellR + shell.w); dy <= (shellR + shell.w); dy++) {
+            const nx = cx + dx, ny = cy + dy;
+            if (!grid.isInside(nx, ny)) continue;
+            const d = Math.hypot(dx, dy);
+            if (d < shellR || d > shellR + shell.w) continue;
+
+            // perlin breaks up the shell into clumpy knots — real nebula shells aren't perfect rings
+            const n = (perlin.noise(nx * 0.06, ny * 0.06) + 1) * 0.5;
+            if (n < 0.28 + progress * 0.25) continue;
+
+            const c = grid.get(nx, ny);
+            if (c.element !== ELEMENTS.empty && c.element !== ELEMENTS.vfx) continue;
+
+            grid.set(nx, ny, ELEMENTS.vfx);
+            const v    = grid.get(nx, ny);
+            const norm = (d - shellR) / shell.w;
+
+            // inner edge brighter, outer edge fades
+            if (norm < 0.35) {
+              v.color = shell.innerColor;
+              v.age   = -(5 + Math.round(progress * 6));
+            } else {
+              // interpolate toward dark at outer edge
+              v.color = shell.color;
+              v.age   = -(7 + Math.round(progress * 8));
+            }
+            v.temperature = Math.round(15000 * (1 - progress));
+          }
+        }
+        schedule(shellTick, 25);
+      };
+      schedule(shellTick, Math.random() * 300);
+    }
+  }, blastStart + 800);
+
+  // ── PHASE 8: BLACK HOLE REMNANT ───────────────────────
+  schedule(() => {
+    vfx.shake(30, 800);
+    vfx.bloom(4000, 500);
+
+    // clear center
+    for (let dx = -4; dx <= 4; dx++) {
+      for (let dy = -4; dy <= 4; dy++) {
+        if (!grid.isInside(cx+dx, cy+dy)) continue;
+        if (Math.hypot(dx, dy) <= 4) grid.set(cx+dx, cy+dy, ELEMENTS.empty);
+      }
+    }
+
+    grid.set(cx, cy, ELEMENTS.blackhole);
+
+    // accretion disk — flat ring of plasma, brighter on one side (doppler effect)
+    for (let dx = -10; dx <= 10; dx++) {
+      for (let dy = -3; dy <= 3; dy++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (!grid.isInside(nx, ny)) continue;
+        const d = Math.hypot(dx, dy);
+        if (d < 3 || d > 9) continue;
+        if (Math.random() < 0.35) continue;
+
+        grid.set(nx, ny, ELEMENTS.vfx);
+        const v = grid.get(nx, ny);
+        v.age   = -15;
+        // doppler: left side blueshifted, right side redshifted
+        if (dx < 0) {
+          v.color = Math.random() < 0.5 ? "#88DDFF" : "#AAEEFF";
+        } else {
+          v.color = Math.random() < 0.5 ? "#FF8800" : "#FFAA44";
+        }
+      }
+    }
+
+    // scattered plasma remnants nearby
+    for (let i = 0; i < 30; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist  = 5 + Math.random() * 12;
+      const px    = Math.round(cx + Math.cos(angle) * dist);
+      const py    = Math.round(cy + Math.sin(angle) * dist);
+      if (!grid.isInside(px, py)) continue;
+      if (grid.get(px, py).element !== ELEMENTS.empty) continue;
+      grid.set(px, py, ELEMENTS.plasma);
+    }
+  }, blastStart + 5000);
+}
+ 
+  }
+),
 
 
     };
     
-
+function lightenColor(hex, amount) {
+  const num = parseInt(hex.replace("#",""), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xFF) + amount);
+  const b = Math.min(255, (num & 0xFF) + amount);
+  return `rgb(${r},${g},${b})`;
+}
 function blendColors(t, colors) {
   t = Math.min(Math.max(t, 0), 1); // clamp 0..1
 
@@ -21326,6 +22834,7 @@ diffuseE(dt = 1, propagationSteps = 1) {
     }
   }
 }
+
  set(x, y, element, overrides = {}) {
   if (!this.isInside(x, y)) return;
 
@@ -21668,6 +23177,7 @@ addLight(x, y, color, level) {
     ctx.restore();
   }
 }
+
 }
 
     const grid = new Grid({
@@ -21895,6 +23405,7 @@ function autoFitText(button) {
 
         vbtn.onclick = () => {
           selectedElement = elem.withTag(variantName);
+
             updateSelectedButtons();
         };
 
@@ -21951,6 +23462,408 @@ function pointToSegmentDistance(px, py, x0, y0, x1, y1) {
   return Math.hypot(px - projX, py - projY);
 }
 
+// ==============================
+// TRANSFORM INDICATORS
+// ==============================
+
+// ─── Transform helpers ────────────────────────────────────────────────────────
+
+/** Capture a deep snapshot of all selected cells and clear them from the grid. */
+function takeSelectionSnapshot() {
+  const bounds = getSelectionBounds();
+  if (!bounds) return null;
+
+  const cells = [];
+  for (const key of selectedCells) {
+    const [x, y] = key.split(",").map(Number);
+    const cell = grid.get(x, y);
+    // Deep-clone the cell data (shallow copy of its data object is fine for our purposes)
+    cells.push({ x, y, data: { ...cell } });
+  }
+
+  return {
+    cells,
+    minX: bounds.minX, minY: bounds.minY,
+    maxX: bounds.maxX, maxY: bounds.maxY,
+    width:  bounds.maxX - bounds.minX + 1,
+    height: bounds.maxY - bounds.minY + 1,
+    cx: (bounds.minX + bounds.maxX) / 2,
+    cy: (bounds.minY + bounds.maxY) / 2
+  };
+}
+
+/** Erase the current selection from the grid and restore a previously taken snapshot. */
+function restoreSelectionSnapshot(snap) {
+  if (!snap) return;
+  // Erase current selection cells
+  for (const key of selectedCells) {
+    const [x, y] = key.split(",").map(Number);
+    if (grid.isInside(x, y)) grid.set(x, y, ELEMENTS.empty);
+  }
+  // Write snapshot back
+  selectedCells = new Set();
+  for (const { x, y, data } of snap.cells) {
+    if (grid.isInside(x, y)) {
+      grid.set(x, y, data.element);
+      const cell = grid.get(x, y);
+      cell.temperature = data.temperature;
+      cell.e = data.e;
+      selectedCells.add(x + "," + y);
+    }
+  }
+}
+
+/**
+ * Rotate selected cells around their bounding-box center by `angleDeg` (multiples of 90).
+ * Operates destructively on the current selection.
+ */
+function rotateSelection(angleDeg) {
+  const bounds = getSelectionBounds();
+  if (!bounds) return;
+
+  const pairs = [...selectedCells].map(k => k.split(",").map(Number));
+  const cx = (bounds.minX + bounds.maxX) / 2;
+  const cy = (bounds.minY + bounds.maxY) / 2;
+
+  const saved = pairs.map(([x, y]) => ({ x, y, data: { ...grid.get(x, y) } }));
+
+  // Erase originals
+  for (const [x, y] of pairs) grid.set(x, y, ELEMENTS.empty);
+
+  const rad = angleDeg * Math.PI / 180;
+  const cosA = Math.cos(rad);
+  const sinA = Math.sin(rad);
+
+  const placed = new Set();
+  const newSelected = new Set();
+
+  for (const { x, y, data } of saved) {
+    const rx = x - cx, ry = y - cy;
+    const nx = Math.round(cx + rx * cosA - ry * sinA);
+    const ny = Math.round(cy + rx * sinA + ry * cosA);
+    const key = nx + "," + ny;
+    if (grid.isInside(nx, ny) && !placed.has(key)) {
+      placed.add(key);
+      grid.set(nx, ny, data.element);
+      const cell = grid.get(nx, ny);
+      cell.temperature = data.temperature;
+      cell.e = data.e;
+      newSelected.add(key);
+    }
+  }
+
+  selectedCells = newSelected;
+}
+/**
+ * Scale selected cells by `factorX` / `factorY` around their bounding-box center.
+ * Uses nearest-neighbour mapping. Operates destructively on the current selection.
+ */
+function scaleSelection(factorX, factorY) {
+  const bounds = getSelectionBounds();
+  if (!bounds) return;
+
+  const { minX, minY, maxX, maxY } = bounds;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+
+  const pairs = [...selectedCells].map(k => k.split(",").map(Number));
+  const saved = pairs.map(([x, y]) => ({ x, y, data: { ...grid.get(x, y) } }));
+
+  // Erase originals
+  for (const [x, y] of pairs) grid.set(x, y, ELEMENTS.empty);
+
+  // For each original cell, place it at the scaled position (nearest-neighbour)
+  const placed = new Set();
+  const newSelected = new Set();
+
+  for (const { x, y, data } of saved) {
+    const rx = x - cx, ry = y - cy;
+    const nx = Math.round(cx + rx * factorX);
+    const ny = Math.round(cy + ry * factorY);
+    const key = nx + "," + ny;
+    if (grid.isInside(nx, ny) && !placed.has(key)) {
+      placed.add(key);
+      grid.set(nx, ny, data.element);
+      const cell = grid.get(nx, ny);
+      cell.temperature = data.temperature;
+      cell.e = data.e;
+      newSelected.add(key);
+    }
+  }
+
+  // If factorX or factorY > 1, fill gaps by inverse-mapping from output → nearest source
+  if (factorX > 1 || factorY > 1) {
+    const newMinX = Math.round(cx + (minX - cx) * factorX);
+    const newMaxX = Math.round(cx + (maxX - cx) * factorX);
+    const newMinY = Math.round(cy + (minY - cy) * factorY);
+    const newMaxY = Math.round(cy + (maxY - cy) * factorY);
+
+    for (let ny2 = Math.min(newMinY, newMaxY); ny2 <= Math.max(newMinY, newMaxY); ny2++) {
+      for (let nx2 = Math.min(newMinX, newMaxX); nx2 <= Math.max(newMinX, newMaxX); nx2++) {
+        const key2 = nx2 + "," + ny2;
+        if (placed.has(key2) || !grid.isInside(nx2, ny2)) continue;
+        // Find nearest source cell via inverse transform
+        const srcRx = (nx2 - cx) / factorX;
+        const srcRy = (ny2 - cy) / factorY;
+        const srcX = Math.round(cx + srcRx);
+        const srcY = Math.round(cy + srcRy);
+        const src = saved.find(s => s.x === srcX && s.y === srcY);
+        if (src) {
+          placed.add(key2);
+          grid.set(nx2, ny2, src.data.element);
+          const cell2 = grid.get(nx2, ny2);
+          cell2.temperature = src.data.temperature;
+          cell2.e = src.data.e;
+          newSelected.add(key2);
+        }
+      }
+    }
+  }
+
+  selectedCells = newSelected;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getSelectionBounds() {
+  if (selectedCells.size === 0) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const key of selectedCells) {
+    const [cx, cy] = key.split(",").map(Number);
+    if (cx < minX) minX = cx;
+    if (cy < minY) minY = cy;
+    if (cx > maxX) maxX = cx;
+    if (cy > maxY) maxY = cy;
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function getTransformHandles() {
+  const bounds = getSelectionBounds();
+  if (!bounds) return null;
+  const { minX, minY, maxX, maxY } = bounds;
+  // center in pixels
+  const cx = ((minX + maxX + 1) / 2) * voxelsize;
+  const cy = ((minY + maxY + 1) / 2) * voxelsize;
+  const ARM = Math.max(38, Math.min(60, ((maxX - minX + 1) * voxelsize) * 0.35));
+  return {
+    center: { x: cx, y: cy },
+    move:   { x: cx,        y: cy,        label: "move"   },
+    rotate: { x: cx,        y: cy - ARM - 18, label: "rotate" },
+    scaleX: { x: cx + ARM,  y: cy,        label: "scaleX" },
+    scaleY: { x: cx,        y: cy + ARM,  label: "scaleY" },
+    scaleXY:{ x: cx + ARM * 0.707, y: cy + ARM * 0.707, label: "scaleXY" },
+    ARM
+  };
+}
+
+function drawTransformIndicators(ctx) {
+  if (selectedCells.size === 0) return;
+  const h = getTransformHandles();
+  if (!h) return;
+
+  ctx.save();
+
+  // ---- Arm lines from center ----
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  ctx.beginPath();
+  // to rotate
+  ctx.moveTo(h.center.x, h.center.y);
+  ctx.lineTo(h.rotate.x, h.rotate.y);
+  // to scaleX
+  ctx.moveTo(h.center.x, h.center.y);
+  ctx.lineTo(h.scaleX.x, h.scaleX.y);
+  // to scaleY
+  ctx.moveTo(h.center.x, h.center.y);
+  ctx.lineTo(h.scaleY.x, h.scaleY.y);
+  // to scaleXY
+  ctx.moveTo(h.center.x, h.center.y);
+  ctx.lineTo(h.scaleXY.x, h.scaleXY.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- MOVE handle (center) ----
+  // Four-arrow cross
+  const isMoveDragging = transformDragging === 'move';
+  ctx.fillStyle = isMoveDragging ? "#ffffff" : "rgba(255,255,255,0.9)";
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.lineWidth = 1.5;
+  const mR = 8;
+  const aL = 5; // arrowhead length
+  const aW = 3.5; // arrowhead half-width
+  // cross body
+  ctx.beginPath();
+  ctx.moveTo(h.move.x - mR, h.move.y);
+  ctx.lineTo(h.move.x + mR, h.move.y);
+  ctx.moveTo(h.move.x, h.move.y - mR);
+  ctx.lineTo(h.move.x, h.move.y + mR);
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // arrowheads
+  const drawArrow = (fx, fy, tx, ty) => {
+    const angle = Math.atan2(ty - fy, tx - fx);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - aL * Math.cos(angle - 0.5), ty - aL * Math.sin(angle - 0.5));
+    ctx.lineTo(tx - aL * Math.cos(angle + 0.5), ty - aL * Math.sin(angle + 0.5));
+    ctx.closePath();
+    ctx.fillStyle = "white";
+    ctx.fill();
+  };
+  drawArrow(h.move.x, h.move.y, h.move.x + mR, h.move.y);
+  drawArrow(h.move.x, h.move.y, h.move.x - mR, h.move.y);
+  drawArrow(h.move.x, h.move.y, h.move.x, h.move.y + mR);
+  drawArrow(h.move.x, h.move.y, h.move.x, h.move.y - mR);
+
+  // ---- ROTATE handle (top) ----
+  const isRotDragging = transformDragging === 'rotate';
+  ctx.save();
+  ctx.translate(h.rotate.x, h.rotate.y);
+  // arc symbol
+  ctx.strokeStyle = isRotDragging ? "#ffe066" : "#ffcc00";
+  ctx.lineWidth = 2.2;
+  ctx.shadowColor = "#ffcc00";
+  ctx.shadowBlur = isRotDragging ? 8 : 4;
+  ctx.beginPath();
+  ctx.arc(0, 0, 7, -Math.PI * 0.9, Math.PI * 0.1);
+  ctx.stroke();
+  // arrowhead at arc end
+  ctx.fillStyle = isRotDragging ? "#ffe066" : "#ffcc00";
+  ctx.beginPath();
+  ctx.moveTo(7 * Math.cos(Math.PI * 0.1) + 4, 7 * Math.sin(Math.PI * 0.1) - 2);
+  ctx.lineTo(7 * Math.cos(Math.PI * 0.1) - 2, 7 * Math.sin(Math.PI * 0.1) + 2);
+  ctx.lineTo(7 * Math.cos(Math.PI * 0.1) - 1, 7 * Math.sin(Math.PI * 0.1) - 4);
+  ctx.closePath();
+  ctx.fill();
+  // outer ring
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,204,0,0.3)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, TRANSFORM_HANDLE_RADIUS, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // ---- SCALE X handle (right) ----
+  const isSXDragging = transformDragging === 'scaleX';
+  ctx.save();
+  ctx.translate(h.scaleX.x, h.scaleX.y);
+  ctx.strokeStyle = isSXDragging ? "#88ffaa" : "#44dd77";
+  ctx.fillStyle   = isSXDragging ? "#88ffaa" : "#44dd77";
+  ctx.shadowColor = "#44dd77";
+  ctx.shadowBlur  = isSXDragging ? 8 : 3;
+  ctx.lineWidth = 2;
+  // double-headed horizontal arrow
+  ctx.beginPath();
+  ctx.moveTo(-7, 0); ctx.lineTo(7, 0);
+  ctx.stroke();
+  ctx.beginPath(); // right head
+  ctx.moveTo(7, 0); ctx.lineTo(3, -3); ctx.lineTo(3, 3); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); // left head
+  ctx.moveTo(-7, 0); ctx.lineTo(-3, -3); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
+  // label
+  ctx.shadowBlur = 0;
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = isSXDragging ? "#88ffaa" : "#44dd77";
+  ctx.textAlign = "center";
+  ctx.fillText("X", 0, -10);
+  ctx.restore();
+
+  // ---- SCALE Y handle (bottom) ----
+  const isSYDragging = transformDragging === 'scaleY';
+  ctx.save();
+  ctx.translate(h.scaleY.x, h.scaleY.y);
+  ctx.strokeStyle = isSYDragging ? "#88aaff" : "#4477dd";
+  ctx.fillStyle   = isSYDragging ? "#88aaff" : "#4477dd";
+  ctx.shadowColor = "#4477dd";
+  ctx.shadowBlur  = isSYDragging ? 8 : 3;
+  ctx.lineWidth = 2;
+  // double-headed vertical arrow
+  ctx.beginPath();
+  ctx.moveTo(0, -7); ctx.lineTo(0, 7);
+  ctx.stroke();
+  ctx.beginPath(); // bottom head
+  ctx.moveTo(0, 7); ctx.lineTo(-3, 3); ctx.lineTo(3, 3); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); // top head
+  ctx.moveTo(0, -7); ctx.lineTo(-3, -3); ctx.lineTo(3, -3); ctx.closePath(); ctx.fill();
+  // label
+  ctx.shadowBlur = 0;
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = isSYDragging ? "#88aaff" : "#4477dd";
+  ctx.textAlign = "center";
+  ctx.fillText("Y", 10, 4);
+  ctx.restore();
+
+  // ---- SCALE XY handle (diagonal) ----
+  const isSXYDragging = transformDragging === 'scaleXY';
+  ctx.save();
+  ctx.translate(h.scaleXY.x, h.scaleXY.y);
+  ctx.strokeStyle = isSXYDragging ? "#ffaaff" : "#cc66cc";
+  ctx.fillStyle   = isSXYDragging ? "#ffaaff" : "#cc66cc";
+  ctx.shadowColor = "#cc66cc";
+  ctx.shadowBlur  = isSXYDragging ? 8 : 3;
+  ctx.lineWidth = 2;
+  // corner bracket
+  ctx.beginPath();
+  ctx.moveTo(-6, 0); ctx.lineTo(-6, 6); ctx.lineTo(0, 6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(6, 0); ctx.lineTo(6, -6); ctx.lineTo(0, -6);
+  ctx.stroke();
+  // diagonal arrow hint
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-4, -4); ctx.lineTo(4, 4);
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4, 4); ctx.lineTo(0, 3); ctx.lineTo(3, 0); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function hitTestTransformHandle(px, py) {
+  const h = getTransformHandles();
+  if (!h) return null;
+  const R = TRANSFORM_HANDLE_RADIUS;
+  const dist = (ax, ay) => Math.hypot(px - ax, py - ay);
+  if (dist(h.move.x,    h.move.y)    < R)    return 'move';
+  if (dist(h.rotate.x,  h.rotate.y)  < R)    return 'rotate';
+  if (dist(h.scaleXY.x, h.scaleXY.y)< R)     return 'scaleXY';
+  if (dist(h.scaleX.x,  h.scaleX.y) < R)     return 'scaleX';
+  if (dist(h.scaleY.x,  h.scaleY.y) < R)     return 'scaleY';
+  return null;
+}
+
+function drawSelection(ctx, x0, y0, x1, y1, isPreview = true) {
+  if (!isPreview) return; // hide if not preview
+
+  // Determine rectangle corners in pixels
+  const left = Math.min(x0, x1) * voxelsize;
+  const top = Math.min(y0, y1) * voxelsize;
+  const right = (Math.max(x0, x1) + 1) * voxelsize;
+  const bottom = (Math.max(y0, y1) + 1) * voxelsize;
+
+  const width = right - left;
+  const height = bottom - top;
+
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.setLineDash([5, 5]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white";
+
+  // Draw outer dashed rectangle
+  ctx.strokeRect(left, top, width, height);
+
+
+  ctx.restore();
+}
 function drawSingleMeasurement(
   ctx,
   x0,
@@ -21963,10 +23876,13 @@ function drawSingleMeasurement(
   const dx = x1 - x0;
   const dy = y1 - y0;
 
-  const cfx = x0 * voxelsize + voxelsize / 2;
-  const cfy = y0 * voxelsize + voxelsize / 2;
-  const cmx = x1 * voxelsize + voxelsize / 2;
-  const cmy = y1 * voxelsize + voxelsize / 2;
+  const isHorizontal = dy === 0;
+  const isVertical = dx === 0;
+
+  const cfx = x0 * voxelsize + voxelsize;
+  const cfy = y0 * voxelsize + voxelsize;
+  const cmx = x1 * voxelsize + voxelsize;
+  const cmy = y1 * voxelsize + voxelsize;
 
   const width  = Math.abs(dx) + 1;
   const height = Math.abs(dy) + 1;
@@ -21986,13 +23902,11 @@ function drawSingleMeasurement(
 
   ctx.save();
 
-  // Preview style
   if (isPreview) {
     ctx.globalAlpha = 0.7;
     ctx.setLineDash([5, 5]);
   }
 
-  // Hover glow
   if (isHovered) {
     ctx.lineWidth = 3;
     ctx.shadowColor = "cyan";
@@ -22008,33 +23922,57 @@ function drawSingleMeasurement(
   ctx.lineTo(cmx, cmy);
   ctx.stroke();
 
+  // --- Ruler ticks ---
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+  const len = Math.hypot(cmx - cfx, cmy - cfy);
+
+  if (len > 0) {
+    const nx = (cmx - cfx) / len;
+    const ny = (cmy - cfy) / len;
+
+    // perpendicular vector
+    const px = -ny;
+    const py = nx;
+
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+
+      const tx = cfx + (cmx - cfx) * t;
+      const ty = cfy + (cmy - cfy) * t;
+
+      const tickSize = (i % 5 === 0) ? 4 : 3; // bigger every 5
+
+      ctx.beginPath();
+      ctx.moveTo(tx - px * tickSize, ty - py * tickSize);
+      ctx.lineTo(tx + px * tickSize, ty + py * tickSize);
+      ctx.stroke();
+    }
+  }
+
   // --- Slope triangle ---
- if (shouldShowSlope) {
+  if (shouldShowSlope) {
+    ctx.setLineDash([]);
 
-  ctx.setLineDash([]);
+    const prevAlpha = ctx.globalAlpha;
+    ctx.globalAlpha *= 0.2;
 
-  // make slope legs more transparent
-  const prevAlpha = ctx.globalAlpha;
-  ctx.globalAlpha *= 0.2; // 0.0 - 1.0 (lower = more transparent)
+    ctx.strokeStyle = "#00ffff";
+    ctx.beginPath();
+    ctx.moveTo(cfx, cfy);
+    ctx.lineTo(cornerX, cornerY);
+    ctx.stroke();
 
-  // Width leg
-  ctx.strokeStyle = "#00ffff";
-  ctx.beginPath();
-  ctx.moveTo(cfx, cfy);
-  ctx.lineTo(cornerX, cornerY);
-  ctx.stroke();
+    ctx.strokeStyle = "#ff66ff";
+    ctx.beginPath();
+    ctx.moveTo(cornerX, cornerY);
+    ctx.lineTo(cmx, cmy);
+    ctx.stroke();
 
-  // Height leg
-  ctx.strokeStyle = "#ff66ff";
-  ctx.beginPath();
-  ctx.moveTo(cornerX, cornerY);
-  ctx.lineTo(cmx, cmy);
-  ctx.stroke();
+    ctx.globalAlpha = prevAlpha;
+  }
 
-  ctx.globalAlpha = prevAlpha; // restore
-}
   // --- Text ---
-  ctx.shadowBlur = 0; // disable glow for text
+  ctx.shadowBlur = 0;
   ctx.font = `${Math.max(12, voxelsize * 0.9)}px monospace`;
   ctx.lineWidth = 3;
   ctx.strokeStyle = "black";
@@ -22043,16 +23981,17 @@ function drawSingleMeasurement(
   const midX = (cfx + cmx) / 2 + 6;
   const midY = (cfy + cmy) / 2 + 6;
 
-  // Distance always shows
+  // Distance
   ctx.strokeText(`D: ${distance.toFixed(2)}`, midX, midY);
   ctx.fillText(`D: ${distance.toFixed(2)}`, midX, midY);
 
-  // Angle always shows
-  ctx.strokeText(`A: ${angleDeg.toFixed(1)}°`, cfx + 6, cfy + 6);
-  ctx.fillText(`A: ${angleDeg.toFixed(1)}°`, cfx + 6, cfy + 6);
+  // Angle ONLY if not horizontal/vertical
+  if (!isHorizontal && !isVertical) {
+    ctx.strokeText(`A: ${angleDeg.toFixed(1)}°`, cfx + 6, cfy + 6);
+    ctx.fillText(`A: ${angleDeg.toFixed(1)}°`, cfx + 6, cfy + 6);
+  }
 
   if (shouldShowSlope) {
-
     if (width > 1) {
       ctx.strokeText(`W: ${width}`, (cfx + cornerX) / 2, cornerY + 4);
       ctx.fillText(`W: ${width}`, (cfx + cornerX) / 2, cornerY + 4);
@@ -22066,6 +24005,7 @@ function drawSingleMeasurement(
 
   ctx.restore();
 }
+
 function drawMeasurements(ctx) {
 
   hoveredMeasurementIndex = -1;
@@ -22202,6 +24142,7 @@ function openOptionMenu(cell, screenX, screenY, grid, x, y) {
     document.addEventListener("mousedown", outsideClick);
   }, 0);
 }
+
 function closeOptionMenu() {
   const old = document.getElementById("optionMenu");
   if (old) old.remove();
@@ -22288,6 +24229,7 @@ function paint(cx, cy){
   } else {
     grid.set(cx, cy, selectedElement);
     selectedElement.onplace(grid, cx, cy);
+    
   }
     }
   } else
@@ -22523,7 +24465,41 @@ function tick() {
   try {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     grid.draw(ctx);
+
+    // Draw .Sselected outline (edges touching empty or outside)
+    if (selectedCells.size > 0) {
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(80,180,255,0.9)";
+      ctx.shadowColor = "rgba(80,180,255,0.6)";
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      for (const key of selectedCells) {
+        const [cx, cy] = key.split(",").map(Number);
+        const px = cx * voxelsize;
+        const py = cy * voxelsize;
+        const nTop    = selectedCells.has(cx + "," + (cy - 1));
+        const nRight  = selectedCells.has((cx + 1) + "," + cy);
+        const nBottom = selectedCells.has(cx + "," + (cy + 1));
+        const nLeft   = selectedCells.has((cx - 1) + "," + cy);
+        if (!nTop)    { ctx.moveTo(px, py);                       ctx.lineTo(px + voxelsize, py); }
+        if (!nRight)  { ctx.moveTo(px + voxelsize, py);           ctx.lineTo(px + voxelsize, py + voxelsize); }
+        if (!nBottom) { ctx.moveTo(px, py + voxelsize);           ctx.lineTo(px + voxelsize, py + voxelsize); }
+        if (!nLeft)   { ctx.moveTo(px, py);                       ctx.lineTo(px, py + voxelsize); }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
     drawMeasurements(ctx);
+
+    if(selectStart && Brush.method === "select"){
+    drawSelection(ctx, selectStart.x, selectStart.y, mouse.x, mouse.y);
+    }
+
+    if (Brush.method === "transform" && selectedCells.size > 0) {
+      drawTransformIndicators(ctx);
+    }
     if (activeOptionRenderer?.draw) {
   activeOptionRenderer.draw(ctx);
 }
@@ -22824,7 +24800,7 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
       ctx.fillText(`${wl}×${hl}`, px + 2, py);
       ctx.restore();
     } else {
-      addBrush(mouse.x, mouse.y);
+      
     }
   }
   // circle preview
@@ -22867,17 +24843,22 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
       ctx.fillText(`${w2}×${h2}`, px2 + 2, py2);
       ctx.restore();
     } else {
-      addBrush(mouse.x, mouse.y);
+      
     }
   }
   // erase preview
   else if (Brush.method === "erase") {
     addBrush(mouse.x, mouse.y);
   }
+  else if(Brush.method === "measure" || Brush.method === "fill" || Brush.method === "select" || Brush.method === "transform"){
+
+  }
+  
   // normal mode
   else {
     addBrush(mouse.x, mouse.y);
   }
+
   // Border preview
   ctx.save();
   ctx.lineWidth = 1;
@@ -22916,6 +24897,25 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
   ctx.stroke();
   ctx.restore();
 
+  // make new cursor
+    if(Brush.size > 0){
+ 
+  const cx = mouse.x * voxelsize + voxelsize / 2;
+  const cy = mouse.y * voxelsize + voxelsize / 2;
+  ctx.save();
+   ctx.lineWidth = 1;
+  ctx.strokeStyle = Brush.method === "erase" ? "#ff4444" : "white";
+
+  ctx.beginPath();
+  ctx.moveTo(cx,cy - 3);
+  ctx.lineTo(cx, cy + 3);
+   ctx.moveTo(cx - 3,cy);
+  ctx.lineTo(cx + 3, cy);
+  ctx.stroke();
+  ctx.restore();
+
+  }
+
 } catch (err) { }
   // DEBUG OVERLAY
   try {
@@ -22933,6 +24933,7 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
 
   requestAnimationFrame(tick);
 }
+
 requestAnimationFrame(tick);
 
 
