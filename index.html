@@ -20,16 +20,17 @@
   position: absolute;
   left: 0px;
   top: 21px;
-  width: 230px;
-  
+  width: 260px;
+  height: 100%;
   background: #1a1a1a;
   border-right: 2px solid #333;
   display: flex;
   flex-direction: column;
   padding: 10px;
   box-sizing: border-box;
-  overflow: hidden; /* stop the whole panel from scrolling */
+
 }
+
 
 #search {
   padding: 6px;
@@ -47,8 +48,8 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 8px;
-    max-height: 120px;   /* ← pick whatever height you want */
-  overflow-y: auto;
+    max-height: 130px;   /* ← pick whatever height you want */
+  overflow-y: hidden;
 }
 
 .cat-btn {
@@ -58,57 +59,135 @@
   border-radius: 6px;
   color: white;
   cursor: pointer;
-  transition: 0.2s;
+  transition: background-color 0.2s ease, text-decoration-color 0.2s ease;
   font-size: 0.9em;
+}
+
+.cat-btn:hover {
+  background: #383838;
+  text-decoration: underline;
 }
 
 .cat-btn.active {
   background: #555;
 }
-
 #elements {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
- 
-  
-  gap: 6px;
- max-height: calc(100vh - 200px);  /* ← fills rest of the UI panel */
+  gap: 14px;
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
   overflow-x: hidden;
-
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #666 #222;
 }
 
-.elem-btn {
+
+
+
+
+
+/* Chrome, Edge, Safari */
+#elements::-webkit-scrollbar {
+  width: 10px;
+}
+
+#elements::-webkit-scrollbar-track {
   background: #222;
+  border-radius: 8px;
+}
+
+#elements::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 8px;
+  border: 2px solid #222;
+}
+
+#elements::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+#elements::-webkit-scrollbar-corner {
+  background: #222;
+}
+.elem-btn {
+  /* Your existing properties */
   border: none;
   color: white;
-  border-radius: 6px;
   cursor: pointer;
-  height: 40px;
+  height: 65px;
+  width: 65px;
+  border-radius: 10px;
   font-size: 0.85em;
   text-shadow: 0 0 2px #000;
-  transition: 0.2s;
+
+  /* NEW: Setup variables for movement and scale */
+  --repel-x: 0px;
+  --repel-y: 0px;
+  --scroll-scale: 1;
+
+  /* Combine the variables into a single transform */
+  transform: translate(var(--repel-x), var(--repel-y)) scale(var(--scroll-scale));
+  transform-origin: center top;
+
+  /* Transition handles the smooth gliding effect */
+  transition: filter 0.2s, transform 0.15s ease-out, opacity 0.1s ease-out; 
+  animation: elemIn 0.15s ease-out backwards;
+}
+.elem-btn {
+  background-image:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.06) 35%,
+      rgba(0, 0, 0, 0.08) 70%,
+      rgba(0, 0, 0, 0.22) 100%
+    );
+  background-blend-mode: overlay;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.18),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
 }
 
 .elem-btn:hover {
-  transform: scale(1.03);
-  background: #444;
+  filter: brightness(1.15);
+  text-decoration: underline;
 }
+
+@keyframes elemIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.95);}
+  to { opacity: 1; transform: translateY(0) scale(1);}
+}
+
 
 canvas {
   background: #000;
   border: none;
-  flex-shrink: 0;       /* 🧠 stops flex from resizing it */
-  width: 800px;         /* keep original pixel width */
-  height: 600px;        /* keep original pixel height */
-  margin: auto;         /* centers vertically in viewport */
+  flex-shrink: 0;    
+  width: 800px;        
+  height: 600px;       
+  margin: auto;      
   display: block;
 }
+#ui {
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+#toolMenu {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+body.loaded #toolMenu  { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay: 0.25s; }
 
  #hoverInfo {
     position: fixed;
-    bottom: 30px;
-    right: 8px;
+    
     background: rgba(0,0,0,0.6);
     padding: 6px 10px;
     border-radius: 6px;
@@ -116,6 +195,7 @@ canvas {
     font-size: 13px;
     color: #fff;
     pointer-events: none;
+    scale: 1.1;
   }
   .toolbar {
     display: block;
@@ -129,7 +209,7 @@ canvas {
     user-select: none;
   }
   .toolbar {
-  display: flex;        /* change block → flex so items sit in a row */
+  display: flex;        
   align-items: center;
 }
 
@@ -147,7 +227,7 @@ canvas {
 }
 
 .toolbar-category summary::-webkit-details-marker {
-  display: none;        /* hides the default arrow in Chrome/Safari */
+  display: none;    
 }
 
 .toolbar-category[open] summary {
@@ -168,6 +248,7 @@ canvas {
   min-width: 140px;
   z-index: 9999;
 }
+
 
 .toolbar-category-dropdown button {
   display: block;
@@ -257,20 +338,19 @@ canvas {
   font-size: 14px;
 }
 #toolMenu {
-  position: fixed;
-  top: 26px;
-  right: 8px;
-  width: 46px;
+  position: absolute;
   background: #1a1a1a;
   border: 1px solid #333;
   border-radius: 8px;
-  padding: 6px 6px 8px;
+  padding: 6px 8px;
   font-size: 13px;
   z-index: 120;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 4px;
+  width: fit-content; /* or remove this line entirely */
+  scale: 1.2;
 }
 
 .art-tool-btn {
@@ -305,8 +385,8 @@ canvas {
 }
 
 .tool-divider {
-  width: 30px;
-  height: 1px;
+  width: 1px;
+  height: 30px;
   background: #333;
   margin: 2px 0;
   flex-shrink: 0;
@@ -358,30 +438,7 @@ canvas {
   color: white;
   pointer-events: none;
 }
-#toolSelection {
-  position: absolute;
-  left: 232px;
-  top: 21px;
-  width: 50px;
-  height: calc(100% - 21px);
-  display: flex;
-  flex-direction: column;
-    align-items: flex-start;
 
-  justify-content: center;  /* ← centers the group vertically */
-  gap: 6px;
-  padding: 0px 0;
-  background-color: rgba(20, 20, 20, 0.5);
-  
-}
-#toolSelection {
-  overflow-y: auto;
-  overflow-x: hidden;
-  justify-content: center;
-  padding: 6px 0;
-  gap: 20px;
-
-}
 
 .tool-btn {
   writing-mode: vertical-rl;
@@ -450,7 +507,7 @@ canvas {
   display: flex;
 }
 .settings {
-  display: flex;
+  display: none;
   flex-direction: column;
   position: absolute;
   z-index: 100;
@@ -497,13 +554,17 @@ canvas {
   border: none;
   padding: 0 8px;
   color: inherit;
-  font-size: 15px;
+  font-size: 13px;
   font-family: inherit;
   cursor: pointer;
 }
 
-.toolbar-button:hover {
-  text-decoration: underline;
+.toolbar-button svg {
+  transition: transform 0.2s ease;
+}
+
+.toolbar-button:hover svg {
+  transform: rotate(25deg) scale(1.1);
 }
 
  .cmd { color: #7bf; }
@@ -518,24 +579,46 @@ canvas {
   color: white !important;
   text-shadow: 0 0 4px black !important; /* Keeps text readable */
 }
+.shiny-btn {
+  position: relative;
+  overflow: hidden;
+  color: white !important;
+  text-shadow: 0 0 4px black;
+}
+.shiny-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.18),
+    rgba(255,255,255,0.03) 45%,
+    rgba(255,255,255,0.12) 70%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+
   </style>
 </head>
 <body>
-
+<div style="position: absolute; top: 10%; left: 50%; width: 400px;font-size: 12px; color: rgba(255, 0, 0, 0.5); text-align: center; transform: translateX(-50%); user-select: none">
+  Warning:<br>
+  This game contains flashing lights and rapidly changing colors that may trigger seizures in people with photosensitive epilepsy. You can turn off flashing lights by going to the settings 
+</div>
 <div class="settings" id="settings">
   <div style="font-size: 50px;">Settings</div>
   <button style="position:absolute; top: 10px; right: 10px; width: 30px; height: 30px; background-color: red; cursor: pointer; color: white; " onclick= "closeWindow('settings')">X</button>
   <div class="settingsOption"><label> <input type="checkbox" id="epilepsyMode" onchange="epilepsyMode = this.checked">Remove Flashing Lights</label>
-<div class="epilepsyWarning" style="font-size: 12px; color: #ff0000; margin-top: 6px;">
-  This game contains flashing lights and rapidly changing colors that may trigger seizures in people with photosensitive epilepsy.
-</div>
+
   </div>
 </div>
 
  <div class="toolbar" id="menubar">
 
   <details class="toolbar-category">
-    <summary>Simulation</summary>
+    <summary>File</summary>
     <div class="toolbar-category-dropdown">
       <button onclick="grid.initGrid()">New</button>
         <button onclick="grid.download()">Save</button>
@@ -543,23 +626,32 @@ canvas {
 
     </div>
   </details>
-
- 
-
+  
   <details class="toolbar-category">
-    <summary>Help</summary>
+    <summary>Edit</summary>
     <div class="toolbar-category-dropdown">
-      <button onclick="window.open('https://github.com/Guttobear/simbox2.0/wiki')">Wiki</button>
+      <button onclick="undo()">Undo</button>
+        <button onclick="redo()">Redo</button>
+
     </div>
   </details>
-   <details class="toolbar-category">
+
+ 
+  <button class="toolbar-button" onclick="window.open('https://github.com/Guttobear/simbox2.0/wiki')">Wiki</button>
+  
+
+  <details style="position: absolute; right: 50px;" class="toolbar-category">
     <summary>Debug</summary>
     <div class="toolbar-category-dropdown">
       <button onclick="openWindow()">Terminal</button>
       
     </div>
   </details>
-<button class="toolbar-button" onclick="openWindow('settings')">Settings</button>
+   <button style="position: absolute; right: 10px;" class="toolbar-button" onclick="openWindow('settings')" aria-label="Settings">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.14 12.94a7.97 7.97 0 0 0 .06-.94 7.97 7.97 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.28 7.28 0 0 0-1.63-.94L14.4 2.81a.5.5 0 0 0-.49-.41h-3.82a.5.5 0 0 0-.49.41L9.25 5.32c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.97 7.97 0 0 0-.06.94c0 .32.02.63.06.94L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.4 1.05.71 1.63.94l.35 2.51a.5.5 0 0 0 .49.41h3.82a.5.5 0 0 0 .49-.41l.35-2.51c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
+    </svg>
+</button>
 </div>
 
 <div style="position:absolute; right: 0px; bottom: 0px;" id="version"></div>
@@ -747,7 +839,7 @@ canvas {
 </div>
 
   <div id="hoverInfo"></div>
-    <div id="toolSelection"></div>
+    
  <div id="ui">
 
     <input id="search" type="text" placeholder="Search..." />
@@ -762,17 +854,38 @@ canvas {
 
   <script>
     // version
-    const CURRENT_VERSION = "Va1.4";
+    const CURRENT_VERSION = "Va1.6";
     document.getElementById("version").textContent = CURRENT_VERSION;
+    window.addEventListener('load', () => {
+  requestAnimationFrame(() => {
+    document.body.classList.add('loaded');
+  });
+});
+
+
 
     // canvas
     const canvas = document.getElementById("sim");
+function positionTool() {
+    const rect = canvas.getBoundingClientRect();
+
+    toolMenu.style.position = "fixed";
+    toolMenu.style.left = `${rect.left + rect.width / 2 - toolMenu.offsetWidth / 2}px`;
+    toolMenu.style.top = `${rect.bottom + 10}px`;
+
+    const hoverInfo = document.getElementById("hoverInfo");
+    hoverInfo.style.position = "fixed";
+    hoverInfo.style.right = `${rect.left}px`;
+    hoverInfo.style.top = `${rect.bottom + 15}px`;
+}
+    positionTool();
     const ctx = canvas.getContext("2d");
     const voxelsize = 8;
     let epilepsyMode = false;
     // element/brush stuff
     let selectedElement = null;
     let currentCategory = "All";
+
 // Cursor SVGs per tool (serialized as data URIs)
 const TOOL_CURSORS = {
   
@@ -789,7 +902,7 @@ const TOOL_CURSORS = {
 function svgToCursor(svgStr, size = 32) {
   const encoded = 'data:image/svg+xml;base64,' + btoa(svgStr);
   const center = size / 2;
-  return `url("${encoded}") ${center} ${center}, crosshair`;
+  return `url("${encoded}") ${center} ${center}, default`;
 }
 
 const dropdown = document.querySelector('.tool-dropdown');
@@ -805,6 +918,34 @@ document.addEventListener('click', (e) => {
     dropdown.classList.remove('open');
   }
 });
+function updateButtonSizes() {
+  const containerRect = elementsContainer.getBoundingClientRect();
+  const buttons = elementsContainer.querySelectorAll('.elem-btn');
+
+  const atTop = elementsContainer.scrollTop <= 1;
+  const atBottom = elementsContainer.scrollTop + elementsContainer.clientHeight >= elementsContainer.scrollHeight - 1;
+
+  buttons.forEach(btn => {
+    const btnRect = btn.getBoundingClientRect();
+
+    const distanceFromTop = btnRect.top - containerRect.top;
+    const distanceFromBottom = containerRect.bottom - btnRect.bottom;
+
+    let scale = 1;
+    let opacity = 1;
+
+    if (distanceFromTop < 80 && !atTop) {
+      scale = Math.max(0.95, 1 - ((80 - distanceFromTop) / 150));
+      opacity = Math.max(0, 1 - ((80 - distanceFromTop) / 120));
+    } else if (distanceFromBottom < 80 && !atBottom) {
+      scale = Math.max(0.95, 1 - ((80 - distanceFromBottom) / 150));
+      opacity = Math.max(0, 1 - ((80 - distanceFromBottom) / 120));
+    }
+
+   btn.style.setProperty('--scroll-scale', scale);
+    btn.style.opacity = opacity;
+  });
+}
 function setArtTool(method, btn) {
   // remove active from all
   document.querySelectorAll('.art-tool-btn').forEach(b => b.classList.remove('active'));
@@ -836,14 +977,14 @@ function setArtTool(method, btn) {
   if (svg) {
     canvas.style.cursor = svgToCursor(svg, 18);
   } else {
-
-    canvas.style.cursor = sel.value = "select" ? 'crosshair' : sel.value = "crosshair" ? 'crosshair' : 'default';
+    canvas.style.cursor = sel.value = "select" ? 'default' : 'crosshair';
   }
 
   // close dropdown after selection (optional but recommended)
   const dropdown = document.querySelector('.tool-dropdown');
   if (dropdown) dropdown.classList.remove('open');
 }
+
 
     const Brush = {
   size: 4,
@@ -884,6 +1025,7 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
 const keys = Object.create(null);
 
 window.addEventListener("keydown", (event) => {
+  
     const key = event.key.toLowerCase();
 
     if (
@@ -900,24 +1042,65 @@ window.addEventListener("keyup", (event) => {
     const key = event.key.toLowerCase();
 
     if (
-        key === "w" ||
         key === "a" ||
-        key === "s" ||
         key === "d"
     ) {
         keys[key] = false;
-
-        event.preventDefault();
     }
 });
 
 window.addEventListener("blur", () => {
-    keys.w = false;
     keys.a = false;
-    keys.s = false;
     keys.d = false;
 });
+const elementsContainer = document.getElementById('elements');
+let scrollTimeout;
+// --- PROXIMITY REPEL EFFECT ---
+elementsContainer.addEventListener('mousemove', (e) => {
+  if (elementsContainer._repelFrame) return;
 
+  elementsContainer._repelMouseX = e.clientX;
+  elementsContainer._repelMouseY = e.clientY;
+
+  elementsContainer._repelFrame = requestAnimationFrame(() => {
+    elementsContainer._repelFrame = null;
+
+    const buttons = elementsContainer.querySelectorAll('.elem-btn');
+    const REPEL_RADIUS = 205;
+    const REPEL_STRENGTH = 5;
+    const radiusSquared = REPEL_RADIUS * REPEL_RADIUS;
+
+    buttons.forEach(btn => {
+      const rect = btn.getBoundingClientRect();
+
+      const dx = rect.left + rect.width / 2 - elementsContainer._repelMouseX;
+      const dy = rect.top + rect.height / 2 - elementsContainer._repelMouseY;
+      const distanceSquared = dx * dx + dy * dy;
+
+      if (distanceSquared < radiusSquared && distanceSquared > 0) {
+        const distance = Math.sqrt(distanceSquared);
+        const strength = REPEL_STRENGTH * (1 - distance / REPEL_RADIUS);
+
+        btn.style.setProperty('--repel-x', `${dx / distance * strength}px`);
+        btn.style.setProperty('--repel-y', `${dy / distance * strength}px`);
+      } else {
+        btn.style.setProperty('--repel-x', '0px');
+        btn.style.setProperty('--repel-y', '0px');
+      }
+    });
+  });
+});
+
+elementsContainer.addEventListener('mouseleave', () => {
+  elementsContainer.querySelectorAll('.elem-btn').forEach(btn => {
+    btn.style.setProperty('--repel-x', '0px');
+    btn.style.setProperty('--repel-y', '0px');
+  });
+});
+elementsContainer.addEventListener('scroll', () => {
+ 
+  requestAnimationFrame(updateButtonSizes);
+});
     // FPS display
     let fps = 0;
     let fpsFrames = 0;
@@ -3091,9 +3274,9 @@ plasma: new Element(
     const g = Math.floor(64 + 191 * Math.sin(t + y + 2));
     const b = Math.floor(128 + 127 * Math.sin(t + x + y + 4));
     cell.color = `rgb(${r},${g},${b})`;
+    cell.lightColor = `rgb(${r},${g},${b})`;
+    cell.lightLevel = 14;
     
-    
-    // interactions
     cell.temperature -= 10;
     const dirs2 = [[0,1],[1,0],[-1,0],[0,-1]];
     for (const [dx, dy] of dirs2) {
@@ -3105,7 +3288,6 @@ plasma: new Element(
         }
       }
     }
-    // temp
   
     if ((cell.temperature < 5000 && Math.random() < 0.1) || Math.random() < 0.05) {
       if(Math.random() < 0.5){
@@ -5956,7 +6138,7 @@ concrete: new Element(
     variants: {
       solid: {
         color: "#BDBDBD",
-        hidden: true,
+        hidden: false,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
           if(cell.temperature > 1500){
@@ -6513,7 +6695,7 @@ copper: new Element(
   "copper",
   "#FA8334",
   "Solids",
-  { conductivity: 1.75,
+  { shiny: "willbe", conductivity: 1.75,
     econductivity: 20,
     mix: true,
     variants: {
@@ -24361,7 +24543,7 @@ portal: new Element(
 ),
 spider: new Element(
 "spider",
-"#140e03",
+"#8a2821",
 "Life",
 {},
 (grid, x, y) => {
@@ -25459,7 +25641,7 @@ for (const leg of state.legs) {
 ),
 spider_leg: new Element(
     "spider_leg",
-    "#140e03",
+    "#8a2821",
     "hidden",
     {},
     (grid, x, y) => {
@@ -28707,7 +28889,7 @@ class CasterRenderer {
 
         const castCell = this.grid.get(sub.cellX, sub.cellY);
         if (!castCell) return;
-
+        
         castCell.castOwner = this.owner;
         if (!castCell.subGrid) castCell.subGrid = Array.from({ length: this.subResolution }, () => Array(this.subResolution).fill(1));
         castCell.subGrid[sub.subX][sub.subY] = 0;
@@ -31251,17 +31433,18 @@ set(x, y, element, overrides = {}) {
   }
 
   update() {
-    for (let y = this.rows - 1; y >= 0; y--) {
-      for (let x = 0; x < this.cols; x++) {
-        const cell = this.get(x, y);
-        if (cell.element.name === "empty") continue;
-        cell.element.behavior(this, x, y);
-      }
+  for (let y = this.rows - 1; y >= 0; y--) {
+    for (let x = 0; x < this.cols; x++) {
+      const cell = this.get(x, y);
+      if (cell.element.name === "empty") continue;
+      if (selectedCells.has(x + "," + y)) continue; // skip selected cells
+      cell.element.behavior(this, x, y);
     }
-    this.diffuseHeat();
-    this.diffuseE();
-    this.diffuseLight();
   }
+  this.diffuseHeat();
+  this.diffuseE();
+  this.diffuseLight();
+}
   clearLight() {
   for (let y = 0; y < this.rows; y++) {
     for (let x = 0; x < this.cols; x++) {
@@ -31288,6 +31471,17 @@ addLight(x, y, color, level) {
 }
 draw(ctx) {
   const { cols, rows, voxelsize } = this;
+
+  // =========================================================
+  // ♻️ PERSISTENT OFFSCREEN CANVAS (created once, reused every frame)
+  // =========================================================
+  if (!this._offCanvas || this._offCanvas.width !== cols || this._offCanvas.height !== rows) {
+    this._offCanvas = document.createElement("canvas");
+    this._offCanvas.width = cols;
+    this._offCanvas.height = rows;
+    this._offCtx = this._offCanvas.getContext("2d");
+    this._offImg = this._offCtx.createImageData(cols, rows);
+  }
 
   const lerp = (a, b, t) => a + (b - a) * t;
   const clamp = (v, min = 0, max = 255) =>
@@ -31457,7 +31651,7 @@ draw(ctx) {
   // =========================================================
   // 🖼 CREATE BASE IMAGE
   // =========================================================
-  const img = ctx.createImageData(cols, rows);
+  const img = this._offImg;      // reuse cached ImageData instead of creating a new one
   const data = img.data;
 
   let i = 0;
@@ -31490,19 +31684,12 @@ draw(ctx) {
   // =========================================================
   // 🖼 DRAW BASE GRID
   // =========================================================
-  const tempCanvas = document.createElement("canvas");
-
-  tempCanvas.width = cols;
-  tempCanvas.height = rows;
-
-  const tempCtx = tempCanvas.getContext("2d");
-
-  tempCtx.putImageData(img, 0, 0);
+  this._offCtx.putImageData(img, 0, 0);
 
   ctx.imageSmoothingEnabled = false;
 
   ctx.drawImage(
-    tempCanvas,
+    this._offCanvas,
     0,
     0,
     cols * voxelsize,
@@ -31709,47 +31896,7 @@ const rotatedY = sx;
         categoriesDiv.appendChild(btn);
       });
     }
-function updateToolSelectionButtons() {
-  const toolSelectionDiv = document.getElementById("toolSelection");
-  toolSelectionDiv.innerHTML = "";
 
-  for (const key in ELEMENTS) {
-    const elem = ELEMENTS[key];
-    // Skip hidden category, and elements with tool: false
-    if (elem.category === "hidden") continue;
-    if (elem.tool === false) continue;
-     if (elem.category !== "Tool") continue;
-
-    const btn = document.createElement("button");
-    btn.textContent = elem.name;
-        if (elem.properties && elem.properties.rainbowUI) {
-      btn.className = "tool-btn rainbow-btn";
-        } else{
-    btn.className = "tool-btn";
-    btn.style.background = elem.color;
-  }
-    
-    btn.dataset.elemKey = key;
-
-    // Text contrast
-    const hex = elem.color.replace("#", "");
-    if (hex.length === 6) {
-      const r = parseInt(hex.substring(0,2),16)/255;
-      const g = parseInt(hex.substring(2,4),16)/255;
-      const b = parseInt(hex.substring(4,6),16)/255;
-      const toL = c => c<=0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4);
-      const lum = 0.2126*toL(r) + 0.7152*toL(g) + 0.0722*toL(b);
-      btn.style.color = lum > 0.6 ? "#111" : "#fff";
-    }
-
-    btn.onclick = () => {
-      selectedElement = elem;
-      updateSelectedButtons();
-    };
-
-    toolSelectionDiv.appendChild(btn);
-  }
-}
 
 function updateSelectedButtons() {
   // Update elem panel buttons
@@ -31764,9 +31911,9 @@ function updateSelectedButtons() {
       variant = parts[0];
       name = parts[1];
     }
-    const nameMatch = name === selectedElement.name;
+    const nameMatch = name.toLowerCase() === selectedElement.name.toLowerCase();
     const selectedVariant = selectedElement.variant || selectedElement.tag || null;
-    const variantMatch = (variant || null) === (selectedVariant || null);
+    const variantMatch = (variant ? variant.toLowerCase() : null) === ((selectedVariant || null)?.toLowerCase?.() ?? null);
     if (nameMatch && variantMatch) {
       const bgColor = getComputedStyle(btn).backgroundColor;
       const borderColor = adjustBorderColor(bgColor, 0.4);
@@ -31775,18 +31922,7 @@ function updateSelectedButtons() {
     }
   });
 
-  // Update toolSelection buttons
-  const toolButtons = document.querySelectorAll("#toolSelection .tool-btn");
-  toolButtons.forEach((btn) => {
-    btn.style.outline = "none";
-    if (!selectedElement) return;
-    if (btn.textContent === selectedElement.name) {
-      const bgColor = getComputedStyle(btn).backgroundColor;
-      const borderColor = adjustBorderColor(bgColor, 0.4);
-      btn.style.outline = `4px solid ${borderColor}`;
-      btn.style.outlineOffset = "0px";
-    }
-  });
+ 
 }
 // Adjusts rgb(a) or hex colors
 function adjustBorderColor(color, factor = 0.2) {
@@ -31880,14 +32016,18 @@ function autoFitText(button) {
 
    // Main button
     const btn = document.createElement("button");
-    btn.textContent = elem.name;
+    btn.textContent = elem.name.charAt(0).toUpperCase() + elem.name.slice(1);
     
     // Check if the element has the rainbow property
     if (elem.properties && elem.properties.rainbowUI) {
       btn.className = "elem-btn rainbow-btn";
+    } else  if (elem.properties && elem.properties.shiny) {
+
+      btn.className = "elem-btn shiny-btn";
+       btn.style.backgroundColor = elem.color;
     } else {
       btn.className = "elem-btn";
-      btn.style.background = elem.color;
+      btn.style.backgroundColor = elem.color;
     }
     btn.onclick = () => {
       selectedElement = elem;
@@ -31904,11 +32044,11 @@ function autoFitText(button) {
         if (variantData.hidden === true) continue;
 
         const vbtn = document.createElement("button");
-        vbtn.textContent = `${variantName} - ${elem.name}`;
+        vbtn.textContent = `${variantName.charAt(0).toUpperCase() + variantName.slice(1)} - ${elem.name.charAt(0).toUpperCase() + elem.name.slice(1)}`;
         vbtn.className = "elem-btn";
 
         const bg = variantData.color || elem.color;
-        vbtn.style.background = bg;
+        vbtn.style.backgroundColor = bg;
 
         vbtn.onclick = () => {
           selectedElement = elem.withTag(variantName);
@@ -31941,7 +32081,6 @@ document.getElementById("brushMethod").onchange = e =>
     searchInput.addEventListener("input", updateElementButtons);
     updateCategoryButtons();
     updateElementButtons();
-    updateToolSelectionButtons();
     
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault(); // stop page scroll
@@ -31969,13 +32108,6 @@ function pointToSegmentDistance(px, py, x0, y0, x1, y1) {
   return Math.hypot(px - projX, py - projY);
 }
 
-// ==============================
-// TRANSFORM INDICATORS
-// ==============================
-
-// ─── Transform helpers ────────────────────────────────────────────────────────
-
-/** Capture a deep snapshot of all selected cells and clear them from the grid. */
 function takeSelectionSnapshot() {
   const bounds = getSelectionBounds();
   if (!bounds) return null;
@@ -31999,7 +32131,6 @@ function takeSelectionSnapshot() {
   };
 }
 
-/** Erase the current selection from the grid and restore a previously taken snapshot. */
 function restoreSelectionSnapshot(snap) {
   if (!snap) return;
   // Erase current selection cells
@@ -32020,10 +32151,6 @@ function restoreSelectionSnapshot(snap) {
   }
 }
 
-/**
- * Rotate selected cells around their bounding-box center by `angleDeg` (multiples of 90).
- * Operates destructively on the current selection.
- */
 function rotateSelection(angleDeg) {
   const bounds = getSelectionBounds();
   if (!bounds) return;
@@ -32770,22 +32897,48 @@ function recordUndo(x, y) {
         });
     }
 }
-
 function endUndo() {
     if (!currentUndo) return;
 
     undoStack.push([...currentUndo.values()]);
+    redoStack.length = 0; // new action invalidates any pending redo
     currentUndo = null;
 }
 
 function undo() {
     const action = undoStack.pop();
-
     if (!action) return;
+
+    // capture current values so redo can restore them later
+    const redoAction = action.map(change => ({
+        x: change.x,
+        y: change.y,
+        before: grid.get(change.x, change.y)
+    }));
 
     for (const change of action) {
         grid.set(change.x, change.y, change.before);
     }
+
+    redoStack.push(redoAction);
+}
+
+function redo() {
+    const action = redoStack.pop();
+    if (!action) return;
+
+    // capture current values so undo can revert this redo later
+    const undoAction = action.map(change => ({
+        x: change.x,
+        y: change.y,
+        before: grid.get(change.x, change.y)
+    }));
+
+    for (const change of action) {
+        grid.set(change.x, change.y, change.before);
+    }
+
+    undoStack.push(undoAction);
 }
 function spray(cx, cy){
   const r = Brush.size;
