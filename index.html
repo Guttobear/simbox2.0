@@ -860,7 +860,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 
   <script>
     // version
-    const CURRENT_VERSION = "Va1.6";
+    const CURRENT_VERSION = "Va1.7";
     document.getElementById("version").textContent = CURRENT_VERSION;
     window.addEventListener('load', () => {
   requestAnimationFrame(() => {
@@ -987,7 +987,7 @@ function setArtTool(method, btn) {
   replaceTarget: "stone",
 
 };
-
+let lastPaintCell = null;
 
 
 document.querySelectorAll('.toolbar-category').forEach(details => {
@@ -1049,48 +1049,181 @@ window.addEventListener("blur", () => {
 });
 const elementsContainer = document.getElementById('elements');
 let scrollTimeout;
-// --- PROXIMITY REPEL EFFECT ---
-elementsContainer.addEventListener('mousemove', (e) => {
-  if (elementsContainer._repelFrame) return;
+(() => {
+  const REPEL_RADIUS = 205;
+  const REPEL_RADIUS_SQUARED = REPEL_RADIUS * REPEL_RADIUS;
+  const REPEL_STRENGTH = 5;
+  const UPDATE_INTERVAL = 150;
+  const CELL_SIZE = 120;
+  const MAX_ACTIVE_BUTTONS = 12;
 
-  elementsContainer._repelMouseX = e.clientX;
-  elementsContainer._repelMouseY = e.clientY;
+  let buttons = [];
+  let grid = new Map();
+  let activeButtons = new Set();
 
-  elementsContainer._repelFrame = requestAnimationFrame(() => {
-    elementsContainer._repelFrame = null;
+  let mouseX = 0;
+  let mouseY = 0;
 
-    const buttons = elementsContainer.querySelectorAll('.elem-btn');
-    const REPEL_RADIUS = 205;
-    const REPEL_STRENGTH = 5;
-    const radiusSquared = REPEL_RADIUS * REPEL_RADIUS;
+  let timer = null;
+  let cacheReady = false;
 
-    buttons.forEach(btn => {
+  function getKey(x, y) {
+    return `${Math.floor(x / CELL_SIZE)}:${Math.floor(y / CELL_SIZE)}`;
+  }
+
+  function buildCache() {
+    grid.clear();
+
+    buttons = Array.from(elementsContainer.querySelectorAll('.elem-btn'));
+
+    for (const btn of buttons) {
       const rect = btn.getBoundingClientRect();
 
-      const dx = rect.left + rect.width / 2 - elementsContainer._repelMouseX;
-      const dy = rect.top + rect.height / 2 - elementsContainer._repelMouseY;
-      const distanceSquared = dx * dx + dy * dy;
+      btn._repelXPos = rect.left + rect.width * 0.5;
+      btn._repelYPos = rect.top + rect.height * 0.5;
+      btn._repelLastX = 0;
+      btn._repelLastY = 0;
 
-      if (distanceSquared < radiusSquared && distanceSquared > 0) {
-        const distance = Math.sqrt(distanceSquared);
-        const strength = REPEL_STRENGTH * (1 - distance / REPEL_RADIUS);
+      const key = getKey(btn._repelXPos, btn._repelYPos);
 
-        btn.style.setProperty('--repel-x', `${dx / distance * strength}px`);
-        btn.style.setProperty('--repel-y', `${dy / distance * strength}px`);
-      } else {
-        btn.style.setProperty('--repel-x', '0px');
-        btn.style.setProperty('--repel-y', '0px');
+      let cell = grid.get(key);
+
+      if (!cell) {
+        cell = [];
+        grid.set(key, cell);
       }
-    });
-  });
-});
 
-elementsContainer.addEventListener('mouseleave', () => {
-  elementsContainer.querySelectorAll('.elem-btn').forEach(btn => {
-    btn.style.setProperty('--repel-x', '0px');
-    btn.style.setProperty('--repel-y', '0px');
+      cell.push(btn);
+    }
+
+    cacheReady = true;
+  }
+
+  function resetButton(btn) {
+    if (btn._repelLastX !== 0) {
+      btn.style.setProperty('--repel-x', '0px');
+      btn._repelLastX = 0;
+    }
+
+    if (btn._repelLastY !== 0) {
+      btn.style.setProperty('--repel-y', '0px');
+      btn._repelLastY = 0;
+    }
+  }
+
+  function updateRepel() {
+    timer = null;
+
+    if (!cacheReady) {
+      buildCache();
+    }
+
+    const cellX = Math.floor(mouseX / CELL_SIZE);
+    const cellY = Math.floor(mouseY / CELL_SIZE);
+
+    const nearby = [];
+
+    for (let x = cellX - 1; x <= cellX + 1; x++) {
+      for (let y = cellY - 1; y <= cellY + 1; y++) {
+        const cell = grid.get(`${x}:${y}`);
+
+        if (!cell) continue;
+
+        for (const btn of cell) {
+          const dx = btn._repelXPos - mouseX;
+          const dy = btn._repelYPos - mouseY;
+          const distanceSquared = dx * dx + dy * dy;
+
+          if (distanceSquared < REPEL_RADIUS_SQUARED && distanceSquared > 0) {
+            nearby.push({
+              btn,
+              dx,
+              dy,
+              distanceSquared
+            });
+          }
+        }
+      }
+    }
+
+    nearby.sort((a, b) => a.distanceSquared - b.distanceSquared);
+
+    const newActive = new Set();
+    const count = Math.min(nearby.length, MAX_ACTIVE_BUTTONS);
+
+    for (let i = 0; i < count; i++) {
+      const item = nearby[i];
+      const btn = item.btn;
+      const distance = Math.sqrt(item.distanceSquared);
+
+      const strength = REPEL_STRENGTH * (1 - distance / REPEL_RADIUS);
+
+      const repelX = Math.round((item.dx / distance * strength) * 10) / 10;
+      const repelY = Math.round((item.dy / distance * strength) * 10) / 10;
+
+      if (btn._repelLastX !== repelX) {
+        btn.style.setProperty('--repel-x', `${repelX}px`);
+        btn._repelLastX = repelX;
+      }
+
+      if (btn._repelLastY !== repelY) {
+        btn.style.setProperty('--repel-y', `${repelY}px`);
+        btn._repelLastY = repelY;
+      }
+
+      newActive.add(btn);
+    }
+
+    for (const btn of activeButtons) {
+      if (!newActive.has(btn)) {
+        resetButton(btn);
+      }
+    }
+
+    activeButtons = newActive;
+  }
+
+  function scheduleUpdate() {
+    if (timer !== null) return;
+
+    timer = setTimeout(updateRepel, UPDATE_INTERVAL);
+  }
+
+  elementsContainer.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
+    scheduleUpdate();
+  }, { passive: true });
+
+  elementsContainer.addEventListener('mouseenter', () => {
+    cacheReady = false;
+    buildCache();
   });
-});
+
+  elementsContainer.addEventListener('mouseleave', () => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+
+    for (const btn of activeButtons) {
+      resetButton(btn);
+    }
+
+    activeButtons.clear();
+  });
+
+  window.addEventListener('resize', () => {
+    cacheReady = false;
+  }, { passive: true });
+
+  elementsContainer.addEventListener('scroll', () => {
+    cacheReady = false;
+  }, { passive: true });
+
+  buildCache();
+})();
 elementsContainer.addEventListener('scroll', () => {
  
   requestAnimationFrame(updateButtonSizes);
@@ -1104,6 +1237,7 @@ elementsContainer.addEventListener('scroll', () => {
     let tps = 0;
     let tpsSteps = 0;
     let tpsTimer = 0;
+    
 
     const TPS = 30; // target tps
     const TICK_MS = 1000 / TPS;
@@ -1264,7 +1398,9 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
       const nodrag = ["line","rect","circle","fill"];
       if (mouse.down && !nodrag.includes(Brush.method)) placeAtMouse(e);
     });
-    
+    canvas.addEventListener("mouseleave", () => {
+    lastPaintCell = null;
+});
     
 
     canvas.addEventListener("mousedown", (e) => {
@@ -1279,34 +1415,38 @@ placeAtMouse(e);
       }
     });
     
-
-    window.addEventListener("mouseup", (e) => {
-      if (e.button === 0) {
+window.addEventListener("mouseup", (e) => {
+    if (e.button === 0) {
         // finalize select drag
         if (Brush.method === "select" && selectStart) {
-          const rect = canvas.getBoundingClientRect();
-          const x = Math.floor((e.clientX - rect.left) / voxelsize);
-          const y = Math.floor((e.clientY - rect.top) / voxelsize);
-          const minX = Math.min(selectStart.x, x);
-          const maxX = Math.max(selectStart.x, x);
-          const minY = Math.min(selectStart.y, y);
-          const maxY = Math.max(selectStart.y, y);
-          selectedCells.clear();
-          for (let cy = minY; cy <= maxY; cy++) {
-            for (let cx = minX; cx <= maxX; cx++) {
-              if (grid.isInside(cx, cy) && grid.get(cx, cy).element.name !== "empty") {
-                selectedCells.add(cx + "," + cy);
-              }
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / voxelsize);
+            const y = Math.floor((e.clientY - rect.top) / voxelsize);
+
+            const minX = Math.min(selectStart.x, x);
+            const maxX = Math.max(selectStart.x, x);
+            const minY = Math.min(selectStart.y, y);
+            const maxY = Math.max(selectStart.y, y);
+
+            selectedCells.clear();
+
+            for (let cy = minY; cy <= maxY; cy++) {
+                for (let cx = minX; cx <= maxX; cx++) {
+                    if (grid.isInside(cx, cy) && grid.get(cx, cy).element.name !== "empty") {
+                        selectedCells.add(cx + "," + cy);
+                    }
+                }
             }
-          }
         }
+
         selectStart = null;
         mouse.down = false;
+        lastPaintCell = null;
 
-endUndo();
+        endUndo();
         Brush.replaceTarget = null;
-      }
-    });
+    }
+});
     
     // select tool – drag to select
     canvas.addEventListener("mousedown", (e) => {
@@ -2171,70 +2311,227 @@ doesNotHaveTag(tag) {
 // =========================================================
 function liquidPhysics(grid, x, y, opts = {}) {
   const {
-    spreadChance  = 0.5,
-    spreadDist    = 1,
-    sinkPowders   = true,
+    spreadChance = 0.72,
+    spreadDist = 5,
+    diagonalChance = 0.82,
+    sinkPowders = true,
+    sinkGases = true,
+    densitySwapChance = 0.10,
+    densityScale = 1600,
+    flowChance = 0.82,
+    flowRandomness = 0.35,
+    airDriftChance = 0.22,
+    airDriftStrength = 1,
     extraCanEnter = null,
   } = opts;
 
   const cell = grid.get(x, y);
-  const myDensity = cell.element.properties.density ?? Infinity;
+  if (!cell) return false;
 
-  function canEnter(target) {
-    const tt = target.element.category;
-    const td = target.element.properties.density ?? Infinity;
+  const myDensity = Number.isFinite(cell.element.properties.density)
+    ? cell.element.properties.density
+    : 1000;
+
+  function getDensity(target) {
+    const density = target?.element?.properties?.density;
+    return Number.isFinite(density) ? density : 1000;
+  }
+
+  function densityChance(target) {
+    const targetDensity = getDensity(target);
+
+    if (target.element.name === "empty") return 1;
+
+    if (target.element.category === "Gas") {
+      return sinkGases ? 1 : 0;
+    }
+
+    if (target.element.category === "Powders") {
+      if (!sinkPowders || targetDensity >= myDensity) return 0;
+      return Math.min(1, 0.35 + (myDensity - targetDensity) / densityScale);
+    }
+
+    if (target.element.category !== "Liquids") return 0;
+
+    if (targetDensity >= myDensity) return 0;
+
+    const difference = myDensity - targetDensity;
+    const ratio = difference / Math.max(myDensity, 1);
+
+    return Math.min(0.85, densitySwapChance + ratio * 0.45);
+  }
+
+  function canEnter(target, horizontal = false) {
+    if (!target) return false;
+
     if (target.element.name === "empty") return true;
-    if (tt === "Gas") return true;
-    if ((tt === "Liquids") && td < myDensity) return true;
+
     if (extraCanEnter && extraCanEnter(target)) return true;
-    return false;
+
+    let chance = densityChance(target);
+
+    if (horizontal && target.element.category === "Liquids") {
+      chance *= 0.45;
+    }
+
+    return Math.random() < chance;
   }
 
-  // --- Fall down / diagonal ---
-  const belowDirs = [
-    [0, 1],
-    [Math.random() < 0.5 ? -1 : 1, 1],
-    [Math.random() < 0.5 ? -1 : 1, 0],
-  ];
+  function tryMove(nx, ny, horizontal = false) {
+    if (!grid.isInside(nx, ny)) return false;
 
-  for (const [dx, dy] of belowDirs) {
-    const nx = x + dx, ny = y + dy;
-    if (!grid.isInside(nx, ny)) continue;
-    if (dx !== 0 && dy !== 0) {
-      if (!grid.canMoveDiagonal(x, y, dx, dy)) continue;
-    }
     const target = grid.get(nx, ny);
-    if (!sinkPowders && target.element.category === "Powders" && dy === 0) continue;
-    if (canEnter(target)) {
-      grid.swap(x, y, nx, ny);
-      return true;
+    if (!target) return false;
+
+    if (!canEnter(target, horizontal)) return false;
+
+    grid.swap(x, y, nx, ny);
+    return true;
+  }
+
+  function canDiagonal(dir) {
+    const sideX = x + dir;
+    const sideY = y;
+    const diagonalX = x + dir;
+    const diagonalY = y + 1;
+
+    if (!grid.isInside(sideX, sideY)) return false;
+    if (!grid.isInside(diagonalX, diagonalY)) return false;
+
+    const side = grid.get(sideX, sideY);
+    const diagonal = grid.get(diagonalX, diagonalY);
+
+    if (!side || !diagonal) return false;
+
+    if (side.element.name !== "empty") {
+      if (side.element.category !== "Liquids") return false;
+      if (getDensity(side) >= myDensity) return false;
+    }
+
+    if (diagonal.element.name !== "empty") {
+      if (diagonal.element.category !== "Liquids") {
+        if (!extraCanEnter || !extraCanEnter(diagonal)) return false;
+      } else if (getDensity(diagonal) >= myDensity) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function getOpenDistance(dir) {
+    let distance = 0;
+
+    for (let i = 1; i <= spreadDist; i++) {
+      const nx = x + dir * i;
+
+      if (!grid.isInside(nx, y)) break;
+
+      const target = grid.get(nx, y);
+      if (!target) break;
+
+      if (target.element.name === "empty") {
+        distance++;
+        continue;
+      }
+
+      if (target.element.category === "Liquids" && getDensity(target) < myDensity) {
+        distance++;
+        continue;
+      }
+
+      break;
+    }
+
+    return distance;
+  }
+
+  function getFlowChance(distance, openDistance) {
+    const distanceFactor = 1 - Math.max(0, distance - 1) / Math.max(openDistance, 1);
+    const randomness = 1 - flowRandomness + Math.random() * flowRandomness;
+
+    return flowChance * Math.max(0.15, distanceFactor) * randomness;
+  }
+
+  const firstDir = Math.random() < 0.5 ? -1 : 1;
+  const secondDir = -firstDir;
+
+  // Air drift while falling (like powders)
+  const below = grid.isInside(x, y + 1) ? grid.get(x, y + 1) : null;
+
+  if (
+    below &&
+    (below.element.name === "empty" ||
+      below.element.category === "Gas" ||
+      (sinkPowders && below.element.category === "Powders") ||
+      (below.element.category === "Liquids" && getDensity(below) < myDensity))
+  ) {
+    if (Math.random() < airDriftChance) {
+      const driftCount = Math.max(1, Math.floor(airDriftStrength));
+
+      for (let i = 0; i < driftCount; i++) {
+        const dir = Math.random() < 0.5 ? firstDir : secondDir;
+
+        if (tryMove(x + dir, y, true)) return true;
+      }
     }
   }
 
-  // --- Spread sideways ---
+  if (tryMove(x, y + 1)) return true;
+
+  if (Math.random() < diagonalChance) {
+    const leftOpen = getOpenDistance(-1);
+    const rightOpen = getOpenDistance(1);
+    const openTotal = leftOpen + rightOpen;
+
+    let diagFirst = firstDir;
+
+    if (openTotal > 0) {
+      const openBias = rightOpen / openTotal;
+
+      if (Math.random() < openBias * 0.55) {
+        diagFirst = 1;
+      } else {
+        diagFirst = -1;
+      }
+    }
+
+    const diagSecond = -diagFirst;
+
+    if (canDiagonal(diagFirst)) {
+      if (tryMove(x + diagFirst, y + 1)) return true;
+    }
+
+    if (canDiagonal(diagSecond)) {
+      if (tryMove(x + diagSecond, y + 1)) return true;
+    }
+  }
+
   if (Math.random() < spreadChance) {
-    const dir = Math.random() < 0.5 ? -1 : 1;
-    if (spreadDist <= 1) {
-      const nx = x + dir;
-      if (grid.isInside(nx, y) && canEnter(grid.get(nx, y))) {
-        grid.swap(x, y, nx, y);
-        return true;
-      }
-    } else {
-      let moveDist = 0;
-      for (let i = 1; i <= spreadDist; i++) {
-        const checkX = x + dir * i;
-        if (!grid.isInside(checkX, y)) break;
-        const target = grid.get(checkX, y);
-        if (canEnter(target)) {
-          moveDist = i;
-        } else {
-          break;
-        }
-      }
-      if (moveDist > 0) {
-        grid.swap(x, y, x + dir * moveDist, y);
-        return true;
+    const leftOpen = getOpenDistance(-1);
+    const rightOpen = getOpenDistance(1);
+
+    let spreadFirst = firstDir;
+
+    if (leftOpen > rightOpen) {
+      if (Math.random() < 0.65) spreadFirst = -1;
+    } else if (rightOpen > leftOpen) {
+      if (Math.random() < 0.65) spreadFirst = 1;
+    }
+
+    const spreadSecond = -spreadFirst;
+
+    for (const dir of [spreadFirst, spreadSecond]) {
+      const openDistance = dir === -1 ? leftOpen : rightOpen;
+
+      if (openDistance <= 0) continue;
+
+      for (let distance = 1; distance <= Math.min(spreadDist, openDistance); distance++) {
+        if (Math.random() > getFlowChance(distance, openDistance)) continue;
+
+        if (tryMove(x + dir * distance, y, true)) return true;
+
+        if (distance > 1) break;
       }
     }
   }
@@ -2242,99 +2539,150 @@ function liquidPhysics(grid, x, y, opts = {}) {
   return false;
 }
 
-// =========================================================
-// POWDER PHYSICS HELPER
-// Call this inside any element's (grid, x, y) => {} to give
-// it standard powder (granular) movement. Works regardless
-// of what category the element is registered under. Options:
-//
-//   diagChance    – probability (0–1) of attempting a diagonal
-//                   slide each tick when straight-down is blocked.
-//                   Default: 1.0 (always try)
-//
-//   requireGap    – if true, the side cell (x+dx, y) must be
-//                   strictly empty before the powder can slide
-//                   diagonally — matches vanilla sand behaviour
-//                   and prevents tunnelling. Default: true
-//
-//   sinkLiquids   – whether the powder falls through lighter
-//                   liquids (e.g. sand sinking through water).
-//                   Default: true
-//
-//   sinkGases     – whether the powder displaces gases.
-//                   Default: true
-//
-//   extraCanEnter – optional extra function(target) => bool
-//                   checked in addition to the normal rules
-//
-// Returns true if the cell moved (so you can early-return after).
-//
-// Example – standard powder physics:
-//   powderPhysics(grid, x, y);
-//
-// Example – coarse gravel (rarely slides diagonally):
-//   powderPhysics(grid, x, y, { diagChance: 0.3 });
-//
-// Example – floaty powder that doesn't sink through liquids:
-//   powderPhysics(grid, x, y, { sinkLiquids: false });
-// =========================================================
+
 function powderPhysics(grid, x, y, opts = {}) {
   const {
-    diagChance    = 1.0,
-    requireGap    = true,
-    sinkLiquids   = true,
-    sinkGases     = true,
+    diagonalChance = 0.94,
+    rollChance = 0.42,
+    airDriftChance = 0.30,
+    airDriftStrength = 1,
+    sinkLiquids = true,
+    sinkGases = true,
+    densitySwapChance = 0.16,
+    densityScale = 1400,
     extraCanEnter = null,
   } = opts;
 
   const cell = grid.get(x, y);
-  const myDensity = cell.element.properties.density ?? Infinity;
+  if (!cell) return false;
+
+  const myDensity = Number.isFinite(cell.element.properties.density) ? cell.element.properties.density : densityScale;
+
+  function getDensity(target) {
+    const density = target?.element?.properties?.density;
+    return Number.isFinite(density) ? density : 1000;
+  }
+
+  function densityChance(target) {
+    if (!target) return 0;
+
+    if (target.element.name === "empty") return 1;
+
+    if (target.element.category === "Gas") {
+      return sinkGases ? 1 : 0;
+    }
+
+    if (target.element.category === "Liquids") {
+      if (!sinkLiquids) return 0;
+
+      const targetDensity = getDensity(target);
+      if (targetDensity >= myDensity) return 0;
+
+      const difference = myDensity - targetDensity;
+      const ratio = difference / Math.max(myDensity, 1);
+
+      return Math.min(0.9, densitySwapChance + ratio * 0.65);
+    }
+
+    return 0;
+  }
 
   function canEnter(target) {
+    if (!target) return false;
+
     if (target.element.name === "empty") return true;
-    const tt = target.element.category;
-    const td = target.element.properties.density ?? Infinity;
-    if (sinkGases   && tt === "Gas")                       return true;
-    if (sinkLiquids && tt === "Liquids" && td < myDensity) return true;
-    if (extraCanEnter && extraCanEnter(target))            return true;
+
+    if (extraCanEnter && extraCanEnter(target)) return true;
+
+    return Math.random() < densityChance(target);
+  }
+
+  function getCell(nx, ny) {
+    if (!grid.isInside(nx, ny)) return null;
+    return grid.get(nx, ny);
+  }
+
+  function isOpen(nx, ny) {
+    const target = getCell(nx, ny);
+    if (!target) return false;
+
+    if (target.element.name === "empty") return true;
+
+    if (extraCanEnter && extraCanEnter(target)) return true;
+
     return false;
   }
 
-  function canMoveDiagonal(x, y, dx, dy) {
-    // slide if at least one side is free
-    const side1 = grid.get(x + dx, y);
-    const side2 = grid.get(x, y + dy);
-    if (!side1 || !side2) return false;
-    return side1.element.name === "empty" || side2.element.name === "empty";
-  }
-
-  // --- Fall straight down ---
-  if (grid.isInside(x, y + 1)) {
-    const below = grid.get(x, y + 1);
-    if (canEnter(below)) {
-      grid.swap(x, y, x, y + 1);
-      return true;
-    }
-  }
-
-  // --- Slide diagonally ---
-  if (Math.random() < diagChance) {
-    const dx = Math.random() < 0.5 ? -1 : 1;
-    const nx = x + dx;
-    const ny = y + 1;
-
+  function tryMove(nx, ny) {
     if (!grid.isInside(nx, ny)) return false;
 
     const target = grid.get(nx, ny);
-    const td = target.element.properties.density ?? Infinity;
+    if (!target) return false;
 
-    if (
-      canMoveDiagonal(x, y, dx, 1) && // only needs one side free now
-      (target.element.name === "empty" || 
-       ((target.element.category === "Liquids" || target.element.category === "Gas") && td < myDensity))
-    ) {
-      grid.swap(x, y, nx, ny);
-      return true;
+    if (!canEnter(target)) return false;
+
+    grid.swap(x, y, nx, ny);
+    return true;
+  }
+
+  function canDiagonal(dir) {
+    const side = getCell(x + dir, y);
+    const diagonal = getCell(x + dir, y + 1);
+
+    if (!side || !diagonal) return false;
+
+    if (!isOpen(x + dir, y)) return false;
+    if (!isOpen(x + dir, y + 1)) return false;
+
+    return true;
+  }
+
+  const firstDir = Math.random() < 0.5 ? -1 : 1;
+  const secondDir = -firstDir;
+
+  if (isOpen(x, y + 1)) {
+    if (Math.random() < airDriftChance) {
+      const driftCount = Math.max(1, Math.floor(airDriftStrength));
+
+      for (let i = 0; i < driftCount; i++) {
+        const dir = Math.random() < 0.5 ? firstDir : secondDir;
+
+        if (isOpen(x + dir, y)) {
+          if (tryMove(x + dir, y)) return true;
+        }
+      }
+    }
+  }
+
+  if (tryMove(x, y + 1)) return true;
+
+  if (Math.random() < diagonalChance) {
+    if (Math.random() < 0.5) {
+      if (canDiagonal(firstDir)) {
+        if (tryMove(x + firstDir, y + 1)) return true;
+      }
+
+      if (canDiagonal(secondDir)) {
+        if (tryMove(x + secondDir, y + 1)) return true;
+      }
+    } else {
+      if (canDiagonal(secondDir)) {
+        if (tryMove(x + secondDir, y + 1)) return true;
+      }
+
+      if (canDiagonal(firstDir)) {
+        if (tryMove(x + firstDir, y + 1)) return true;
+      }
+    }
+  }
+
+  if (Math.random() < rollChance) {
+    if (isOpen(x + firstDir, y) && isOpen(x + firstDir, y + 1)) {
+      if (tryMove(x + firstDir, y + 1)) return true;
+    }
+
+    if (isOpen(x + secondDir, y) && isOpen(x + secondDir, y + 1)) {
+      if (tryMove(x + secondDir, y + 1)) return true;
     }
   }
 
@@ -2426,97 +2774,105 @@ const RECIPES = [
 
 
       }),
-      sand: new Element(
+    sand: new Element(
   "sand",
   "#c2b280",
   "Powders",
-  { density: 1.44,
-     conductivity: 0.06,
+  {
+    density: 1.94,
+    conductivity: 0.06,
     variants: {
       molten: {
         color: "rgb(250, 91, 5)",
         hidden: true,
         behavior: (grid, x, y) => {
           const cell = grid.get(x, y);
-          if(cell.temperature > 10000){
-            grid.set(x,y,ELEMENTS.plasma);
+
+          if (cell.temperature > 10000) {
+            grid.set(x, y, ELEMENTS.plasma);
             return;
           }
 
-// color
-const meltingPoint = 500;
-const maxTemp = 2000;      
-const t = Math.min(Math.max((cell.temperature - meltingPoint) / (maxTemp - meltingPoint), 0), 1);
+          const meltingPoint = 500;
+          const maxTemp = 2000;
+          const t = Math.min(Math.max((cell.temperature - meltingPoint) / (maxTemp - meltingPoint), 0), 1);
 
-let r, g, b;
+          let r, g, b;
 
-
-if (t < 0.33) {
-  // base molten orange → brighter orange
-  const k = t / 0.33;
-  r = 230 + 20 * k;  // 230 → 250
-  g = 169 + 40 * k;  // 169 → 209
-  b = 79 - 29 * k;   // 79 → 50
-} else if (t < 0.66) {
-  // orange → yellow
-  const k = (t - 0.33) / 0.33;
-  r = 250;
-  g = 209 + 46 * k;  // 209 → 255
-  b = 50 - 20 * k;   // 50 → 30
-} else {
-  // yellow → white
-  const k = (t - 0.66) / 0.34;
-  r = 255;
-  g = 255;
-  b = 30 + 225 * k;  // 30 → 255
-}
-
-cell.color = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-
-          // temp changes
-              if(cell.temperature < 500){
-           if(Math.random() < 0.2) grid.set(x, y, ELEMENTS.glass);
+          if (t < 0.33) {
+            const k = t / 0.33;
+            r = 230 + 20 * k;
+            g = 169 + 40 * k;
+            b = 79 - 29 * k;
+          } else if (t < 0.66) {
+            const k = (t - 0.33) / 0.33;
+            r = 250;
+            g = 209 + 46 * k;
+            b = 50 - 20 * k;
+          } else {
+            const k = (t - 0.66) / 0.34;
+            r = 255;
+            g = 255;
+            b = 30 + 225 * k;
           }
-     liquidPhysics(grid, x, y);
 
+          cell.color = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+
+          if (cell.temperature < 500) {
+            if (Math.random() < 0.2) grid.set(x, y, ELEMENTS.glass);
+          }
+
+          liquidPhysics(grid, x, y);
         }
       },
+
       wet: {
         color: "#998D68",
-        hidden: true
-        
+        hidden: true,
+        behavior: (grid, x, y) => {
+          const cell = grid.get(x, y);
+          cell.color = null;
+          // Dry the sand when heated.
+          if (cell.temperature >= 100) {
+            if (Math.random() < 0.05) {
+              cell.element = ELEMENTS.sand;
+              return;
+            }
+          }
+
+          powderPhysics(grid, x, y);
+        }
       }
     }
-   },
+  },
   (grid, x, y) => {
-  const cell = grid.get(x, y);
+    const cell = grid.get(x, y);
 
-  // ----- color -----
-  const t = Math.min((cell.temperature - 20) / (1700 - 20), 1);
-  if (t > 0) {
-    const r = Math.floor(194 + (250 - 194) * t);
-    const g = Math.floor(178 + (91 - 178) * t);
-    const b = Math.floor(128 + (5 - 128) * t);
-    cell.color = `rgb(${r},${g},${b})`;
-  } else {
-    cell.color = ELEMENTS.sand.color;
-  }
+    const t = Math.min((cell.temperature - 20) / (1700 - 20), 1);
 
-  // ----- wet -----
-  if (grid.touching(x, y, "water")) {
-    grid.set(x, y, cell.element.withTag("wet"));
-    return; // stop this tick
-  }
+    if (t > 0) {
+      const r = Math.floor(194 + (250 - 194) * t);
+      const g = Math.floor(178 + (91 - 178) * t);
+      const b = Math.floor(128 + (5 - 128) * t);
 
-  // ----- temperature -----
-  if (cell.temperature >= 1700) {
-    if (Math.random() < 0.3) {
-      cell.element = cell.element.withTag("molten");
+      cell.color = `rgb(${r},${g},${b})`;
+    } else {
+      cell.color = ELEMENTS.sand.color;
     }
-  }
-powderPhysics(grid, x, y);
-}
+  if (cell.temperature >= 1700) {
+      if (Math.random() < 0.3) {
+        cell.element = cell.element.withTag("molten");
+        return;
+      }
+    }
 
+    if (grid.touching(x, y, "water")) {
+      cell.element = cell.element.withTag("wet");
+    }
+    powderPhysics(grid, x, y);
+
+  
+  }
 ),
 
      water: new Element(
@@ -4649,7 +5005,7 @@ oil: new Element(
   "Liquids",
   {
     flammable: true,
-    density: 2.7,
+    density: 1.7,
     conductivity: 0.3,
     variants: {
       lit: {
@@ -4686,7 +5042,23 @@ oil: new Element(
       }
     }
 
-   liquidPhysics(grid, x, y, { spreadDist: 3, sinkPowders: true });
+   liquidPhysics(grid, x, y, {
+  spreadChance: 0.90,
+  spreadDist: 8,
+  diagonalChance: 0.92,
+
+  flowChance: 0.96,
+  flowRandomness: 0.15,
+
+  airDriftChance: 0.30,
+  airDriftStrength: 1,
+
+  sinkPowders: true,
+  sinkGases: true,
+
+  densitySwapChance: 0.05,
+  densityScale: 1800,
+});
 
 
   }
@@ -7446,6 +7818,7 @@ flashbang: new Element(
   (grid,x,y) => {
     const cell = grid.get(x,y);
     cell.age++;
+
     if(cell.age > 50){
       
       
@@ -7454,6 +7827,7 @@ flashbang: new Element(
       grid.set(x,y,ELEMENTS.smoke);
       return;
     }
+    
        if (
       grid.isInside(x, y + 1) &&
       grid.get(x, y + 1).element === ELEMENTS.empty
@@ -30104,7 +30478,8 @@ dismantle: new Element(
       }, i * 90); // Delays each slash by 3 simulated game ticks
     }
   }
-)
+),
+
 
     };
 let iframeStart = null;
@@ -31467,7 +31842,7 @@ draw(ctx) {
   const { cols, rows, voxelsize } = this;
 
   // =========================================================
-  // ♻️ PERSISTENT OFFSCREEN CANVAS (created once, reused every frame)
+  // ♻️ PERSISTENT OFFSCREEN CANVAS
   // =========================================================
   if (!this._offCanvas || this._offCanvas.width !== cols || this._offCanvas.height !== rows) {
     this._offCanvas = document.createElement("canvas");
@@ -31478,8 +31853,22 @@ draw(ctx) {
   }
 
   const lerp = (a, b, t) => a + (b - a) * t;
+
   const clamp = (v, min = 0, max = 255) =>
     Math.max(min, Math.min(max, v));
+
+  // =========================================================
+  // 🎨 GET / STORE CELL COLOR VARIATION
+  // =========================================================
+  // Variation belongs to the cell itself, so it follows the
+  // cell when the cell moves around the grid.
+  const getCellVariation = (cell) => {
+    if (cell.colorVariation === undefined) {
+      cell.colorVariation = Math.random() * 8 - 4;
+    }
+
+    return cell.colorVariation;
+  };
 
   // =========================================================
   // GET COLOR FOR A CELL
@@ -31580,72 +31969,100 @@ draw(ctx) {
         b = 255;
       }
     }
+// =========================
+// 🎨 NORMAL COLOR VIEW
+// =========================
+else {
+  const customColor = cell.customColor;
 
-    // =========================
-    // 🎨 NORMAL COLOR VIEW
-    // =========================
-    else {
-      const color =
-    cell.customColor ??
+  if (customColor) {
+    if (customColor.startsWith("#")) {
+      const num = parseInt(customColor.slice(1), 16);
+
+      r = (num >> 16) & 255;
+      g = (num >> 8) & 255;
+      b = num & 255;
+
+    } else if (customColor.startsWith("rgb")) {
+      const parts = customColor.match(/\d+/g);
+
+      if (parts) {
+        [r, g, b] = parts.map(Number);
+      }
+    }
+
+    // Custom colors completely override variation
+    return [r, g, b];
+  }
+
+  const color =
     cell.color ??
     cell.element?.color;
 
-      if (color?.startsWith("#")) {
-        const num = parseInt(color.slice(1), 16);
+  if (color?.startsWith("#")) {
+    const num = parseInt(color.slice(1), 16);
 
-        r = (num >> 16) & 255;
-        g = (num >> 8) & 255;
-        b = num & 255;
+    r = (num >> 16) & 255;
+    g = (num >> 8) & 255;
+    b = num & 255;
 
-      } else if (color?.startsWith("rgb")) {
-        const parts = color.match(/\d+/g);
+  } else if (color?.startsWith("rgb")) {
+    const parts = color.match(/\d+/g);
 
-        if (parts) {
-          [r, g, b] = parts.map(Number);
-        }
-      }
+    if (parts) {
+      [r, g, b] = parts.map(Number);
+    }
+  }
+}
 
-      // =========================
-      // ✨ SHINY EFFECT
-      // =========================
-      if (
-        cell.element?.properties?.shiny ||
-        cell.shiny === true
-      ) {
-        const stripeSize =
-          typeof cell.shiny === "object"
-            ? cell.shiny.stripeSize || 20
-            : 20;
+    // =========================
+    // 🎨 SLIGHT STORED VARIATION
+    // =========================
+    const variation = getCellVariation(cell);
 
-        const intensity =
-          typeof cell.shiny === "object"
-            ? cell.shiny.intensity || 0.2
-            : 0.2;
+    r = clamp(r + variation);
+    g = clamp(g + variation);
+    b = clamp(b + variation);
 
-        const stripeTime = performance.now() * 0.0002;
+    // =========================
+    // ✨ SHINY EFFECT
+    // =========================
+    if (
+      cell.element?.properties?.shiny ||
+      cell.shiny === true
+    ) {
+      const stripeSize =
+        typeof cell.shiny === "object"
+          ? cell.shiny.stripeSize || 20
+          : 20;
 
-        const stripe =
-          ((x + y) / stripeSize + stripeTime) % 1;
+      const intensity =
+        typeof cell.shiny === "object"
+          ? cell.shiny.intensity || 0.2
+          : 0.2;
 
-        const shine =
-          Math.max(0, 1 - Math.abs(stripe * 2 - 1));
+      const stripeTime = performance.now() * 0.0002;
 
-        const s = shine * intensity;
+      const stripe =
+        ((Math.floor(x) + Math.floor(y)) / stripeSize + stripeTime) % 1;
 
-        r = clamp(lerp(r, 255, s));
-        g = clamp(lerp(g, 255, s));
-        b = clamp(lerp(b, 255, s));
-      }
+      const shine =
+        Math.max(0, 1 - Math.abs(stripe * 2 - 1));
+
+      const s = shine * intensity;
+
+      r = clamp(lerp(r, 255, s));
+      g = clamp(lerp(g, 255, s));
+      b = clamp(lerp(b, 255, s));
     }
 
     return [r, g, b];
   };
 
-
   // =========================================================
   // 🖼 CREATE BASE IMAGE
   // =========================================================
-  const img = this._offImg;      // reuse cached ImageData instead of creating a new one
+  const img = this._offImg;
   const data = img.data;
 
   let i = 0;
@@ -31655,8 +32072,7 @@ draw(ctx) {
 
       const cell = this.grid[y][x];
 
-      // If this cell has a subGrid, don't render
-      // its normal pixel here.
+      // Subgrids are rendered separately
       if (cell.subGrid) {
         data[i++] = 0;
         data[i++] = 0;
@@ -31674,7 +32090,6 @@ draw(ctx) {
     }
   }
 
-
   // =========================================================
   // 🖼 DRAW BASE GRID
   // =========================================================
@@ -31690,19 +32105,9 @@ draw(ctx) {
     rows * voxelsize
   );
 
-
   // =========================================================
   // 🔲 SUBGRID PASS
   // =========================================================
-  //
-  // Each normal voxel containing a subGrid is divided
-  // into 8 × 8 smaller pixels.
-  //
-  // 1 = empty
-  // 0 = render the parent cell normally
-  //
-  // =========================================================
-
   ctx.save();
 
   ctx.imageSmoothingEnabled = false;
@@ -31715,44 +32120,42 @@ draw(ctx) {
       if (!cell.subGrid) continue;
 
       const subGrid = cell.subGrid;
-
       const subSize = voxelsize / 4;
 
-   for (let sy = 0; sy < 4; sy++) {
-  for (let sx = 0; sx < 4; sx++) {
+      for (let sy = 0; sy < 4; sy++) {
+        for (let sx = 0; sx < 4; sx++) {
 
-    const value = subGrid[sy]?.[sx];
+          const value = subGrid[sy]?.[sx];
 
-    if (value === 1) continue;
+          if (value === 1) continue;
 
-    if (value === 0) {
+          if (value === 0) {
 
-      // Rotate 90° clockwise
-     const rotatedX = sy;
-const rotatedY = sx;
+            // Rotate 90° clockwise
+            const rotatedX = sy;
+            const rotatedY = sx;
 
-      const subX = x + rotatedX / 4;
-      const subY = y + rotatedY / 4;
+            const subX = x + rotatedX / 4;
+            const subY = y + rotatedY / 4;
 
-      const [r, g, b] =
-        getCellColor(cell, subX, subY);
+            const [r, g, b] =
+              getCellColor(cell, subX, subY);
 
-      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
 
-      ctx.fillRect(
-        x * voxelsize + rotatedX * subSize,
-        y * voxelsize + rotatedY * subSize,
-        subSize,
-        subSize
-      );
+            ctx.fillRect(
+              x * voxelsize + rotatedX * subSize,
+              y * voxelsize + rotatedY * subSize,
+              subSize,
+              subSize
+            );
+          }
+        }
+      }
     }
-  }
-}
- }
   }
 
   ctx.restore();
-
 
   // =========================================================
   // 🧲 GLUED OVERLAY PASS
@@ -31788,7 +32191,6 @@ const rotatedY = sx;
 
         ctx.stroke();
 
-
         ctx.beginPath();
 
         ctx.moveTo(
@@ -31802,7 +32204,6 @@ const rotatedY = sx;
         );
 
         ctx.stroke();
-
 
         // ✨ Gloss highlight
         ctx.fillStyle =
@@ -31819,7 +32220,6 @@ const rotatedY = sx;
 
     ctx.restore();
   }
-
 
   // =========================================================
   // 🌟 LIGHT OVERLAY PASS
@@ -32778,68 +33178,99 @@ function closeOptionMenu() {
   activeOptionRenderer = null;
   contextMenuOpen = false;
 }
-
 function placeAtMouse(e) {
-  if (!canplace || !selectedElement) return;
+    if (!canplace || !selectedElement) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / voxelsize);
-  const y = Math.floor((e.clientY - rect.top) / voxelsize);
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / voxelsize);
+    const y = Math.floor((e.clientY - rect.top) / voxelsize);
 
-  if (!grid.isInside(x, y)) return;
+    if (!grid.isInside(x, y)) return;
 
-  if (Brush.mode === "replace") {
-    const cell = grid.get(x, y);
-    if (!Brush.replaceTarget) Brush.replaceTarget = cell.element.name;
-  }
-
-  // --- FILL (flood fill) ---
-  if (Brush.method === "fill") {
-    firstPoint = null;
-    floodFill(x, y);
-    return;
-  }
-
-  // --- ERASE ---
-  if (Brush.method === "erase") {
-    firstPoint = null;
-    eraseAt(x, y);
-    return;
-  }
-
-  // --- LINE ---
-  if (e.shiftKey || Brush.method === "line") {
-    if (!firstPoint) {
-      firstPoint = { x, y };
-    } else {
-      drawLine(firstPoint.x, firstPoint.y, x, y);
-      firstPoint = null;
+    if (Brush.mode === "replace") {
+        const cell = grid.get(x, y);
+        if (!Brush.replaceTarget) Brush.replaceTarget = cell.element.name;
     }
-  // --- RECT ---
-  } else if (Brush.method === "rect") {
-    if (!firstPoint) {
-      firstPoint = { x, y };
-    } else {
-      drawRect(firstPoint.x, firstPoint.y, x, y);
-      firstPoint = null;
+
+    // --- FILL ---
+    if (Brush.method === "fill") {
+        firstPoint = null;
+        lastPaintCell = null;
+        floodFill(x, y);
+        return;
     }
-  // --- CIRCLE ---
-  } else if (Brush.method === "circle") {
-    if (!firstPoint) {
-      firstPoint = { x, y };
-    } else {
-      drawCircle(firstPoint.x, firstPoint.y, x, y);
-      firstPoint = null;
+
+    // --- ERASE ---
+    if (Brush.method === "erase") {
+        firstPoint = null;
+
+        if (lastPaintCell) {
+            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
+        } else {
+            eraseAt(x, y);
+        }
+
+        lastPaintCell = { x, y };
+        return;
     }
-  // --- SPRAY ---
-  } else if (Brush.method === "spray") {
-    firstPoint = null;
-    spray(x, y);
-  // --- NORMAL PAINT ---
-  } else {
-    firstPoint = null;
-    applyBrush(x, y);
-  }
+
+    // --- LINE ---
+    if (e.shiftKey || Brush.method === "line") {
+        lastPaintCell = null;
+
+        if (!firstPoint) {
+            firstPoint = { x, y };
+        } else {
+            drawLine(firstPoint.x, firstPoint.y, x, y);
+            firstPoint = null;
+        }
+
+    // --- RECT ---
+    } else if (Brush.method === "rect") {
+        lastPaintCell = null;
+
+        if (!firstPoint) {
+            firstPoint = { x, y };
+        } else {
+            drawRect(firstPoint.x, firstPoint.y, x, y);
+            firstPoint = null;
+        }
+
+    // --- CIRCLE ---
+    } else if (Brush.method === "circle") {
+        lastPaintCell = null;
+
+        if (!firstPoint) {
+            firstPoint = { x, y };
+        } else {
+            drawCircle(firstPoint.x, firstPoint.y, x, y);
+            firstPoint = null;
+        }
+
+    // --- SPRAY ---
+    } else if (Brush.method === "spray") {
+        firstPoint = null;
+
+        if (lastPaintCell) {
+            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
+        } else {
+            spray(x, y);
+        }
+
+        lastPaintCell = { x, y };
+
+    // --- NORMAL PAINT ---
+    } else {
+        firstPoint = null;
+
+        if (lastPaintCell) {
+            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
+        } else {
+            applyBrush(x, y);
+        }
+
+        lastPaintCell = { x, y };
+    }
 }
 function paint(cx, cy){
   if (!grid.isInside(cx, cy)) return;
