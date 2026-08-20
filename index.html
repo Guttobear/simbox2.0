@@ -112,8 +112,13 @@
 #elements::-webkit-scrollbar-corner {
   background: #222;
 }
+@property --scroll-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
 .elem-btn {
-  /* Your existing properties */
   border: none;
   color: white;
   cursor: pointer;
@@ -123,18 +128,51 @@
   font-size: 0.85em;
   text-shadow: 0 0 2px #000;
 
-  /* NEW: Setup variables for movement and scale */
   --repel-x: 0px;
   --repel-y: 0px;
   --scroll-scale: 1;
 
-  /* Combine the variables into a single transform */
   transform: translate(var(--repel-x), var(--repel-y)) scale(var(--scroll-scale));
   transform-origin: center top;
 
-  /* Transition handles the smooth gliding effect */
-  transition: filter 0.2s, transform 0.15s ease-out, opacity 0.1s ease-out; 
-  animation: elemIn 0.15s ease-out backwards;
+  transition: filter 0.2s, transform 0.15s ease-out, opacity 0.1s ease-out;
+
+  animation: elemIn 0.15s ease-out backwards,
+             scrollButtonEffect both linear;
+  animation-timeline: auto, view(block);
+  animation-range: normal, entry 0% exit 100%;
+}
+
+@keyframes scrollButtonEffect {
+  0% {
+    --scroll-scale: 0.75;
+    opacity: 0.25;
+  }
+
+  10% {
+    --scroll-scale: 0.9;
+    opacity: 0.7;
+  }
+
+  20% {
+    --scroll-scale: 1;
+    opacity: 1;
+  }
+
+  80% {
+    --scroll-scale: 1;
+    opacity: 1;
+  }
+
+  90% {
+    --scroll-scale: 0.9;
+    opacity: 0.7;
+  }
+
+  100% {
+    --scroll-scale: 0.75;
+    opacity: 0.25;
+  }
 }
 .elem-btn {
   background-image:
@@ -171,6 +209,15 @@ canvas {
   height: 600px;       
   margin: auto;      
   display: block;
+  touch-action: none;
+
+}
+
+#simWrap {
+  position: relative;
+  width: 800px;
+  height: 600px;
+  margin: auto;
 }
 #ui {
   opacity: 0;
@@ -408,7 +455,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 }
 
 #toolMenu input[type="range"] {
-  width: 34px;
+  width: 64px;
   background: #222;
   accent-color: #888;
 }
@@ -603,8 +650,262 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
   );
   pointer-events: none;
 }
+#epilepsyWarning {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(450px, 90vw);
+    padding: 20px;
+    background: rgba(20, 20, 20, 0.95);
+    border: 2px solid rgba(255, 0, 0, 0.6);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    text-align: center;
+    user-select: none;
+    z-index: 99999;
+    animation: warningFade 2s forwards;
+}
+
+@keyframes warningFade {
+    0%, 70% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
 
 
+  /* ===== Mobile layout ==================================================
+     - Top menubar gets bigger touch targets.
+     - Canvas fills the screen width edge-to-edge, keeping its 4:3 ratio.
+     - The art toolbar (pencil/shapes/etc) sits under the canvas and wraps
+       instead of overflowing the screen.
+     - The element palette becomes a tidy panel below the canvas: a search
+       bar, a horizontally-scrolling row of category chips, and a
+       horizontally-scrolling row of element buttons underneath.
+  ======================================================================= */
+  @media (max-width: 768px) {
+
+    html, body {
+      overscroll-behavior-y: contain;
+    }
+
+    body {
+      flex-direction: column;
+      height: auto;
+      min-height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+.dropdown-content {
+  position: absolute;
+
+  top: auto;
+  bottom: 100%;        /* sits above the button instead of beside it */
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  margin-bottom: 6px;  /* small gap between button and popup */
+
+  display: none;
+  flex-direction: row;  /* keep icons side-by-side; change to column to stack them */
+
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 4px;
+  gap: 4px;
+
+  z-index: 100;
+}
+    /* ---- Top menubar: bigger, breathing room, no cramped overlaps ---- */
+    .toolbar {
+      height: 40px;
+      padding: 0 6px;
+      box-sizing: border-box;
+      gap: 2px;
+    }
+
+    .toolbar-category summary {
+      font-size: 13px;
+      line-height: 40px;
+      padding: 0 8px;
+    }
+
+    .toolbar-button {
+      font-size: 13px;
+      padding: 0 6px;
+      line-height: 40px;
+    }
+
+    .toolbar-button svg {
+      vertical-align: middle;
+    }
+
+    /* Feedback link's text gets tight on small phones — icons carry the rest */
+    a.toolbar-button {
+      max-width: 84px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    details.toolbar-category[style*="right: 50px"] {
+      right: 46px !important;
+    }
+
+    #version {
+      display: none; /* clutter on small screens, not actionable */
+    }
+
+    /* ---- Canvas area: full width, edge to edge, keeps 800x600 ratio ---- */
+    #simWrap {
+      order: 2;
+      position: relative;
+      width: 100vw;
+      max-width: 100vw;
+      height: auto;
+      aspect-ratio: 800 / 600;
+      margin: 40px 0 96px 0; /* clear the 40px top menubar + room for the wrapped art toolbar */
+    }
+
+    canvas#sim {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: auto !important;
+      aspect-ratio: 800 / 600;
+    }
+
+    /* Epilepsy warning banner: shrink to fit, sit just under the menubar */
+    #simWrap > div[style*="Warning"] {
+      order: 1;
+      top: 10px !important;
+      width: 92vw !important;
+      max-width: 92vw !important;
+      font-size: 10px !important;
+      line-height: 1.3;
+    }
+
+    #gridDisplay {
+      font-size: 11px;
+      padding: 3px 6px;
+    }
+
+    /* ---- Art toolbar: wraps to 2 rows instead of spilling off-screen ---- */
+    #toolMenu {
+      scale: 1;
+      bottom: -73px;
+      width: 92vw;
+      max-width: 92vw;
+      flex-wrap: nowrap;
+      justify-content: center;
+      row-gap: 6px;
+      padding: 8px 10px;
+    }
+#toolMenu > .art-tool-btn[title="Measure"],
+#toolMenu > .art-tool-btn[title="Transform"],
+#toolMenu > .art-tool-btn[title="Select"]
+ {
+  display: none;
+}
+    .art-tool-btn {
+      width: 48px;
+      height: 48px; /* slightly bigger touch target */
+    }
+
+    #toolMenu label {
+      font-size: 14px;
+    }
+
+    /* ---- Element panel: stacked rows below the canvas, each horizontal ---- */
+    #ui {
+      order: 3;
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100vw;
+      height: auto;
+      max-height: 40vh;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-right: none;
+      border-top: 2px solid #333;
+      background: #161616;
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+      box-sizing: border-box;
+      -webkit-overflow-scrolling: touch;
+    }
+    #hoverInfo {
+      display: none;
+    }
+
+    #search {
+      width: 90%;
+      margin-bottom: 0;
+      padding: 10px 12px;
+      font-size: 14px;
+      border-radius: 20px;
+      background: #262626;
+    }
+
+    #categories {
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      max-height: none;
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+      margin-bottom: 0;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .cat-btn {
+      flex-shrink: 0;
+      padding: 7px 12px;
+      font-size: 0.85em;
+    }
+
+   #elements {
+  display: grid;
+  grid-template-rows: repeat(3, 62px);   /* 3 rows, same height as .elem-btn */
+  grid-auto-flow: column;                /* fill top-to-bottom, then start a new column */
+  grid-auto-columns: 62px;               /* width of each column, matches .elem-btn width */
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  padding: 2px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+    .elem-btn {
+      flex-shrink: 0;
+      width: 62px;
+      height: 62px;
+    }
+  }
+
+  /* Very small phones: trim a bit more (keep icon links, drop the text-only
+     Feedback link since it's least essential and widest) */
+  @media (max-width: 380px) {
+    a.toolbar-button[href*="mail.google.com"] {
+      display: none;
+    }
+    .elem-btn {
+      width: 56px;
+      height: 56px;
+    }
+  }
   </style>
 </head>
 <body>
@@ -640,14 +941,15 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 
  
   <button class="toolbar-button" onclick="window.open('https://github.com/Guttobear/simbox2.0/wiki')">Wiki</button>
-  
+ 
  <a href="https://mail.google.com/mail/?view=cm&fs=1&to=barrett.gamer.1@gmail.com&su=Feedback" target="_blank" class="toolbar-button">Feedback</a>
-    <a href="https://discord.gg/EaTyZ6FjcU" target="_blank" class="toolbar-button">
+  <a href="https://discord.gg/EaTyZ6FjcU" target="_blank" class="toolbar-button">
     <i class="fa-brands fa-discord"></i>
 </a>
 <a href="https://www.youtube.com/channel/UCD0fEYKmbo92k9iwxL_iXOw/" target="_blank" class="toolbar-button">
     <i class="fa-brands fa-youtube"></i>
 </a>
+ 
 
   <details style="position: absolute; right: 50px;" class="toolbar-category">
     <summary>Debug</summary>
@@ -692,7 +994,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
     <div id="elements"></div>
   </div>
 
-  <div style="position: relative; width: 800px; height: 600px; margin: auto;">
+  <div id="simWrap">
     
 <div id="toolMenu">
 
@@ -859,9 +1161,9 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 </div>
 
     <div id="hoverInfo"></div>
-    <div style="position: absolute; top: -10%; left: 50%; width: 400px;font-size: 12px; color: rgba(255, 0, 0, 0.5); text-align: center; transform: translateX(-50%); user-select: none">
-  Warning:<br>
-  This game contains flashing lights and rapidly changing colors that may trigger seizures in people with photosensitive epilepsy. You can turn off flashing lights by going to the settings 
+  <div id="epilepsyWarning">
+    <strong>Warning:</strong><br>
+    This game contains flashing lights and rapidly changing colors that may trigger seizures in people with photosensitive epilepsy. You can turn off flashing lights in the settings.
 </div>
   <canvas id="sim" width="800" height="600"></canvas>
   <div id="gridDisplay">grid: normal</div>
@@ -869,14 +1171,16 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 
   <script>
     // version
-    const CURRENT_VERSION = "Va1.8";
+    const CURRENT_VERSION = "Va1.9";
     document.getElementById("version").textContent = CURRENT_VERSION;
     window.addEventListener('load', () => {
   requestAnimationFrame(() => {
     document.body.classList.add('loaded');
   });
 });
-
+setTimeout(() => {
+    document.getElementById("epilepsyWarning")?.remove();
+}, 2000);
 
 
     // canvas
@@ -884,6 +1188,24 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 
     const ctx = canvas.getContext("2d");
     const voxelsize = 8;
+
+    // The canvas's on-screen (CSS) size can now differ from its internal
+    // 800x600 resolution (it's scaled to fit small screens). Every place
+    // that turns a pointer event into a canvas-pixel / grid-cell position
+    // must account for that ratio, or clicks land offset from the grid.
+    function getCanvasXY(e) {
+      const rect = canvas.getBoundingClientRect();
+      const sx = canvas.width / rect.width;
+      const sy = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * sx,
+        y: (e.clientY - rect.top) * sy
+      };
+    }
+    function getCanvasCell(e) {
+      const { x, y } = getCanvasXY(e);
+      return { x: Math.floor(x / voxelsize), y: Math.floor(y / voxelsize) };
+    }
     let epilepsyMode = false;
     // element/brush stuff
     let selectedElement = null;
@@ -921,34 +1243,7 @@ document.addEventListener('click', (e) => {
     dropdown.classList.remove('open');
   }
 });
-function updateButtonSizes() {
-  const containerRect = elementsContainer.getBoundingClientRect();
-  const buttons = elementsContainer.querySelectorAll('.elem-btn');
 
-  const atTop = elementsContainer.scrollTop <= 1;
-  const atBottom = elementsContainer.scrollTop + elementsContainer.clientHeight >= elementsContainer.scrollHeight - 1;
-
-  buttons.forEach(btn => {
-    const btnRect = btn.getBoundingClientRect();
-
-    const distanceFromTop = btnRect.top - containerRect.top;
-    const distanceFromBottom = containerRect.bottom - btnRect.bottom;
-
-    let scale = 1;
-    let opacity = 1;
-
-    if (distanceFromTop < 80 && !atTop) {
-      scale = Math.max(0.95, 1 - ((80 - distanceFromTop) / 150));
-      opacity = Math.max(0, 1 - ((80 - distanceFromTop) / 120));
-    } else if (distanceFromBottom < 80 && !atBottom) {
-      scale = Math.max(0.95, 1 - ((80 - distanceFromBottom) / 150));
-      opacity = Math.max(0, 1 - ((80 - distanceFromBottom) / 120));
-    }
-
-   btn.style.setProperty('--scroll-scale', scale);
-    btn.style.opacity = opacity;
-  });
-}
 function setArtTool(method, btn) {
   // remove active from all
   document.querySelectorAll('.art-tool-btn').forEach(b => b.classList.remove('active'));
@@ -1058,8 +1353,21 @@ window.addEventListener("blur", () => {
     keys.a = false;
     keys.d = false;
 });
+let sizeUpdateQueued = false;
+let scrollTimeout = null;
 const elementsContainer = document.getElementById('elements');
-let scrollTimeout;
+
+(() => {
+  const buttons = elementsContainer.querySelectorAll('.elem-btn');
+
+  for (const btn of buttons) {
+    btn.style.setProperty('--scroll-scale', '1');
+  }
+})();
+window.addEventListener('resize', () => {
+  cacheScrollButtons();
+  updateButtonSizes();
+}, { passive: true });
 (() => {
   const REPEL_RADIUS = 205;
   const REPEL_RADIUS_SQUARED = REPEL_RADIUS * REPEL_RADIUS;
@@ -1077,6 +1385,8 @@ let scrollTimeout;
 
   let timer = null;
   let cacheReady = false;
+  let scrolling = false;
+  let scrollTimer = null;
 
   function getKey(x, y) {
     return `${Math.floor(x / CELL_SIZE)}:${Math.floor(y / CELL_SIZE)}`;
@@ -1092,6 +1402,7 @@ let scrollTimeout;
 
       btn._repelXPos = rect.left + rect.width * 0.5;
       btn._repelYPos = rect.top + rect.height * 0.5;
+
       btn._repelLastX = 0;
       btn._repelLastY = 0;
 
@@ -1122,12 +1433,20 @@ let scrollTimeout;
     }
   }
 
+  function resetAllButtons() {
+    for (const btn of activeButtons) {
+      resetButton(btn);
+    }
+
+    activeButtons.clear();
+  }
+
   function updateRepel() {
     timer = null;
 
-    if (!cacheReady) {
-      buildCache();
-    }
+    if (scrolling) return;
+
+    if (!cacheReady) buildCache();
 
     const cellX = Math.floor(mouseX / CELL_SIZE);
     const cellY = Math.floor(mouseY / CELL_SIZE);
@@ -1166,9 +1485,7 @@ let scrollTimeout;
       const item = nearby[i];
       const btn = item.btn;
       const distance = Math.sqrt(item.distanceSquared);
-
       const strength = REPEL_STRENGTH * (1 - distance / REPEL_RADIUS);
-
       const repelX = Math.round((item.dx / distance * strength) * 10) / 10;
       const repelY = Math.round((item.dy / distance * strength) * 10) / 10;
 
@@ -1186,21 +1503,21 @@ let scrollTimeout;
     }
 
     for (const btn of activeButtons) {
-      if (!newActive.has(btn)) {
-        resetButton(btn);
-      }
+      if (!newActive.has(btn)) resetButton(btn);
     }
 
     activeButtons = newActive;
   }
 
   function scheduleUpdate() {
-    if (timer !== null) return;
+    if (scrolling || timer !== null) return;
 
     timer = setTimeout(updateRepel, UPDATE_INTERVAL);
   }
 
   elementsContainer.addEventListener('mousemove', e => {
+    if (scrolling) return;
+
     mouseX = e.clientX;
     mouseY = e.clientY;
 
@@ -1208,6 +1525,7 @@ let scrollTimeout;
   }, { passive: true });
 
   elementsContainer.addEventListener('mouseenter', () => {
+    scrolling = false;
     cacheReady = false;
     buildCache();
   });
@@ -1218,27 +1536,47 @@ let scrollTimeout;
       timer = null;
     }
 
-    for (const btn of activeButtons) {
-      resetButton(btn);
+    if (scrollTimer !== null) {
+      clearTimeout(scrollTimer);
+      scrollTimer = null;
     }
 
-    activeButtons.clear();
+    scrolling = false;
+    resetAllButtons();
   });
+
+  elementsContainer.addEventListener('scroll', () => {
+    scrolling = true;
+    cacheReady = false;
+
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+
+    resetAllButtons();
+
+    if (scrollTimer !== null) clearTimeout(scrollTimer);
+
+    scrollTimer = setTimeout(() => {
+      scrollTimer = null;
+      scrolling = false;
+      cacheReady = false;
+      buildCache();
+    }, 100);
+  }, { passive: true });
 
   window.addEventListener('resize', () => {
     cacheReady = false;
-  }, { passive: true });
+    cacheScrollButtons();
 
-  elementsContainer.addEventListener('scroll', () => {
-    cacheReady = false;
+    for (const btn of scrollButtons) {
+      btn._lastScrollTop = elementsContainer.scrollTop;
+    }
   }, { passive: true });
 
   buildCache();
 })();
-elementsContainer.addEventListener('scroll', () => {
- 
-  requestAnimationFrame(updateButtonSizes);
-});
     // FPS display
     let fps = 0;
     let fpsFrames = 0;
@@ -1385,9 +1723,7 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
     canvas.addEventListener("contextmenu", (e) => {
       e.preventDefault();
 
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) / voxelsize);
-      const y = Math.floor((e.clientY - rect.top) / voxelsize);
+      const { x, y } = getCanvasCell(e);
 
       if (!grid.isInside(x, y)) return;
 
@@ -1399,22 +1735,22 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
 
 
     // --- MOUSE TRACKING ---
-    canvas.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = Math.floor((e.clientX - rect.left) / voxelsize);
-      mouse.y = Math.floor((e.clientY - rect.top) / voxelsize);
+    canvas.addEventListener("pointermove", (e) => {
+      const _c = getCanvasCell(e);
+      mouse.x = _c.x;
+      mouse.y = _c.y;
     
 
       // Place while dragging left button (but not for click-to-click tools)
       const nodrag = ["line","rect","circle","fill"];
       if (mouse.down && !nodrag.includes(Brush.method)) placeAtMouse(e);
     });
-    canvas.addEventListener("mouseleave", () => {
+    canvas.addEventListener("pointerleave", () => {
     lastPaintCell = null;
 });
     
 
-    canvas.addEventListener("mousedown", (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
       if (Brush.method === "measure" || Brush.method === "select" || Brush.method === "transform") return;
       if (e.button === 0) { // left click
       mouse.down = true;
@@ -1426,13 +1762,11 @@ placeAtMouse(e);
       }
     });
     
-window.addEventListener("mouseup", (e) => {
+window.addEventListener("pointerup", (e) => {
     if (e.button === 0) {
         // finalize select drag
         if (Brush.method === "select" && selectStart) {
-            const rect = canvas.getBoundingClientRect();
-            const x = Math.floor((e.clientX - rect.left) / voxelsize);
-            const y = Math.floor((e.clientY - rect.top) / voxelsize);
+            const { x, y } = getCanvasCell(e);
 
             const minX = Math.min(selectStart.x, x);
             const maxX = Math.max(selectStart.x, x);
@@ -1460,13 +1794,11 @@ window.addEventListener("mouseup", (e) => {
 });
     
     // select tool – drag to select
-    canvas.addEventListener("mousedown", (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
   if (Brush.method !== "select") return;
   if (e.button !== 0) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / voxelsize);
-  const y = Math.floor((e.clientY - rect.top) / voxelsize);
+  const { x, y } = getCanvasCell(e);
 
   if (!grid.isInside(x, y)) return;
 
@@ -1476,12 +1808,10 @@ window.addEventListener("mouseup", (e) => {
   e.preventDefault();
 });
     // measurment controls
-    canvas.addEventListener("mousedown", (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
   if (Brush.method !== "measure") return;
 
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / voxelsize);
-  const y = Math.floor((e.clientY - rect.top) / voxelsize);
+  const { x, y } = getCanvasCell(e);
 
   if (!grid.isInside(x, y)) return;
 
@@ -1502,14 +1832,12 @@ window.addEventListener("mouseup", (e) => {
 });
 
     // transform tool – click indicators
-    canvas.addEventListener("mousedown", (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
   if (Brush.method !== "transform") return;
   if (e.button !== 0) return;
   if (selectedCells.size === 0) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const px = e.clientX - rect.left;
-  const py = e.clientY - rect.top;
+  const { x: px, y: py } = getCanvasXY(e);
 
   const hit = hitTestTransformHandle(px, py);
   if (!hit) return;
@@ -1543,12 +1871,10 @@ window.addEventListener("mouseup", (e) => {
   e.preventDefault();
   e.stopPropagation();
 });
-canvas.addEventListener("mousemove", (e) => {
+canvas.addEventListener("pointermove", (e) => {
   if (Brush.method !== "transform" || !transformDragging || !transformDragStart) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const px = e.clientX - rect.left;
-  const py = e.clientY - rect.top;
+  const { x: px, y: py } = getCanvasXY(e);
 
   const dx = px - transformDragStart.x;
   const dy = py - transformDragStart.y;
@@ -1652,7 +1978,7 @@ canvas.addEventListener("mousemove", (e) => {
     scaleSelection(snapped, snapped);
   }
 });
-    window.addEventListener("mouseup", (e) => {
+    window.addEventListener("pointerup", (e) => {
   if (e.button !== 0 || !transformDragging) return;
   if (Brush.method !== "transform") return;
 
@@ -1662,7 +1988,7 @@ canvas.addEventListener("mousemove", (e) => {
   scaleLastFactor = 1;
   rotateLastAngleDeg = 0;
 });
-      canvas.addEventListener("mousemove", () => {
+      canvas.addEventListener("pointermove", () => {
       if (!grid.isInside(mouse.x, mouse.y)) {
         hoverInfo.textContent = "";
         return;
@@ -9734,8 +10060,8 @@ motor: new Element(
   function enableDrag(line, isMin) {
     let dragging = false;
     line.onmousedown = e => { dragging = true; e.stopPropagation(); };
-    window.addEventListener("mouseup", () => dragging = false);
-    window.addEventListener("mousemove", e => {
+    window.addEventListener("pointerup", () => dragging = false);
+    window.addEventListener("pointermove", e => {
       if (!dragging) return;
       const rect = angleBox.getBoundingClientRect();
       const dx = e.clientX - (rect.left + rect.width / 2);
@@ -9749,8 +10075,8 @@ motor: new Element(
   function enableZeroDrag() {
     let dragging = false;
     zeroArrow.onmousedown = e => { dragging = true; e.stopPropagation(); };
-    window.addEventListener("mouseup", () => dragging = false);
-    window.addEventListener("mousemove", e => {
+    window.addEventListener("pointerup", () => dragging = false);
+    window.addEventListener("pointermove", e => {
       if (!dragging) return;
       const rect = angleBox.getBoundingClientRect();
       const dx = e.clientX - (rect.left + rect.width / 2);
@@ -12193,14 +12519,12 @@ missile_fueltank: new Element(
       const onCanvasClick = e => {
         if (!pickingTarget) return;
         e.stopPropagation(); e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const tx = Math.floor((e.clientX - rect.left) / voxelsize);
-        const ty = Math.floor((e.clientY - rect.top) / voxelsize);
+        const { x: tx, y: ty } = getCanvasCell(e);
         const f = findSelf();
         if (f) { f.cell._targetX = tx; f.cell._targetY = ty; f.cell._armed = true; }
         pickingTarget = false;
         canplace = true;
-        canvas.removeEventListener("mousedown", onCanvasClick, true);
+        canvas.removeEventListener("pointerdown", onCanvasClick, true);
         menu.querySelector("#mc-arm").classList.remove("mc-armed");
         refresh();
         log(`target: (${tx}, ${ty})`);
@@ -12213,7 +12537,7 @@ missile_fueltank: new Element(
         menu.querySelector("#mc-arm").classList.add("mc-armed");
         statusEl.textContent = "Click target...";
         statusEl.style.color = "#fa0";
-        canvas.addEventListener("mousedown", onCanvasClick, true);
+        canvas.addEventListener("pointerdown", onCanvasClick, true);
       };
 
       menu.querySelector("#mc-launch").onclick = e => {
@@ -12245,7 +12569,7 @@ missile_fueltank: new Element(
 
       const observer = new MutationObserver(() => {
         if (!document.getElementById("optionMenu")) {
-          if (pickingTarget) { canplace = true; canvas.removeEventListener("mousedown", onCanvasClick, true); }
+          if (pickingTarget) { canplace = true; canvas.removeEventListener("pointerdown", onCanvasClick, true); }
           observer.disconnect();
         }
       });
@@ -17738,9 +18062,7 @@ screen_control: new Element(
         e.stopPropagation();
         e.preventDefault();
 
-        const rect = canvas.getBoundingClientRect();
-        const tx = Math.floor((e.clientX - rect.left) / voxelsize);
-        const ty = Math.floor((e.clientY - rect.top) / voxelsize);
+        const { x: tx, y: ty } = getCanvasCell(e);
 
         if (firstPoint2 == null) {
           firstPoint2 = { x: tx, y: ty };
@@ -17772,11 +18094,11 @@ screen_control: new Element(
         }
       };
 
-      canvas.addEventListener("mousedown", onCanvasMousedown);
+      canvas.addEventListener("pointerdown", onCanvasMousedown);
 
       const observer = new MutationObserver(() => {
         if (!document.getElementById("optionMenu")) {
-          canvas.removeEventListener("mousedown", onCanvasMousedown);
+          canvas.removeEventListener("pointerdown", onCanvasMousedown);
           if (selecting) canplace = true;
           observer.disconnect();
         }
@@ -23047,7 +23369,7 @@ chisel: new Element(
   (grid,x,y) => {
     const cell = grid.get(x, y);
     const element = ELEMENTS[cell.element.name];
-    if(element.category.includes("Liquids") || element.category.includes("Powders") || element.category.includes("Energy") || element.category.includes("System")) return;
+    if(element.name === "empty") return;
      UiManager.refs.ChiselUIContainer.pickedElement = cell.element;
     UiManager.refs.ChiselUIContainer.style.display = "block";
     UiManager.refs.ChiselUIContainer.currentGrid = cell.subGrid || Array.from({ length: 4 }, () =>
@@ -23080,14 +23402,7 @@ sub_brush: new Element(
 
     const element = ELEMENTS[cell.element.name];
 
-    if(
-      element.category.includes("Liquids") ||
-      element.category.includes("Powders") ||
-      element.category.includes("Energy") ||
-      element.category.includes("System")
-    ){
-      return;
-    }
+   if(element.name === "empty") return;
 
     UiManager.refs.PaintingUIContainer.style.display = "block";
 
@@ -31459,6 +31774,7 @@ brick: new Element(
   {},
   (grid,x,y) => {
     const cell = grid.get(x,y);
+    if(cell.temperature > 1000) grid.set(x,y,ELEMENTS.lava);
   },
   (grid,x,y) => {
     const cell = grid.get(x,y);
@@ -32537,6 +32853,129 @@ aerogel: new Element(
       cell.color = "#112630";
     } else cell.color = null;
   }
+),
+marble: new Element(
+  "marble",
+  "#d1d1d1",
+  "Solids",
+  {shiny: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    const hash = (x,y) => {
+      const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+      return n - Math.floor(n);
+    };
+
+    const fade = t => t * t * (3 - 2 * t);
+
+    const lerp = (a,b,t) => a + (b - a) * t;
+
+    const noise = (x,y) => {
+      const x0 = Math.floor(x);
+      const y0 = Math.floor(y);
+
+      const sx = fade(x - x0);
+      const sy = fade(y - y0);
+
+      const a = hash(x0,y0);
+      const b = hash(x0 + 1,y0);
+      const c = hash(x0,y0 + 1);
+      const d = hash(x0 + 1,y0 + 1);
+
+      return lerp(
+        lerp(a,b,sx),
+        lerp(c,d,sx),
+        sy
+      );
+    };
+
+    const fbm = (x,y) => {
+      let value = 0;
+      let amplitude = 0.6;
+
+      for(let i = 0; i < 3; i++){
+        value += noise(x,y) * amplitude;
+        x *= 2;
+        y *= 2;
+        amplitude *= 0.5;
+      }
+
+      return value;
+    };
+
+    const rgb = (r,g,b) => `rgb(${r},${g},${b})`;
+
+    cell.subGrid = Array.from({length: 4}, (_, subY) =>
+      Array.from({length: 4}, (_, subX) => {
+        const px = x * 4 + subY;
+        const py = y * 4 + subX;
+
+        const warpX = fbm(
+          px * 0.07 + 10,
+          py * 0.07 + 10
+        );
+
+        const warpY = fbm(
+          px * 0.07 + 50,
+          py * 0.07 + 50
+        );
+
+        const wx = px * 0.16 + (warpX - 0.5) * 3;
+        const wy = py * 0.16 + (warpY - 0.5) * 3;
+
+        const field = fbm(wx,wy);
+
+        const distance = Math.abs(field - 0.5);
+
+        // Main marble veins.
+        if(distance < 0.025){
+          return rgb(80,80,80);
+        }
+
+        // Slightly lighter vein edges.
+        if(distance < 0.055){
+          return rgb(130,130,130);
+        }
+
+        // Small amount of soft stone variation.
+        const stone = fbm(
+          px * 0.045 + 100,
+          py * 0.045 + 100
+        );
+
+        const brightness =
+          205 + stone * 30;
+
+        return rgb(
+          Math.round(brightness),
+          Math.round(brightness),
+          Math.round(brightness)
+        );
+      })
+    );
+  }
+),
+freeze: new Element(
+  "freeze",
+  "#ffffff",
+  "Tool",
+  {},
+  (grid,x,y) => {
+    grid.get(x,y).paused = true;
+  }
+),
+unfreeze: new Element(
+  "unfreeze",
+  "#ffffff",
+  "Tool",
+  {},
+  (grid,x,y) => {
+    grid.get(x,y).paused = false;
+  }
 )
 
 
@@ -32647,7 +33086,7 @@ aerogel: new Element(
 
     const cell = grid.get(gx, gy);
 
-    if (cell && cell.element !== ELEMENTS.empty) {
+    if (cell && cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.vfx) {
       this.life = 0;
       return;
     }
@@ -33036,7 +33475,7 @@ const ui = {
     }
   }
 
-  el.addEventListener("mousemove", (e) => {
+  el.addEventListener("pointermove", (e) => {
     updatePaintPosition(e);
 
     if(paintMouseDown){
@@ -33044,7 +33483,7 @@ const ui = {
     }
   });
 
-  el.addEventListener("mousedown", (e) => {
+  el.addEventListener("pointerdown", (e) => {
     e.preventDefault();
 
     updatePaintPosition(e);
@@ -33068,7 +33507,7 @@ const ui = {
     paintMouseY = null;
   });
 
-  document.addEventListener("mouseup", (e) => {
+  document.addEventListener("pointerup", (e) => {
     if(e.button === paintButton){
       paintMouseDown = false;
     }
@@ -33290,11 +33729,11 @@ const ui = {
             );
         }
 
-        el.addEventListener("mousedown", (e) => {
+        el.addEventListener("pointerdown", (e) => {
           pickWheelColor(e);
         });
 
-        el.addEventListener("mousemove", (e) => {
+        el.addEventListener("pointermove", (e) => {
           if(e.buttons & 1){
             pickWheelColor(e);
           }
@@ -33373,7 +33812,7 @@ const ui = {
         let paintingOffsetX = 0;
         let paintingOffsetY = 0;
 
-        el.addEventListener("mousedown", (e) => {
+        el.addEventListener("pointerdown", (e) => {
           paintingDragging = true;
 
           const rect =
@@ -33388,7 +33827,7 @@ const ui = {
           e.preventDefault();
         });
 
-        document.addEventListener("mousemove", (e) => {
+        document.addEventListener("pointermove", (e) => {
           if(!paintingDragging){
             return;
           }
@@ -33402,7 +33841,7 @@ const ui = {
           paintingContainer.style.transform = "none";
         });
 
-        document.addEventListener("mouseup", () => {
+        document.addEventListener("pointerup", () => {
           paintingDragging = false;
         });
 
@@ -33467,7 +33906,7 @@ const ui = {
                   let mouseY = null;
                   let mouseDown = false;
                  
-                  el.addEventListener("mousemove", (e) => {
+                  el.addEventListener("pointermove", (e) => {
       const rect = el.getBoundingClientRect();
 
       const scaleX = el.width / rect.width;
@@ -33500,7 +33939,7 @@ const ui = {
                    el.addEventListener("contextmenu", (e) => {
         e.preventDefault();
     });
-                el.addEventListener("mousedown", (e) => {
+                el.addEventListener("pointerdown", (e) => {
                    if (e.button === 0) { // left click
                     button = 0;
                    } else{
@@ -33508,7 +33947,7 @@ const ui = {
                    }
                   mousedown = true;
                });
-               el.addEventListener("mouseup", () => {
+               el.addEventListener("pointerup", () => {
                 mousedown = false;
                });
                  function draw(ctx){
@@ -33590,7 +34029,7 @@ const ui = {
     let offsetX = 0;
     let offsetY = 0;
 
-    el.addEventListener("mousedown", (e) => {
+    el.addEventListener("pointerdown", (e) => {
       console.log("click");
         dragging = true;
 
@@ -33603,7 +34042,7 @@ const ui = {
         e.preventDefault();
     });
 
-    document.addEventListener("mousemove", (e) => {
+    document.addEventListener("pointermove", (e) => {
         if (!dragging) return;
       console.log("drag");
         container.style.left = (e.clientX - offsetX) + "px";
@@ -33613,7 +34052,7 @@ const ui = {
         container.style.transform = "none";
     });
 
-    document.addEventListener("mouseup", () => {
+    document.addEventListener("pointerup", () => {
         dragging = false;
     });
 
@@ -34219,36 +34658,83 @@ const perlin = new Perlin();
 
   return null; // not found
 }
-download(filename = "grid.json") {
-    const saveData = {
-        version: 1,
+static serializeCellValue(value) {
+    if (value && typeof value === "object") {
+        for (const name in ELEMENTS) {
+            if (value === ELEMENTS[name]) return {
+                __element: name
+            };
+        }
 
+        if (Array.isArray(value)) {
+            return value.map(v => Grid.serializeCellValue(v));
+        }
+
+        const result = {};
+
+        for (const key in value) {
+            if (typeof value[key] === "function") continue;
+            result[key] = Grid.serializeCellValue(value[key]);
+        }
+
+        return result;
+    }
+
+    return value;
+}
+
+static deserializeCellValue(value) {
+    if (!value || typeof value !== "object") return value;
+
+    if (value.__element) {
+        return ELEMENTS[value.__element] ?? ELEMENTS.empty;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(v => Grid.deserializeCellValue(v));
+    }
+
+    const result = {};
+
+    for (const key in value) {
+        result[key] = Grid.deserializeCellValue(value[key]);
+    }
+
+    return result;
+}
+download(filename = "grid.json") {
+    const cells = [];
+
+    for (let y = 0; y < this.rows; y++) {
+        for (let x = 0; x < this.cols; x++) {
+            const cell = this.grid[y][x];
+
+            if (!cell.element || cell.element === ELEMENTS.empty) continue;
+
+            const saved = {
+                x,
+                y,
+                element: cell.element.name
+            };
+
+            for (const key in cell) {
+                if (key === "element") continue;
+                if (typeof cell[key] === "function") continue;
+
+                saved[key] = Grid.serializeCellValue(cell[key]);
+            }
+
+            cells.push(saved);
+        }
+    }
+
+    const saveData = {
+        version: 3,
         voxelsize: this.voxelsize,
         width: this.width,
         height: this.height,
-
         showGrid: this.showGrid,
-
-        grid: this.grid.map(row =>
-            row.map(cell => ({
-                element: cell.element?.name ?? "empty",
-
-                temperature: cell.temperature ?? 20,
-                e: cell.e ?? 0,
-                age: cell.age ?? 0,
-
-                color: cell.color ?? null,
-                customColor: cell.customColor ?? null,
-
-                glued: cell.glued ?? false,
-                shiny: cell.shiny ?? false,
-
-                subGrid: cell.subGrid ?? null,
-
-                lightLevel: cell.lightLevel ?? 0,
-                lightColor: cell.lightColor ?? null
-            }))
-        )
+        cells
     };
 
     const json = JSON.stringify(saveData);
@@ -34278,41 +34764,61 @@ static fromSave(saveData) {
 
     grid.showGrid = saveData.showGrid ?? "normal";
 
+    // New sparse format
+    if (saveData.version >= 3 && Array.isArray(saveData.cells)) {
+        for (const saved of saveData.cells) {
+            const element = ELEMENTS[saved.element] ?? ELEMENTS.empty;
+
+            const cell = {};
+
+            for (const key in saved) {
+                if (key === "x") continue;
+                if (key === "y") continue;
+                if (key === "element") continue;
+
+                cell[key] = Grid.deserializeCellValue(saved[key]);
+            }
+
+            cell.element = element;
+
+            if (
+                saved.x >= 0 &&
+                saved.x < grid.cols &&
+                saved.y >= 0 &&
+                saved.y < grid.rows
+            ) {
+                grid.grid[saved.y][saved.x] = cell;
+            }
+        }
+
+        return grid;
+    }
+
+    // Old v2 format
     for (let y = 0; y < grid.rows; y++) {
         for (let x = 0; x < grid.cols; x++) {
-
             const saved = saveData.grid[y]?.[x];
 
             if (!saved) continue;
 
-            const element =
-                ELEMENTS[saved.element] ??
-                ELEMENTS.empty;
+            const element = ELEMENTS[saved.element] ?? ELEMENTS.empty;
 
-            grid.grid[y][x] = {
-                element: element,
+            const cell = {};
 
-                temperature: saved.temperature ?? 20,
-                e: saved.e ?? 0,
-                age: saved.age ?? 0,
+            for (const key in saved) {
+                if (key === "element") continue;
 
-                color: saved.color ?? null,
-                customColor: saved.customColor ?? null,
+                cell[key] = Grid.deserializeCellValue(saved[key]);
+            }
 
-                glued: saved.glued ?? false,
-                shiny: saved.shiny ?? false,
+            cell.element = element;
 
-                subGrid: saved.subGrid ?? null,
-
-                lightLevel: saved.lightLevel ?? 0,
-                lightColor: saved.lightColor ?? null
-            };
+            grid.grid[y][x] = cell;
         }
     }
 
     return grid;
 }
-
   initGrid() {
     for (let y = 0; y < this.rows; y++) {
       this.grid[y] = [];
@@ -34674,6 +35180,7 @@ set(x, y, element, overrides = {}) {
       const cell = this.get(x, y);
       if (cell.element.name === "empty") continue;
       if (selectedCells.has(x + "," + y)) continue; // skip selected cells
+      if (cell.paused) continue;
       cell.element.behavior(this, x, y);
     }
   }
@@ -36018,11 +36525,11 @@ function openOptionMenu(cell, screenX, screenY, grid, x, y) {
     function outsideClick(e) {
       if (!menu.contains(e.target)) {
         closeOptionMenu();
-        document.removeEventListener("mousedown", outsideClick);
+        document.removeEventListener("pointerdown", outsideClick);
       }
     }
 
-    document.addEventListener("mousedown", outsideClick);
+    document.addEventListener("pointerdown", outsideClick);
   }, 0);
 }
 
@@ -36036,9 +36543,7 @@ function closeOptionMenu() {
 function placeAtMouse(e) {
     if (!canplace || !selectedElement) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / voxelsize);
-    const y = Math.floor((e.clientY - rect.top) / voxelsize);
+    const { x, y } = getCanvasCell(e);
 
     if (!grid.isInside(x, y)) return;
 
