@@ -826,6 +826,9 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
     #ui {
       order: 3;
       position: static;
+      display: flex;
+       flex-direction: column;
+  height: 40vh;
       left: auto;
       top: auto;
       width: 100vw;
@@ -886,6 +889,24 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
   width: 100%;
   padding: 2px 2px 8px;
   -webkit-overflow-scrolling: touch;
+}
+#search {
+  flex: 0 0 auto;
+}
+
+#categories {
+  flex: 0 0 auto;
+}
+
+#elements {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 62px;
+  gap: 10px;
 }
 
     .elem-btn {
@@ -1181,7 +1202,19 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 setTimeout(() => {
     document.getElementById("epilepsyWarning")?.remove();
 }, 2000);
+function updateElementRows() {
+    const elements = document.getElementById("elements");
+    const buttonSize = 62;
+    const gap = 10;
 
+    const rows = Math.max(1, Math.floor((elements.clientHeight + gap) / (buttonSize + gap)));
+
+    elements.style.gridTemplateRows = `repeat(${rows}, ${buttonSize}px)`;
+}
+
+window.addEventListener("resize", updateElementRows);
+new ResizeObserver(updateElementRows).observe(document.getElementById("elements"));
+updateElementRows();
 
     // canvas
     const canvas = document.getElementById("sim");
