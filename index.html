@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Guttobear/simbox2.0/main/Simbox%20Logo%20New%204.png">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simbox 2.0</title>
+  <title>SimBox</title>
   <style>
    body {
   margin: 0;
@@ -860,7 +861,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 
   <script>
     // version
-    const CURRENT_VERSION = "Va1.7";
+    const CURRENT_VERSION = "Va1.8";
     document.getElementById("version").textContent = CURRENT_VERSION;
     window.addEventListener('load', () => {
   requestAnimationFrame(() => {
@@ -1011,6 +1012,8 @@ document.querySelectorAll('.toolbar-category').forEach(details => {
     let hoveredMeasurementIndex = -1;
     let keybinds = false;
 
+// Initialize outside your main game loop
+let particles = [];
 
   // =============================================================
 // GLOBAL KEYBOARD INPUT
@@ -1995,25 +1998,22 @@ bloom(duration = 120, i = 1.5) {
   });
 }
 
-  // ---------- SHAKE ----------
-shake(intensity = 10, duration = 500, rampSpeed = 0.15) {
+ shake(intensity = 10, duration = 500, rampSpeed = 0.15) {
   if (this.locked) return;
 
   const el = this.el;
   const s = this.currentShake;
   const totalTicks = Math.max(1, Math.round(duration / TICK_MS));
 
-  // Update shake if already active
   if (s.active) {
-    s.targetIntensity = Math.min(intensity, s.maxIntensity); // cap max intensity
-    s.durationTimer = 0; // restart duration countdown
+    s.targetIntensity = Math.min(intensity, s.maxIntensity);
+    s.durationTimer = 0;
     return;
   }
 
-  // Start a new shake
   s.active = true;
   s.targetIntensity = intensity;
-  s.maxIntensity = intensity; // maximum allowed
+  s.maxIntensity = intensity;
   s.currentIntensity = 0;
   s.rampSpeed = rampSpeed;
   s.durationTimer = 0;
@@ -2023,21 +2023,27 @@ shake(intensity = 10, duration = 500, rampSpeed = 0.15) {
     s.durationTimer++;
     s.waveTimer++;
 
-    // End shake after duration
     if (s.durationTimer >= totalTicks) {
       el.style.transform = "";
       s.active = false;
+      s.currentIntensity = 0;
+      s.targetIntensity = 0;
+      s.durationTimer = 0;
+      s.waveTimer = 0;
+
       offTick(unsub);
+
+      if (s.unsub === unsub) {
+        s.unsub = null;
+      }
+
       return;
     }
 
-    // Smoothly ramp current intensity toward target, capped
     s.currentIntensity += (s.targetIntensity - s.currentIntensity) * s.rampSpeed;
 
-    // Damping over duration
     const damp = 1 - s.durationTimer / totalTicks;
 
-    // Oscillating shake
     const x = Math.sin(s.waveTimer * 0.45) * s.currentIntensity * damp;
     const y = Math.cos(s.waveTimer * 0.33) * s.currentIntensity * damp;
 
@@ -2045,10 +2051,6 @@ shake(intensity = 10, duration = 500, rampSpeed = 0.15) {
   });
 
   s.unsub = unsub;
-
-  this._registerEffect(unsub, () => {
-    el.style.transform = "";
-  });
 }
 // ---------- FLASHBANG BLOOM ----------
 // ---------- FLASHBANG BLOOM (GLASSY) ----------
@@ -2277,44 +2279,80 @@ doesNotHaveTag(tag) {
 }
 
 }
+function firePhysics(grid,x,y,opts = {}){
+  const {
+    burnElement = ELEMENTS.fire,
+    minTemp = 100,
+    catchChance = 0.5,
+    heatSpeed = 2,
+    burnTemp = 300,
+    burnChance = 0.1,
+    fireChance = 0.2,
+    putOutTemp = 50,
+  } = opts;
 
-// =========================================================
-// LIQUID PHYSICS HELPER
-// Call this inside any element's (grid, x, y) => {} to give
-// it standard liquid movement. Options:
-//
-//   spreadChance  – probability (0–1) of attempting a sideways
-//                   move each tick. Default: 0.5
-//
-//   spreadDist    – max cells to search sideways. Default: 1
-//                   (set to e.g. 3 for fast-spreading liquids)
-//
-//   sinkPowders   – whether the liquid sinks beneath lighter
-//                   powders. Default: true
-//
-//   extraCanEnter – optional extra function(target) => bool
-//                   checked in addition to the normal rules,
-//                   e.g. to let bromine displace its own gas tag
-//
-// Returns true if the cell moved (so you can early-return after).
-//
-// Example – standard water physics:
-//   liquidPhysics(grid, x, y);
-//
-// Example – fast oil spread, no powder sinking:
-//   liquidPhysics(grid, x, y, { spreadDist: 3, sinkPowders: false });
-//
-// Example – bromine also displaces cells tagged "gas":
-//   liquidPhysics(grid, x, y, {
-//     extraCanEnter: t => t.element.hasTag("gas")
-//   });
-// =========================================================
+  const cell = grid.get(x,y);
+  if(!cell) return;
+
+  const dirs = [
+    [0,1],[0,-1],[1,0],[-1,0],
+    [1,1],[-1,1],[1,-1],[-1,-1]
+  ];
+  if(cell.temperature >= burnTemp && Math.random() < burnChance){
+    grid.set(x,y,burnElement);
+    return;
+  }
+  let touchingFire = false;
+
+  for(const [dx,dy] of dirs){
+    const other = grid.get(x+dx,y+dy);
+    if(other && other.element === ELEMENTS.fire){
+      touchingFire = true;
+      break;
+    }
+  }
+
+  if(cell.burning === undefined) cell.burning = false;
+
+  if(cell.burning){
+    if(cell.temperature <= putOutTemp){
+      cell.burning = false;
+      cell.element = cell.element.withoutTag("burnt");
+    }
+  }else{
+    if(touchingFire && cell.temperature >= minTemp && Math.random() < catchChance){
+      cell.burning = true;
+    }
+  }
+
+  if(!cell.burning) return;
+
+  cell.element = cell.element.withTag("burnt");
+
+  cell.temperature += heatSpeed;
+
+  
+
+  for(const [dx,dy] of dirs){
+    const nx = x + dx;
+    const ny = y + dy;
+    const other = grid.get(nx,ny);
+
+    if(!other) continue;
+
+    other.temperature += heatSpeed;
+
+    if(other.element === ELEMENTS.empty && Math.random() < fireChance){
+      grid.set(nx,ny,ELEMENTS.fire);
+    }
+  }
+}
 function liquidPhysics(grid, x, y, opts = {}) {
   const {
     spreadChance = 0.72,
     spreadDist = 5,
     diagonalChance = 0.82,
-    sinkPowders = true,
+    sinkPowders = false,
     sinkGases = true,
     densitySwapChance = 0.10,
     densityScale = 1600,
@@ -2691,62 +2729,106 @@ function powderPhysics(grid, x, y, opts = {}) {
 //-------gas physics helper----------
 function gasPhysics(grid, x, y, opts = {}) {
   const {
+    riseChance = 0.5,
+    fallChance = 0.2,
+    sidewaysChance = 0.5,
+    diagonalChance = 0.5,
+
+    canFall = true,
+    canRise = true,
+    canMoveSideways = true,
+    canMoveDiagonal = true,
+
+    riseSpeed = 1,
+    sidewaysSpeed = 1,
+    fallSpeed = 1,
+
+    spreadDistance = 1,
+
+    randomizeDirection = true,
+
+    density = null,
     extraCanEnter = null,
+    canSwapWithGas = true,
+    canSwapWithEmpty = true,
   } = opts;
 
   const cell = grid.get(x, y);
-  const sd = cell.element.properties.density ?? 1;
+  const sd = density ?? (cell.element.properties.density ?? 1);
 
   function canEnter(target) {
-    if (target.element.name === "empty") return true;
-    const tc = target.element.category;
+    if (!target) return false;
+
+    if (canSwapWithEmpty && target.element.name === "empty") return true;
+
     const td = target.element.properties.density ?? 1;
-    if (tc === "Gas" && td < sd) return true;
+
+    if (
+      canSwapWithGas &&
+      target.element.category === "Gas" &&
+      td < sd
+    ) return true;
+
     if (extraCanEnter && extraCanEnter(target)) return true;
+
     return false;
   }
 
   function canEnterDiag(dx, dy) {
     const side = grid.get(x + dx, y);
-    const up   = grid.get(x, y + dy);
-    if (!side || !up) return false;
-    if (!canEnter(side) || !canEnter(up)) return false;
+    const vert = grid.get(x, y + dy);
     const dest = grid.get(x + dx, y + dy);
-    return dest && canEnter(dest);
+
+    return side && vert && dest &&
+      canEnter(side) &&
+      canEnter(vert) &&
+      canEnter(dest);
   }
 
-  const dirs = [
-    [0, -1, false],                                    // up
-    [Math.random() < 0.5 ? -1 : 1, 0, false],         // random left/right
-    [Math.random() < 0.5 ? -1 : 1, -1, true],         // diagonal up
-  ];
+  function tryMove(dx, dy, diag, chance) {
+    if (Math.random() >= chance) return false;
 
-  let moved = false;
+    const nx = x + dx;
+    const ny = y + dy;
 
-  for (const [dx, dy, diag] of dirs) {
-    const nx = x + dx, ny = y + dy;
-    if (!grid.isInside(nx, ny)) continue;
+    if (!grid.isInside(nx, ny)) return false;
+
     const ok = diag ? canEnterDiag(dx, dy) : canEnter(grid.get(nx, ny));
-    if (ok && Math.random() < 0.5) {
-      grid.swap(x, y, nx, ny);
-      moved = true;
+
+    if (!ok) return false;
+
+    grid.swap(x, y, nx, ny);
+    return true;
+  }
+
+  let dir = randomizeDirection
+    ? (Math.random() < 0.5 ? -1 : 1)
+    : 1;
+
+  if (canRise) {
+    for (let i = 0; i < riseSpeed; i++) {
+      if (tryMove(0, -1, false, riseChance)) return;
     }
   }
 
-  if (!moved) {
-    const belowDirs = [
-      [0, 1, false],
-      [Math.random() < 0.5 ? -1 : 1, 1, true],
-      [Math.random() < 0.5 ? -1 : 1, 0, false],
-    ];
+  if (canMoveDiagonal) {
+    for (let i = 0; i < riseSpeed; i++) {
+      if (tryMove(dir, -1, true, diagonalChance)) return;
+    }
+  }
 
-    for (const [dx, dy, diag] of belowDirs) {
-      const nx = x + dx, ny = y + dy;
-      if (!grid.isInside(nx, ny)) continue;
-      const ok = diag ? canEnterDiag(dx, dy) : canEnter(grid.get(nx, ny));
-      if (ok && Math.random() < 0.2) {
-        grid.swap(x, y, nx, ny);
+  if (canMoveSideways) {
+    for (let i = 0; i < sidewaysSpeed; i++) {
+      for (let d = 1; d <= spreadDistance; d++) {
+        if (tryMove(dir * d, 0, false, sidewaysChance)) return;
       }
+    }
+  }
+
+  if (canFall) {
+    for (let i = 0; i < fallSpeed; i++) {
+      if (tryMove(0, 1, false, fallChance)) return;
+      if (tryMove(dir, 1, true, fallChance)) return;
     }
   }
 }
@@ -2779,7 +2861,7 @@ const RECIPES = [
   "#c2b280",
   "Powders",
   {
-    density: 1.94,
+    density: 2.94,
     conductivity: 0.06,
     variants: {
       molten: {
@@ -3373,7 +3455,7 @@ for (const [dx, dy] of directions) {
         "glass",
         "#0A1929",
         "Solids",
-        { density: 1.6},
+        { density: 1.6, noVaritation: true},
         (grid,x,y) => {
           const cell = grid.get(x,y);
 
@@ -3472,7 +3554,7 @@ grid.set(x, y, ELEMENTS.plasma);
   "lava",
   "rgb(255, 180, 70)",
   "Liquids",
-  { density: 7.1,
+  { density: 1.9,
     conductivity: 0.56,
     temperature: 1200,
     variants:{
@@ -3555,15 +3637,46 @@ obsidian: new Element(
 ),
 co2: new Element(
   "co2",
-  "#01070A",
+  "#1d1e21",
   "Gas",
-  {density: 1.98, conductivity: 0.015, flammable: true },
+  {density: 1.98, conductivity: 0.015, flammable: true,
+    variants: {
+      dry_ice: {
+        color: "#dedede",
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+           const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, -1],
+      [0, 1],
+
+    ];
+
+    for(const [dx, dy] of dirs){
+      const cx = dx + x, cy = dy + y;
+      if(grid.get(cx,cy) && grid.get(cx,cy).element === ELEMENTS.empty){
+        if(Math.random() < 0.02){
+        grid.set(cx,cy, ELEMENTS.co2);
+        }
+      }
+    }
+          if(cell.temperature > -70) cell.element = ELEMENTS.co2;
+        },
+         onplace: (grid,x,y) => {
+          grid.get(x,y).temperature = -100;
+        }
+      }
+    }
+   },
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
   if(cell.temperature > 2000){
     grid.set(x, y, ELEMENTS.o2);
   }
+  if(cell.temperature < -74) cell.element = cell.element.withTag("dry_ice");
+  if(Math.random() < 0.006) grid.set(x,y, ELEMENTS.empty);
  // movement
   const dirs = [
   [0, -1], // up
@@ -3842,7 +3955,7 @@ if(Math.random() < 0.001){
 
   iron: new Element(
   "iron",
-  "#bbb",
+  "#bbbbbb",
   "Solids",
   { density: 7.87,
      conductivity: 0.78,
@@ -3959,7 +4072,9 @@ const baseR = Math.floor(187 + (rustR - 187) * cell.age);
 const baseG = Math.floor(187 + (rustG - 187) * cell.age);
 const baseB = Math.floor(187 + (rustB - 187) * cell.age);
 
-// === HEAT COLOR LOGIC (BASED ON RUST COLOR) ===
+cell.temperature ??= 20;
+cell.age ??= 0;
+
 const t = Math.min(Math.max((cell.temperature - 600) / (1538 - 600), 0), 1);
 
 let r = baseR;
@@ -3992,6 +4107,9 @@ if (cell.temperature > 1538) {
     return;
   }
 }
+  },
+  (grid, x, y) => {
+    grid.get(x, y).color = "#bbbbbb";
   }
 
 ),
@@ -5100,7 +5218,11 @@ humantop: new Element(
 ),
 human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true}, (grid, x, y) => {
   const cell = grid.get(x, y);
-
+  if(grid.touching(x, y, "chlorine")){
+    if(Math.random() < 0.01){
+      grid.set(x,y, ELEMENTS.blood);
+    }
+  }
   if(cell.subGrid && cell.subGrid.some(row => row.includes(1))){
     grid.set(x,y, ELEMENTS.blood);
     return;
@@ -20037,18 +20159,7 @@ cell.lightLevel = Math.floor(t * 16);
 cell.lightColor = cell.color;
   }
 ),
-chlorine: new Element(
-  "chlorine",
-  "#88D12E",
-  "Gas",
-  {
 
-  },
-  (grid,x,y) => {
-    const cell = grid.get(x,y);
-    gasPhysics(grid,x,y);
-  }
-),
 indium: new Element(
   "indium",
   "#707070",
@@ -22943,13 +23054,47 @@ brush: new Element(
   "brush",
   "#f7f7f7",
   "Tool",
-  {rainbowUI: true,},
+  {rainbowUI: true},
   (grid, x, y) => {
     const cell = grid.get(x,y);
     if(cell.element === ELEMENTS.empty) return;
     cell.customColor = UiManager.refs.ColorUIContainer.value || "#fc0303";
   }
 
+),
+sub_brush: new Element(
+  "sub_brush",
+  "#ff4f81",
+  "Tool",
+  {rainbowUI: true},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    const element = ELEMENTS[cell.element.name];
+
+    if(
+      element.category.includes("Liquids") ||
+      element.category.includes("Powders") ||
+      element.category.includes("Energy") ||
+      element.category.includes("System")
+    ){
+      return;
+    }
+
+    UiManager.refs.PaintingUIContainer.style.display = "block";
+
+    UiManager.refs.PaintingUIContainer.currentGrid =
+      cell.subGrid ||
+      Array.from(
+        {length: 4},
+        () => Array(4).fill(0)
+      );
+
+    UiManager.refs.PaintingUIContainer.cell = cell;
+
+    UiManager.refs.PaintingUIContainer.pickedColor =
+      cell.customColor || element.color || "#fc0303";
+  }
 ),
 eraser: new Element(
   "eraser",
@@ -29549,36 +29694,30 @@ const speed = Math.hypot(vx, vy);
 
 return { x: vx, y: vy, speed };
 }
-
 pushCell(x, y, dirX, dirY, strength) {
-const cx = Math.floor(x);
-const cy = Math.floor(y);
-const cell = this.grid.get(cx, cy);
+  const cx = Math.floor(x);
+  const cy = Math.floor(y);
+  const cell = this.grid.get(cx, cy);
 
-if (!cell) return false;
-if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.tentacle_segment || cell.element === ELEMENTS.tentacle) return false;
+  if (!cell) return false;
+  if (cell.element === ELEMENTS.empty || cell.element === ELEMENTS.tentacle_segment || cell.element === ELEMENTS.tentacle) return false;
 
-const pushX = Math.sign(dirX);
-const pushY = Math.sign(dirY);
-const distance = Math.max(1, Math.round(strength));
+  const pushX = Math.sign(dirX);
+  const pushY = Math.sign(dirY);
+  const distance = Math.max(1, Math.round(strength));
 
-let moved = false;
+  for (let step = distance; step >= 1; step--) {
+    const tx = cx + pushX * step;
+    const ty = cy + pushY * step;
+    const target = this.grid.get(tx, ty);
 
-for (let step = distance; step >= 1; step--) {
-const tx = cx + pushX * step;
-const ty = cy + pushY * step;
-const target = this.grid.get(tx, ty);
+    if (!target || target.element !== ELEMENTS.empty) continue;
 
-if (!target || target.element !== ELEMENTS.empty) continue;
+    this.grid.swap(cx, cy, tx, ty);
+    return true;
+  }
 
-const element = cell.element;
-this.grid.set(tx, ty, element);
-this.grid.set(cx, cy, ELEMENTS.empty);
-moved = true;
-break;
-}
-
-return moved;
+  return false;
 }
 impactShockwave(collision, velocity) {
 if (!collision || collision.amount <= 0) return;
@@ -30245,7 +30384,7 @@ class Tentacle {
     sway(time) { this.chain.update(time); }
 }
 
-return new Element("tentacle", "#381e14", "Life", {}, (grid, x, y) => {
+return new Element("tentacle", "#381e14", "Life", {noVaritation: true}, (grid, x, y) => {
     const cell = grid.get(x, y);
     if (!cell) return;
 
@@ -30282,13 +30421,11 @@ return new Element("tentacle", "#381e14", "Life", {}, (grid, x, y) => {
 
 })(),
 
-// Hidden body element — this is what actually gets cast to the grid.
-// It never runs tentacle logic itself, so it can't spawn new tentacles.
 tentacle_segment: new Element(
   "tentacle_segment",
   "#381e14",
   "hidden",
-  {},
+  {noVaritation: true},
   (grid, x, y) => {
     const cell = grid.get(x, y);
     if (!cell.subGrid) {
@@ -30479,9 +30616,2235 @@ dismantle: new Element(
     }
   }
 ),
+conways_game_of_life: (() => {
+  let running = false;
+  let nextTick = 0;
+
+  return new Element(
+    "Conway's Game of Life",
+    "#ffffff",
+    "Life",
+    {},
+    (grid,x,y) => {
+      if (running) {
+        return;
+      }
+
+      running = true;
+
+      const currentTick = nextTick;
+
+      nextTick++;
+
+      schedule(() => {
+        const alive = new Set();
+        const neighborCounts = new Map();
+
+        // ==========================================
+        // 1. SNAPSHOT THE ENTIRE CURRENT GENERATION
+        // ==========================================
+        for (let gy = 0; gy < grid.rows; gy++) {
+          for (let gx = 0; gx < grid.cols; gx++) {
+            const cell = grid.get(gx,gy);
+
+            if (!cell) {
+              continue;
+            }
+
+            if (cell.element !== ELEMENTS.conways_game_of_life) {
+              continue;
+            }
+
+            const key = gx + "," + gy;
+
+            alive.add(key);
+          }
+        }
+
+        // ==========================================
+        // 2. COUNT NEIGHBORS FROM THE OLD GENERATION
+        // ==========================================
+        for (const key of alive) {
+          const parts = key.split(",");
+          const cx = Number(parts[0]);
+          const cy = Number(parts[1]);
+
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) {
+                continue;
+              }
+
+              const nx = cx + dx;
+              const ny = cy + dy;
+
+              if (!grid.isInside(nx,ny)) {
+                continue;
+              }
+
+              const neighborKey = nx + "," + ny;
+
+              neighborCounts.set(
+                neighborKey,
+                (neighborCounts.get(neighborKey) || 0) + 1
+              );
+            }
+          }
+        }
+
+        // ==========================================
+        // 3. CALCULATE THE NEXT GENERATION
+        // ==========================================
+        const nextAlive = new Set();
+
+        for (const [key,count] of neighborCounts) {
+          const wasAlive = alive.has(key);
+
+          // Survival
+          if (wasAlive && (count === 2 || count === 3)) {
+            nextAlive.add(key);
+          }
+
+          // Birth
+          if (!wasAlive && count === 3) {
+            nextAlive.add(key);
+          }
+        }
+
+        // ==========================================
+        // 4. APPLY EVERYTHING AFTER CALCULATION
+        // ==========================================
+        for (const key of alive) {
+          if (nextAlive.has(key)) {
+            continue;
+          }
+
+          const parts = key.split(",");
+          const cx = Number(parts[0]);
+          const cy = Number(parts[1]);
+
+          grid.set(cx,cy,ELEMENTS.empty);
+        }
+
+        for (const key of nextAlive) {
+          if (alive.has(key)) {
+            const parts = key.split(",");
+            const cx = Number(parts[0]);
+            const cy = Number(parts[1]);
+
+            const cell = grid.get(cx,cy);
+
+            if (cell) {
+              cell.age++;
+            }
+
+            continue;
+          }
+
+          const parts = key.split(",");
+          const cx = Number(parts[0]);
+          const cy = Number(parts[1]);
+
+          grid.set(cx,cy,ELEMENTS.conways_game_of_life);
+
+          const cell = grid.get(cx,cy);
+
+          if (cell) {
+            cell.age = 0;
+          }
+        }
+
+        running = false;
+      },1);
+    }
+  );
+})(),
+neutron_star: new Element(
+  "neutron_star",
+  "#40e2ff",
+  "Energy",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    cell.lightColor = "#40e2ff";
+    cell.lightLevel = 16;
+
+  
+
+    const cx = x + 0.5;
+    const cy = y + 0.5;
+
+    cell.neutronStarAge = (cell.neutronStarAge || 0) + 1;
+
+    const age = cell.neutronStarAge;
+    const spin = age * 0.075;
+
+    // --------------------------------------------------
+    // GRAVITY / ORBIT
+    // --------------------------------------------------
+
+    if (age % 6 === 0) {
+      const radius = 6;
+
+      for (let oy = -radius; oy <= radius; oy++) {
+        for (let ox = -radius; ox <= radius; ox++) {
+          if (ox === 0 && oy === 0) {
+            continue;
+          }
+
+          const distSq = ox * ox + oy * oy;
+
+          if (distSq > radius * radius) {
+            continue;
+          }
+
+          const target = grid.get(x + ox,y + oy);
+
+          if (!target) {
+            continue;
+          }
+
+          const dist = Math.sqrt(distSq);
+
+          if (dist === 0) {
+            continue;
+          }
+
+          const nx = ox / dist;
+          const ny = oy / dist;
+
+          const falloff = 1 - dist / radius;
+
+          const gravity =
+            0.28 *
+            falloff *
+            falloff;
+
+          target.vx = (target.vx || 0) - nx * gravity;
+          target.vy = (target.vy || 0) - ny * gravity;
+
+          const tangentX = -ny;
+          const tangentY = nx;
+
+          const orbit =
+            0.2 *
+            falloff;
+
+          target.vx += tangentX * orbit;
+          target.vy += tangentY * orbit;
+
+          if (dist < 2.5) {
+            target.vx *= 0.4;
+            target.vy *= 0.4;
+
+            target.temp = Math.max(
+              target.temp || 0,
+              9000
+            );
+          }
+        }
+      }
+    }
+
+    // --------------------------------------------------
+    // ACCRETION DISK
+    // --------------------------------------------------
+
+    for (let i = 0; i < 2; i++) {
+      const band = i;
+
+      const angle =
+        spin *
+        (1 + band * 0.045) +
+        (age * 0.37 + band * Math.PI) % (Math.PI * 2);
+
+      const distance =
+        3.1 +
+        band * 1.5 +
+        ((age + band * 11) % 13) *
+        0.22;
+
+      const verticalOffset =
+        (
+          ((age * 7 + band * 13) % 5) - 2
+        ) *
+        0.07;
+
+      const px =
+        cx +
+        Math.cos(angle) *
+        distance;
+
+      const py =
+        cy +
+        Math.sin(angle) *
+        distance *
+        0.42 +
+        verticalOffset;
+
+      const orbitalSpeed =
+        1.5 /
+        Math.sqrt(distance) *
+        3.2;
+
+      const vx =
+        -Math.sin(angle) *
+        orbitalSpeed;
+
+      const vy =
+        Math.cos(angle) *
+        orbitalSpeed *
+        0.42;
+
+      particles.push(
+        new Particle(
+          px,
+          py,
+          vx,
+          vy,
+          band === 0
+            ? "#cfffff"
+            : "#55e5ff",
+          band === 0
+            ? 3.2
+            : 3.8,
+          28,
+          grid.voxelsize,
+          {
+            glow:
+              band === 0
+                ? 7
+                : 6,
+
+            glowAlpha:
+              band === 0
+                ? 0.24
+                : 0.18,
+
+            trail:
+              band === 0
+                ? 1.4
+                : 1.8,
+
+            trailFade: 0.82,
+            trailWidth: 1.15,
+            stretch: 0.9,
+            stretchMax: 10,
+
+            drag: 0.998,
+
+            curve:
+              0.02 +
+              band * 0.008,
+
+            pulse:
+              band === 0
+                ? 0.08
+                : 0.04,
+
+            pulseSpeed: 0.16,
+            fadeIn: 2,
+            blend: "lighter"
+          }
+        )
+      );
+    }
+
+    // --------------------------------------------------
+    // INNER HOT RING
+    // --------------------------------------------------
+
+    if (age % 2 === 0) {
+      const angle =
+        spin * 1.5 +
+        (age * 0.8) % (Math.PI * 2);
+
+      const distance =
+        2.5 +
+        ((age * 3) % 7) *
+        0.12;
+
+      const px =
+        cx +
+        Math.cos(angle) *
+        distance;
+
+      const py =
+        cy +
+        Math.sin(angle) *
+        distance *
+        0.3;
+
+      const speed = 2.1;
+
+      particles.push(
+        new Particle(
+          px,
+          py,
+          -Math.sin(angle) * speed,
+          Math.cos(angle) * speed * 0.3,
+          "#f1ffff",
+          4.3,
+          18,
+          grid.voxelsize,
+          {
+            glow: 8,
+            glowAlpha: 0.3,
+            trail: 1.8,
+            trailFade: 0.88,
+            trailWidth: 1.2,
+            stretch: 1,
+            stretchMax: 9,
+            drag: 0.997,
+            curve: 0.035,
+            pulse: 0.1,
+            pulseSpeed: 0.25,
+            fadeIn: 1,
+            blend: "lighter"
+          }
+        )
+      );
+    }
+
+    // --------------------------------------------------
+    // POLAR JETS
+    // --------------------------------------------------
+
+    for (let side of [-1,1]) {
+      const streamPhase =
+        age * 0.55 +
+        side * 2;
+
+      const spread =
+        Math.sin(streamPhase) *
+        0.035;
+
+      const speed =
+        5.2 +
+        Math.sin(age * 0.12) *
+        0.4;
+
+      const px =
+        cx +
+        Math.sin(age * 0.18) *
+        0.12;
+
+      const py =
+        cy +
+        side *
+        1.7;
+
+      particles.push(
+        new Particle(
+          px,
+          py,
+          spread,
+          side * speed,
+          "#4ceaff",
+          3.2,
+          100,
+          grid.voxelsize,
+          {
+            glow: 3.5,
+            glowAlpha: 0.12,
+            trail: 0.1,
+            trailFade: 0.7,
+            trailWidth: 0.08,
+            stretch: 1.2,
+            stretchMax: 16,
+            drag: 0.999,
+            curve: 0.006,
+            pulse: 0.08,
+            pulseSpeed: 0.14,
+            fadeIn: 1,
+            blend: "lighter"
+          }
+        )
+      );
+
+      // Bright center of each jet.
+      if (age % 2 === 0) {
+        particles.push(
+          new Particle(
+            cx,
+            cy + side * 1.6,
+            0,
+            side * 6,
+            "#ffffff",
+            2.5,
+            10,
+            grid.voxelsize,
+            {
+              glow: 10,
+              glowAlpha: 0.3,
+              trail: 1.8,
+              trailFade: 0.95,
+              trailWidth: 1,
+              stretch: 1.4,
+              stretchMax: 14,
+              drag: 0.999,
+              fadeIn: 1,
+              blend: "lighter"
+            }
+          )
+        );
+      }
+    }
+
+    // --------------------------------------------------
+    // MAGNETIC HALO
+    // --------------------------------------------------
+
+    if (age % 4 === 0) {
+      const side =
+        age % 8 === 0
+          ? 1
+          : -1;
+
+      const angle =
+        spin * 1.4 +
+        side *
+        Math.PI *
+        0.5;
+
+      const distance =
+        2.5 +
+        Math.sin(age * 0.08) *
+        0.35;
+
+      const px =
+        cx +
+        Math.cos(angle) *
+        distance;
+
+      const py =
+        cy +
+        Math.sin(angle) *
+        distance;
+
+      particles.push(
+        new Particle(
+          px,
+          py,
+          -Math.sin(angle) * 1.15,
+          Math.cos(angle) * 1.15,
+          "#83efff",
+          2.2,
+          18,
+          grid.voxelsize,
+          {
+            glow: 6,
+            glowAlpha: 0.18,
+            trail: 1.5,
+            trailFade: 0.8,
+            trailWidth: 0.9,
+            stretch: 0.8,
+            stretchMax: 7,
+            drag: 0.997,
+            curve: 0.025,
+            fadeIn: 2,
+            blend: "lighter"
+          }
+        )
+      );
+    }
+
+    // --------------------------------------------------
+    // STAR CORE
+    // --------------------------------------------------
+
+    particles.push(
+      new Particle(
+        cx,
+        cy,
+        0,
+        0,
+        "#40e2ff",
+        6.5,
+        2,
+        grid.voxelsize,
+        {
+          glow: 4,
+          glowAlpha: 0.22,
+          pulse: 0.06,
+          pulseSpeed: 0.18,
+          blend: "lighter"
+        }
+      )
+    );
+
+    // White-hot center.
+    particles.push(
+      new Particle(
+        cx,
+        cy,
+        0,
+        0,
+        "#ffffff",
+        3.8,
+        2,
+        grid.voxelsize,
+        {
+          glow: 4,
+          glowAlpha: 0.28,
+          pulse: 0.12,
+          pulseSpeed: 0.25,
+          blend: "lighter"
+        }
+      )
+    );
+
+    // --------------------------------------------------
+    // ENERGETIC PULSE
+    // --------------------------------------------------
+
+    if (age % 14 === 0) {
+      particles.push(
+        new Particle(
+          cx,
+          cy,
+          0,
+          0,
+          "#dfffff",
+          7.5,
+          4,
+          grid.voxelsize,
+          {
+            glow: 6,
+            glowAlpha: 0.2,
+            pulse: 0.18,
+            pulseSpeed: 0.3,
+            fadeIn: 1,
+            blend: "lighter"
+          }
+        )
+      );
+    }
+    
+
+    const radius = 20;          // smaller for performance
+    const killRadius = 3;       // destroy cells very close
+    const directRadius = 3;     // straight pull zone
+    const maxTemperature = 5000;
+    const maxMovesPerTick = 500; // limit to avoid overload
+
+    let moves = [];
+    let moveCount = 0;
+
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+
+        if (moveCount >= maxMovesPerTick) break;
+
+        const nx = x + dx;
+        const ny = y + dy;
+
+        if (dx === 0 && dy === 0) continue;
+        if (!grid.isInside(nx, ny)) continue;
+
+        const cell = grid.get(nx, ny);
+        if (!cell || cell.element === ELEMENTS.empty) continue;
+
+        const distX = nx - x;
+        const distY = ny - y;
+        const dist = Math.max(0.5, Math.hypot(distX, distY));
+
+      if (dist <= killRadius) {
+ 
+  grid.set(nx, ny, ELEMENTS.empty);
+  continue;
+}
+
+
+        // Temperature
+     const t = Math.max(0, 1 - dist / radius);  
+const tempAdd = Math.round(maxTemperature * Math.pow(t, 8)); // closer = bigger
+cell.temperature += tempAdd;
+
+        // Motion
+        let stepX = 0;
+        let stepY = 0;
+
+        if (dist > directRadius) {
+          // Spiral motion
+          const orbitX = -distY / dist;
+          const orbitY = distX / dist;
+          const orbitSpeed = 1 + (radius - dist) / radius * 2;
+          const pullStrength = 0.5 + (radius - dist) / radius * 0.5;
+
+          stepX = orbitX * orbitSpeed + (-distX / dist) * pullStrength;
+          stepY = orbitY * orbitSpeed + (-distY / dist) * pullStrength;
+
+        } else {
+          // Direct pull
+          const directSpeed = 0.5 + (directRadius - dist) / directRadius * 5;
+          stepX = -distX / dist * directSpeed;
+          stepY = -distY / dist * directSpeed;
+        }
+
+        // Ensure movement
+        if (Math.round(stepX) === 0 && Math.round(stepY) === 0) {
+          if (Math.abs(distX) > Math.abs(distY)) stepX = Math.sign(-distX);
+          else stepY = Math.sign(-distY);
+        }
+
+        let tx = nx + Math.round(stepX);
+        let ty = ny + Math.round(stepY);
+
+        // Clamp to grid
+        tx = Math.min(grid.width - 1, Math.max(0, tx));
+        ty = Math.min(grid.height - 1, Math.max(0, ty));
+
+       const targetCell = grid.get(tx, ty);
+if (targetCell && targetCell.element === ELEMENTS.empty) {
+    moves.push({fromX: nx, fromY: ny, toX: tx, toY: ty});
+    moveCount++;
+}
+      }
+    }
+
+    // Apply all moves after calculations
+    for (let m of moves) {
+      grid.swap(m.fromX, m.fromY, m.toX, m.toY);
+    }
+
+  }
+
+),
+ketchup: new Element(
+  "ketchup",
+  "#C63527",
+  "Food",
+  {},
+  (grid,x,y) => {
+    if(grid.get(x,y).temperature > 100) grid.set(x,y,ELEMENTS.steam);
+    liquidPhysics(grid,x,y);
+  }
+),
+hay: new Element(
+  "hay",
+  "#f5da82",
+  "Food",
+  {flammable: true,
+    conductivity: 4,
+    variants: {
+      burnt: {
+        color: "#1a1919",
+        hidden: true
+      }
+    }
+  },
+  (grid,x,y) => {
+    firePhysics(grid,x,y, {minTemp: 60, burnTemp: 350, catchChance: 0.8 });
+    powderPhysics(grid,x,y, {airDriftChance: 0.8});
+  }
+),
+sandstone: new Element(
+  "sandstone",
+  "#ded5a6",
+  "Solids",
+  {},
+  (grid,x,y) => {
+    if(grid.get(x,y).temperature > 1000 && Math.random() < 0.3) grid.set(x,y, ELEMENTS.lava);
+  }
+),
+diorite: new Element(
+  "diorite",
+  "#c9c9c9",
+  "Powders",
+  {density: 4},
+  (grid,x,y) => {
+     if(grid.get(x,y).temperature > 1000 && Math.random() < 0.3) grid.set(x,y, ELEMENTS.lava);
+     powderPhysics(grid,x,y, {airDriftStrength: 0, airDriftChance: 0});
+  },
+   (grid,x,y) => {
+     grid.get(x,y).color = Math.random() < 0.5 ? ELEMENTS.diorite.color : "#969696";
+   }
+  
+),
+granite: new Element(
+  "granite",
+  "#9C9C9C",
+  "Powders",
+  {density: 4},
+  (grid,x,y) => {
+ 
+     if(grid.get(x,y).temperature > 1400 && Math.random() < 0.3) grid.set(x,y, ELEMENTS.lava);
+     powderPhysics(grid,x,y, {airDriftStrength: 0, airDriftChance: 0});
+  },
+  (grid,x,y) => {
+   
+  const r = Math.random();
+  grid.get(x,y).color = r < 0.7 ? "#B39A8B" :  r < 0.9 ? "#8A5F52" :  "#DDD4CC";   
+
+  }
+  
+),
+bedrock: new Element(
+  "bedrock",
+  "#454444",
+  "Solids",
+  {},
+  (grid,x,y) => {
+      if(grid.get(x,y).temperature > 600 && Math.random() < 0.3) grid.set(x,y, ELEMENTS.lava);
+  }
+),
+balloon: new Element(
+  "balloon",
+  "#de0000",
+  "System",
+  {},
+  (grid,x,y) => {
+     if(grid.get(x,y).temperature > 38){
+      grid.set(x,y,ELEMENTS.vfx);
+      grid.get(x,y).color = "#f7f7f7";
+      return;
+  }
+    gasPhysics(grid,x,y,{riseChance: 0.1,riseSpeed: 1,sidewaysChance: 0.4,sidewaysSpeed: 1,diagonalChance: 0.2,canFall: false,spreadDistance: 1,randomizeDirection: true,});
+},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const colors = ["#de0000", "#004ade", "#8507d9", "#d907af", "#18d907", "#d9af07"];
+    cell.color = colors[Math.floor(Math.random() * colors.length)];
+  }
+),
+paper: new Element(
+  "paper",
+  "#d9d8d7",
+  "Powders",
+  {flammable: true, conductivity: 5, variants: {
+    burnt: {
+      color: "#424242",
+      hidden: true
+    },
+    wet: {
+      color: "#b3b3b3",
+      hidden: true,
+    }
+  }},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 30 && cell.element.hasTag("wet")){
+      grid.set(x,y, ELEMENTS.paper);
+      grid.get(x,y).temperature = cell.temperature;
+    }
+     firePhysics(grid,x,y, {minTemp: 40, burnTemp: 250, catchChance: 0.8 });
+     if(grid.touching(x, y, "water")){
+      if(Math.random() < 0.8){
+      cell.element = cell.element.withTag("wet");
+      }
+     }
+      if(grid.touching(x, y, "#wet")){
+      if(Math.random() < 0.01){
+      cell.element = cell.element.withTag("wet");
+      }
+     }
+    powderPhysics(grid,x,y, {airDriftChance: 0.5});
+  }
+
+),
+brick: new Element(
+  "brick",
+  "#b31f05",
+  "Solids",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    const mortarColor = "#e6beb8";
+
+    const rowOffset = Math.floor(x / 2) % 2;
+    const brickPhase = (y + rowOffset) % 2;
+
+    cell.subGrid = Array.from({length: 4}, (_, subY) =>
+      Array.from({length: 4}, (_, subX) => {
+        const bottomMortar = subX === 3;
+        const verticalMortar = brickPhase === 0 && subY === 0;
+
+        return bottomMortar || verticalMortar ? mortarColor : 0;
+      })
+    );
+  }
+),
+cola: new Element(
+  "cola",
+  "#4d2b25",
+  "Food",
+  {noVaritation: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
+    liquidPhysics(grid,x,y);
+  }
+),
+foam: new Element(
+  "foam",
+  "#dedede",
+  "Gas",
+  {
+    variants: {
+      outer: {
+        color: "#adadad",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          if(!grid.touching(x,y, "foam!#outer", false, false)){
+            grid.set(x,y,ELEMENTS.empty);
+          }
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(Math.random() < 0.005){
+      grid.set(x,y,ELEMENTS.empty);
+    }
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, -1],
+      [0, 1]
+    ];
+    for(const [dx, dy] of dirs){
+      const cx = dx + x, cy = dy + y;
+      if(grid.get(cx,cy) && grid.get(cx,cy).element === ELEMENTS.empty){
+        grid.set(cx,cy, ELEMENTS.foam);
+        grid.get(cx,cy).element = grid.get(cx,cy).element.withTag("outer");
+      }
+    }
+    
+    gasPhysics(grid,x,y, {riseSpeed: Math.random() < 0.6 ? -1 : Math.random() < 0.5 ? 0 : 1, riseChance: 0.05, sidewaysChance: 0.01, canFall: true,  extraCanEnter: target => target.element.name === "foam" });
+
+  }
+),
+mentos: new Element(
+  "mentos",
+  "#e3e3e3",
+  "Food",
+  {},
+  (grid,x,y) => {
+   const cell = grid.get(x,y);
+
+cell.i ??= 0;
+
+function nextExplosion() {
+  if (cell.i >= 13) {
+    cell.i = 0;
+    grid.set(x,y,ELEMENTS.empty);
+    return;
+  }
+
+  const fromY = y - cell.i;
+  const toY = fromY - 1;
+  
+  if(grid.get(x, toY) && (grid.get(x, toY).element === ELEMENTS.empty || grid.get(x, toY).element === ELEMENTS.foam || grid.get(x, toY).element === ELEMENTS.cola) ) grid.swap(x, fromY, x, toY);
+  explode(x, toY);
+
+  cell.i++;
+
+  schedule(nextExplosion, 100);
+}
+if(grid.touching(x, y, "cola")){
+  if(Math.random() < 0.1){
+nextExplosion();
+  }
+}
+    powderPhysics(grid,x,y, {airDriftStrength: 0, airDriftChance: 0});
+    
+   function explode(x, y){
+
+  const radius = 4;
+
+  for(let dx = -radius; dx <= radius; dx++){
+    for(let dy = -radius; dy <= radius; dy++){
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if(dist > radius) continue;
+
+      const cx = x + dx;
+      const cy = y + dy;
+
+      if(!grid.get(cx,cy)) continue;
+      if(grid.get(cx,cy).element !== ELEMENTS.empty && grid.get(cx,cy).element !== ELEMENTS.cola && cell.element !== ELEMENTS.foam) continue;
+
+      let blocked = false;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+      for(let i = 1; i <= steps; i++){
+        const t = i / steps;
+        const px = Math.round(x + dx * t);
+        const py = Math.round(y + dy * t);
+        const cell = grid.get(px,py);
+
+        if(!cell || (cell.element !== ELEMENTS.empty && cell.element !== ELEMENTS.cola && cell.element !== ELEMENTS.foam)){
+          blocked = true;
+          break;
+        }
+      }
+
+      if(blocked) continue;
+
+      if(Math.random() < 0.1){
+        grid.set(cx,cy,ELEMENTS.foam);
+      }
+    }
+  }
+}
+  }
+),
+confetti: new Element(
+  "confetti",
+  "#de0000",
+  "Powders",
+  {flammeable: true},
+  (grid,x,y) => {
+     if(grid.get(x,y).temperature > 38){
+      grid.set(x,y,ELEMENTS.fire);
+  }
+   powderPhysics(grid,x,y, {airDriftChance: 0.8});
+   
+},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+   const colors = ["#df0808", "#0750df", "#8d0cdd", "#df0cb6", "#20df0f", "#dfb80f"];
+    cell.color = colors[Math.floor(Math.random() * colors.length)];
+  }
+),
+strawberry_jam: new Element(
+  "strawberry_jam",
+  "#b31e1e",
+  "Food",
+  {},
+  (grid,x,y) => {
+    if(grid.get(x,y).temperature > 100) grid.set(x,y,ELEMENTS.steam);
+    liquidPhysics(grid,x,y, {spreadDist: 1, spreadChance: 0.2, flowChance: 0.1});
+  }
+),
+antimatter: new Element(
+  "antimatter",
+  "#4d4d4d",
+  "Energy",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(grid.touching(x, y, "!eempty&!eantimatter")){
+      explode(x,y);
+      grid.set(x,y,ELEMENTS.empty);
+    }
+    liquidPhysics(grid,x,y);
+   function explode(x, y){
+    vfx.shake(10, 200);
+  const radius = 4;
+
+  for(let dx = -radius; dx <= radius; dx++){
+    for(let dy = -radius; dy <= radius; dy++){
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if(dist > radius) continue;
+
+      const cx = x + dx;
+      const cy = y + dy;
+
+      if(!grid.get(cx,cy)) continue;
+      if(grid.get(cx,cy).element !== ELEMENTS.empty) continue;
+
+      let blocked = false;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+      for(let i = 1; i <= steps; i++){
+        const t = i / steps;
+        const px = Math.round(x + dx * t);
+        const py = Math.round(y + dy * t);
+        const cell = grid.get(px,py);
+
+        if(!cell || cell.element !== ELEMENTS.empty){
+          blocked = true;
+          break;
+        }
+      }
+
+      if(blocked) continue;
+
+      const centerFactor = 1 - dist / radius;
+      const chance = 0.1 + centerFactor * 0.9;
+
+      if(Math.random() < chance){
+const r = 255;
+const g = Math.round(70 + centerFactor * 185);
+const b = Math.round(centerFactor * 255);
+
+        grid.set(cx,cy,ELEMENTS.fire);
+        grid.get(cx,cy).temperature += 3000;
+        grid.get(cx,cy).lightColor = `rgb(${r},${g},${b})`;
+        grid.get(cx,cy).color = `rgb(${r},${g},${b})`;
+        grid.get(cx,cy).lightLevel = 10;
+      }
+    }
+  }
+}
+  
+  }
+),
+bleach: new Element(
+  "bleach",
+  "#d1d1d1",
+  "Liquids",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if(cell.temperature > 100){
+      grid.set(x,y, ELEMENTS.steam);
+    }
+    if(grid.touching(x,y, "acid")){
+      grid.set(x,y, ELEMENTS.chlorine);
+    }
+    const dirs = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0]
+    ];
+
+    for(const [dx, dy] of dirs){
+      const cx = dx + x, cy = dy + y;
+
+      if(grid.get(cx,cy) && grid.get(cx,cy).customColor){
+        grid.get(cx,cy).customColor = null;
+      }
+    }
+    liquidPhysics(grid,x,y);
+  }
+),
+chlorine: new Element(
+  "chlorine",
+  "#f7eca3",
+  "Liquids",
+  {density: 2,
+    variants: {
+      liquid: {
+        color: "#faea84",
+        behavior: (grid,x,y) => {
+          const cell = grid.get(x,y);
+          if(cell.temperature > -34) cell.element = ELEMENTS.chlorine;
+          liquidPhysics(grid,x,y, {spreadChance: 0.9, extraCanEnter: target => target.element === ELEMENTS.chlorine});
+        },
+        onplace: (grid,x,y) => {
+          grid.get(x,y).temperature = -60;
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x, y);
+    if(cell.temperature > 1000) grid.set(x,y, ELEMENTS.empty);
+    if(cell.temperature < -34) cell.element = cell.element.withTag("liquid");
+    gasPhysics(grid, x, y, {
+  riseChance: 0.25,
+  fallChance: 0.45,
+
+  sidewaysChance: 0.1,
+  diagonalChance: 0.2,
+
+  riseSpeed: 1,
+  sidewaysSpeed: 1,
+  fallSpeed: 1,
+
+  spreadDistance: 1,
+
+  density: 3,
+});
+  }
+),
+bubble: new Element(
+  "bubble",
+  "#8fd8ff",
+  "Gas",
+  {
+    variants: {
+      outer: {
+        color: "#e8f7ff",
+        hidden: true,
+        behavior: (grid,x,y) => {
+          if(!grid.touching(x,y, "bubble!#outer", false, false)){
+            grid.set(x,y,ELEMENTS.empty);
+          }
+        }
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(Math.random() < 0.005){
+      grid.set(x,y,ELEMENTS.empty);
+    }
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, -1],
+      [0, 1],
+
+    ];
+
+    for(const [dx, dy] of dirs){
+      const cx = dx + x, cy = dy + y;
+      if(grid.get(cx,cy) && grid.get(cx,cy).element === ELEMENTS.empty){
+        grid.set(cx,cy, ELEMENTS.bubble);
+        grid.get(cx,cy).element = grid.get(cx,cy).element.withTag("outer");
+      }
+    }
+    
+    gasPhysics(grid,x,y, {riseSpeed: Math.random() < 0.2 ? -1 : Math.random() < 0.5 ? 0 : 1, riseChance: 0.4, sidewaysChance: 0.01, canFall: true,  extraCanEnter: target => target.element.name === "bubble" });
+  }
+),
+soap: new Element(
+  "soap",
+  "#ccded9",
+  "Liquids",
+  {variants: {
+    liquid: {
+      color: "#a2b3ae",
+      behavior: (grid,x,y) => {
+        const cell = grid.get(x,y);
+         const dirs = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0]
+    ];
+
+    for(const [dx, dy] of dirs){
+      const cx = dx + x, cy = dy + y;
+
+      if(grid.get(cx,cy) && grid.get(cx,cy).element.hasTag("dirty")){
+        grid.get(cx,cy).element = grid.get(cx,cy).element;
+      }
+    }
+        if(grid.get(x,y-1) && grid.get(x,y-1).element === ELEMENTS.empty){
+          if(Math.random() < 0.001){
+            grid.set(x,y-1,ELEMENTS.bubble);
+          }
+        }
+        liquidPhysics(grid,x,y, {extraCanEnter: target => target.element.name === "bubble"});
+      }
+    }
+  }},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+     const blockedLeft  = !grid.isInside(x - 1, y) || grid.get(x - 1, y).element !== ELEMENTS.empty;
+    const blockedRight = !grid.isInside(x + 1, y) || grid.get(x + 1, y).element !== ELEMENTS.empty;
+    
+    if (blockedLeft && blockedRight) {
+      return;
+    }
+
+    if (grid.isInside(x, y + 1) && grid.get(x, y + 1).element === ELEMENTS.empty) {
+      grid.swap(x, y, x, y + 1);
+    }
+  }
+),
+ink: new Element(
+  "ink",
+  "#1a1a1a",
+  "Liquids",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+        const dirs = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0]
+    ];
+
+    for(const [dx, dy] of dirs){
+      const cx = dx + x, cy = dy + y;
+
+      if(grid.get(cx,cy) && grid.get(cx,cy).element !== ELEMENTS.empty && grid.get(cx,cy).element !== ELEMENTS.ink ){
+        const color = grid.get(cx, cy).element.color;
+
+const r = Math.max(25, Math.floor(parseInt(color.slice(1, 3), 16) * 0.15));
+const g = Math.max(25, Math.floor(parseInt(color.slice(3, 5), 16) * 0.15));
+const b = Math.max(25, Math.floor(parseInt(color.slice(5, 7), 16) * 0.15));
+
+grid.get(cx, cy).customColor = "#" +
+  r.toString(16).padStart(2, "0") +
+  g.toString(16).padStart(2, "0") +
+  b.toString(16).padStart(2, "0");
+      }
+    }
+    liquidPhysics(grid,x,y);
+  }
+),
+cloth: new Element(
+  "cloth",
+  "#e0e0e0",
+  "Solids",
+  {flammable: true,
+    conductivity: 6,
+    variants: {
+      burnt: {
+        color: "#333333",
+        hidden: true
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    firePhysics(grid,x,y, {minTemp: 40, burnTemp: 250, catchChance: 0.9, heatSpeed: 10 });
+  }
+),
+caramel: new Element(
+  "caramel",
+  "#de7300",
+  "Food",
+  {noVaritation: true, variants: {
+    liquid: {
+      color: "#bf6402",
+      hidden: true, 
+      behavior: (grid,x,y) => {
+        const cell = grid.get(x,y);
+        if(cell.temperature < 47) cell.element = ELEMENTS.caramel;
+        if(cell.temperature > 300) grid.set(x,y,ELEMENTS.fire);
+        liquidPhysics(grid, x, y, {
+  spreadChance: 0.12,
+  spreadDist: 2,
+  diagonalChance: 0.25,
+
+  densitySwapChance: 0.02,
+  densityScale: 2500,
+
+  flowChance: 0.15,
+  flowRandomness: 0.08,
+
+  airDriftChance: 0.02,
+  airDriftStrength: 1,
+
+  sinkPowders: false,
+  sinkGases: true,
+});
+      }
+    }
+  }},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 50) cell.element = cell.element.withTag("liquid");
+  }
+),
+gasoline: new Element(
+  "gasoline",
+  "#ffc87a",
+  "Liquids",
+  {flammable: true, conductivity: 10, variants: {
+    burning: {
+      color: "#ffc87a",
+      hidden: true
+    }
+  } },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    firePhysics(grid,x,y, {minTemp: 30, burnTemp: 450, catchChance: 0.9, heatSpeed: 10, fireChance: 0.3, burnElement: ELEMENTS.empty, burnChance: 0.005 });
+    liquidPhysics(grid,x,y, {extraCanEnter: target => target.element.name === "fire"} );
+
+  }
+),
+fan: new Element(
+  "fan",
+  "#b8b8b8",
+  "Machine",
+  {optionMenu: (cell, menu, grid, x, y) => {
+  cell.direction ??= {x: 0, y: -1};
+    if(cell.on == null) cell.on = true;
+  const directions = [
+    {x: 0, y: -1, icon: "↑", name: "UP"},
+    {x: 1, y: 0, icon: "→", name: "RIGHT"},
+    {x: 0, y: 1, icon: "↓", name: "DOWN"},
+    {x: -1, y: 0, icon: "←", name: "LEFT"}
+  ];
+
+  function getDirectionName() {
+    const dir = directions.find(d => d.x === cell.direction.x && d.y === cell.direction.y);
+    return dir ? dir.name : "UNKNOWN";
+  }
+
+  menu.innerHTML = `
+    <div class="fan-menu">
+      <div class="fan-header">FAN DIRECTION</div>
+
+      <div class="fan-current">
+        <div class="fan-current-label">CURRENT</div>
+        <div id="fanCurrent">${getDirectionName()}</div>
+      </div>
+
+      <div class="fan-controls">
+        <button class="fan-dir empty"></button>
+        <button class="fan-dir" data-x="0" data-y="-1">↑</button>
+        <button class="fan-dir empty"></button>
+
+        <button class="fan-dir" data-x="-1" data-y="0">←</button>
+        <button class="fan-dir center">●</button>
+        <button class="fan-dir" data-x="1" data-y="0">→</button>
+
+        <button class="fan-dir empty"></button>
+        <button class="fan-dir" data-x="0" data-y="1">↓</button>
+        <button class="fan-dir empty"></button>
+      </div>
+      <div class="fan-power-row">
+  <div class="fan-power-label">FAN POWER</div>
+  <button id="fanPower" class="fan-power-button"></button>
+</div>
+    </div>
+  `;
+
+  if(!document.getElementById("fanMenuStyles")){
+    const style = document.createElement("style");
+    style.id = "fanMenuStyles";
+
+    style.innerHTML = `
+      .fan-menu {
+        width: 220px;
+        padding: 14px;
+        background: linear-gradient(145deg,#1a1a1a,#111);
+        border-radius: 14px;
+        border: 2px solid #333;
+        box-shadow: inset 0 0 12px #000, 0 4px 15px rgba(0,0,0,.6);
+        font-family: monospace;
+        color: #ddd;
+        box-sizing: border-box;
+      }
+        .fan-power-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+}
+
+.fan-power-label {
+  color: #777;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.fan-power-button {
+  width: 52px;
+  height: 22px;
+  border: 1px solid #444;
+  border-radius: 20px;
+  background: #222;
+  position: relative;
+  cursor: pointer;
+  box-shadow: inset 0 0 5px #000;
+}
+
+.fan-power-button::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(#eee,#aaa);
+  top: 2px;
+  left: 2px;
+  transition: .15s;
+}
+
+.fan-power-button.on {
+  background: #064d4d;
+  border-color: #00ffff;
+}
+
+.fan-power-button.on::after {
+  left: 32px;
+}
+
+      .fan-header {
+        text-align: center;
+        font-size: 13px;
+        letter-spacing: 2px;
+        color: #888;
+        margin-bottom: 10px;
+      }
+
+      .fan-current {
+        text-align: center;
+        margin-bottom: 12px;
+        padding: 7px;
+        background: #151515;
+        border: 1px solid #333;
+        border-radius: 7px;
+      }
+
+      .fan-current-label {
+        color: #666;
+        font-size: 9px;
+        letter-spacing: 2px;
+      }
+
+      #fanCurrent {
+        color: #00ffff;
+        font-size: 13px;
+        margin-top: 3px;
+        text-shadow: 0 0 6px #00ffff;
+      }
+
+      .fan-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .fan-dir {
+        height: 45px;
+        border: 1px solid #444;
+        border-radius: 7px;
+        background: linear-gradient(145deg,#292929,#171717);
+        color: #ccc;
+        font-family: monospace;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: inset 0 0 6px #000;
+        transition: .12s;
+      }
+
+      .fan-dir:hover {
+        border-color: #00ffff;
+        color: #00ffff;
+        box-shadow: inset 0 0 6px #000, 0 0 7px rgba(0,255,255,.25);
+      }
+
+      .fan-dir:active {
+        transform: scale(.94);
+      }
+
+      .fan-dir.selected {
+        background: #064d4d;
+        border-color: #00ffff;
+        color: #00ffff;
+        box-shadow: inset 0 0 8px #000, 0 0 8px rgba(0,255,255,.3);
+      }
+
+      .fan-dir.empty {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .fan-dir.center {
+        color: #555;
+        cursor: default;
+        font-size: 13px;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  const buttons = menu.querySelectorAll(".fan-dir[data-x]");
+  const powerButton = menu.querySelector("#fanPower");
+
+function updatePowerButton() {
+  powerButton.classList.toggle("on", cell.on);
+}
+
+powerButton.onclick = () => {
+  cell.on = !cell.on;
+  updatePowerButton();
+};
+
+updatePowerButton();
+  function updateButtons() {
+    buttons.forEach(button => {
+      const bx = Number(button.dataset.x);
+      const by = Number(button.dataset.y);
+
+      button.classList.toggle(
+        "selected",
+        bx === cell.direction.x &&
+        by === cell.direction.y
+      );
+    });
+
+    menu.querySelector("#fanCurrent").textContent = getDirectionName();
+  }
+
+  buttons.forEach(button => {
+    button.onclick = () => {
+      cell.direction = {
+        x: Number(button.dataset.x),
+        y: Number(button.dataset.y)
+      };
+
+      updateButtons();
+    };
+  });
+
+  updateButtons();
+},},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    cell.direction ??= {x: 0, y: -1};
+    cell.tick = (cell.tick || 0) + 1;
+
+    const maxSteps = 12;
+    const width = 4;
+    const maxPushDepth = 6;
+
+    const perpX = -cell.direction.y;
+    const perpY = cell.direction.x;
+    if(!cell.on) return;
+    function tryPushChain(px, py, dx, dy) {
+      const chain = [];
+
+      for(let depth = 0; depth < maxPushDepth; depth++){
+        const current = grid.get(px + dx * depth, py + dy * depth);
+
+        if(!current) return false;
+
+        if(
+          current.element === ELEMENTS.empty ||
+          current.element === ELEMENTS.vfx
+        ){
+          // Found somewhere for the entire chain to move.
+          for(let i = chain.length - 1; i >= 0; i--){
+            const obj = chain[i];
+
+            const fromX = px + dx * i;
+            const fromY = py + dy * i;
+            const toX = fromX + dx;
+            const toY = fromY + dy;
+
+            grid.swap(fromX, fromY, toX, toY);
+          }
+
+          return true;
+        }
+
+        if(current.element === ELEMENTS.fan){
+          return false;
+        }
+
+        chain.push(current);
+      }
+
+      return false;
+    }
+
+    // Spawn wind streaks
+ if(Math.random() < 0.1){
+  const w = Math.floor(Math.random() * (width * 2 + 1)) - width;
+  const tx = x + cell.direction.x + perpX * w;
+  const ty = y + cell.direction.y + perpY * w;
+
+  const target = grid.get(tx, ty);
+
+  if(target && target.element === ELEMENTS.empty){
+    grid.set(tx, ty, ELEMENTS.vfx);
+
+    const vfx = grid.get(tx, ty);
+
+    vfx.color = "#d6d5d4";
+    vfx.age = -45;
+    vfx.subProgress = 0;
+    vfx.waveOffset = Math.random() * 10;
+
+    updateVfxSubgrid(
+      vfx,
+      cell.tick,
+      vfx.waveOffset
+    );
+  }
+}
+    // Move and animate wind streaks
+    for(let w = -width; w <= width; w++){
+      for(let step = maxSteps; step >= 1; step--){
+        const tx =
+          x +
+          cell.direction.x * step +
+          perpX * w;
+
+        const ty =
+          y +
+          cell.direction.y * step +
+          perpY * w;
+
+        const vfx = grid.get(tx, ty);
+
+        if(
+          !vfx ||
+          vfx.element !== ELEMENTS.vfx ||
+          vfx.subProgress === undefined
+        ){
+          continue;
+        }
+
+        vfx.subProgress++;
+
+        if(vfx.subProgress >= 4){
+          vfx.subProgress = 0;
+
+          const nx = tx + cell.direction.x;
+          const ny = ty + cell.direction.y;
+
+          // Remove streak when it reaches its maximum distance.
+          if(step === maxSteps){
+            grid.set(tx, ty, ELEMENTS.empty);
+            continue;
+          }
+
+          const next = grid.get(nx, ny);
+
+          if(!next){
+            grid.set(tx, ty, ELEMENTS.empty);
+            continue;
+          }
+
+          // Something is blocking the streak.
+          if(
+            next.element !== ELEMENTS.empty &&
+            next.element !== ELEMENTS.vfx &&
+            next.element !== ELEMENTS.fan
+          ){
+            const pushed = tryPushChain(
+              nx,
+              ny,
+              cell.direction.x,
+              cell.direction.y
+            );
+
+            // Couldn't push the entire chain.
+            if(!pushed){
+              grid.set(tx, ty, ELEMENTS.empty);
+              continue;
+            }
+          }
+
+          // Move the streak forward.
+          const afterPush = grid.get(nx, ny);
+
+          if(
+            afterPush &&
+            (
+              afterPush.element === ELEMENTS.empty ||
+              afterPush.element === ELEMENTS.vfx
+            )
+          ){
+            grid.swap(tx, ty, nx, ny);
+          }else{
+            grid.set(tx, ty, ELEMENTS.empty);
+            continue;
+          }
+        }
+
+        const rx =
+          tx +
+          (vfx.subProgress === 0 ? cell.direction.x : 0);
+
+        const ry =
+          ty +
+          (vfx.subProgress === 0 ? cell.direction.y : 0);
+
+        const current = grid.get(rx, ry);
+
+        if(
+          current &&
+          current.element === ELEMENTS.vfx
+        ){
+          updateVfxSubgrid(
+            current,
+            cell.tick,
+            current.waveOffset
+          );
+        }
+      }
+    }
+
+   function updateVfxSubgrid(vfxParticle, tick, offset) {
+  const subgrid = Array.from(
+    {length: 4},
+    () => Array(4).fill(1)
+  );
+
+  const wave = Math.sin(
+    tick * 0.35 + offset
+  );
+
+  const center = 1.5 + wave * 0.8;
+
+  for(let i = 0; i < 4; i++){
+    const across = Math.round(
+      center +
+      Math.sin(
+        (i + tick) * 0.6 + offset
+      ) * 0.5
+    );
+
+    if(
+      across < 0 ||
+      across >= 4
+    ){
+      continue;
+    }
+
+    let sx;
+    let sy;
+
+    if(cell.direction.x === 1 && cell.direction.y === 0){
+      sx = i;
+      sy = across;
+    }else if(cell.direction.x === -1 && cell.direction.y === 0){
+      sx = 3 - i;
+      sy = across;
+    }else if(cell.direction.x === 0 && cell.direction.y === 1){
+      sx = across;
+      sy = i;
+    }else if(cell.direction.x === 0 && cell.direction.y === -1){
+      sx = across;
+      sy = 3 - i;
+    }else{
+      sx = i;
+      sy = across;
+    }
+
+    subgrid[sx][sy] = 0;
+  }
+
+  vfxParticle.subGrid = subgrid;
+} }
+),
+emerald: new Element(
+  "emerald",
+  "#00c90d",
+  "Solids",
+  {shiny: true, noVaritation: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 2000) grid.set(x,y,ELEMENTS.lava);
+    if(grid.touching(x,y, "!eemerald")){
+      cell.color = "#02a10c";
+    } else cell.color = null;
+  }
+),
+sapphire: new Element(
+  "sapphire",
+  "#2c1bc2",
+  "Solids",
+  {shiny: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 1300) grid.set(x,y,ELEMENTS.lava);
+    if(grid.touching(x,y, "!esapphire")){
+      cell.color = "#1e109c";
+    } else cell.color = null;
+  }
+),
+ruby: new Element(
+  "ruby",
+  "#a30000",
+  "Solids",
+  {shiny: true},
+  (grid,x,y) => {
+      const cell = grid.get(x,y);
+    if(cell.temperature > 1600) grid.set(x,y,ELEMENTS.lava);
+    if(grid.touching(x,y, "!eruby")){
+      cell.color = "#8c0303";
+    } else cell.color = null;
+  }
+),
+amethyst: new Element(
+  "amethyst",
+  "#6f02b3",
+  "Solids",
+  {shiny: true},
+  (grid,x,y) => {
+      const cell = grid.get(x,y);
+    if(cell.temperature > 1000) grid.set(x,y,ELEMENTS.lava);
+    if(grid.touching(x,y, "!eamethyst")){
+      cell.color = "#8512cc";
+    } else cell.color = null;
+  }
+),
+topaz: new Element(
+  "topaz",
+  "#E6B84A",
+  "Solids",
+  {shiny: true, noVaritation: true},
+  (grid,x,y) => {
+      const cell = grid.get(x,y);
+    const colors = ["#D9822B", "#F0A34A", "#B9671C"];
+      cell.randomColor ??= colors[Math.floor(Math.random() * colors.length)];
+    if(cell.temperature > 1200) grid.set(x,y,ELEMENTS.lava);
+    if(grid.touching(x,y, "!etopaz")){
+      cell.color = "#c47627";
+    } else cell.color = cell.randomColor;
+  }
+),
+syrup: new Element(
+  "syrup",
+  "#634a30",
+  "Food",
+  {noVaritation: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
+    liquidPhysics(grid,x,y);
+  }
+),
+void: new Element(
+  "void",
+  "#0a0a0a",
+  "System",
+  {},
+  (grid,x,y) => {
+    const dirs = [
+      [0, 1],
+      [0, -1],
+      [-1, 0],
+      [1, 0]
+    ];
+    for(const [dx, dy] of dirs){
+      const cx = dx+x, cy = dy+y;
+      if(grid.get(cx,cy) && (grid.get(cx,cy).element !== ELEMENTS.empty && grid.get(cx,cy).element !== ELEMENTS.void)){
+        grid.set(cx,cy,ELEMENTS.empty);
+      }
+    }
+  }
+),
+insulation: new Element(
+  "insulation",
+  "#d9bd8b",
+  "Solids",
+  {conductivity: 0.09}
+),
+aerogel: new Element(
+  "areogel",
+  "#0f222b",
+  "Solids",
+  {density: 0.005, noVaritation: true, conductivity: 0.01},
+  (grid,x,y) => {
+      const cell = grid.get(x,y);
+    if(grid.touching(x,y, "!eaerogel")){
+      cell.color = "#112630";
+    } else cell.color = null;
+  }
+)
 
 
     };
+    function hexToRgb(hex) {
+  const bigint = parseInt(hex.slice(1), 16);
+  return [
+    (bigint >> 16) & 255,
+    (bigint >> 8) & 255,
+    bigint & 255
+  ];
+}
+    class Particle {
+  constructor(x, y, vx, vy, color, size, life, voxelsize = 1, options = {}) {
+    this.x = x * voxelsize;
+    this.y = y * voxelsize;
+
+    this.prevX = this.x;
+    this.prevY = this.y;
+
+    this.vx = vx;
+    this.vy = vy;
+
+    this.color = color;
+    this.size = size;
+
+    this.life = life;
+    this.maxLife = life;
+
+    this.voxelsize = voxelsize;
+
+    this.collide = options.collide ?? true;
+
+    this.gravity = options.gravity ?? 0;
+    this.drag = options.drag ?? 1;
+    this.curve = options.curve ?? 0;
+    this.turbulence = options.turbulence ?? 0;
+
+    this.glow = options.glow ?? 0;
+    this.glowAlpha = options.glowAlpha ?? 0.35;
+
+    this.trail = options.trail ?? 0;
+    this.trailFade = options.trailFade ?? 0.85;
+    this.trailWidth = options.trailWidth ?? 1;
+
+    this.stretch = options.stretch ?? 0;
+    this.stretchMax = options.stretchMax ?? 20;
+
+    this.pulse = options.pulse ?? 0;
+    this.pulseSpeed = options.pulseSpeed ?? 0.15;
+    this.pulseOffset = Math.random() * Math.PI * 2;
+
+    this.fadeIn = options.fadeIn ?? 0;
+
+    this.alpha = options.alpha ?? 1;
+    this.blend = options.blend ?? "source-over";
+
+    this.sizeGrowth = options.sizeGrowth ?? 0;
+
+    this.rotation = options.rotation ?? 0;
+    this.rotationSpeed = options.rotationSpeed ?? 0;
+
+    this.minSize = options.minSize ?? 0.1;
+
+    this.age = 0;
+
+    this.spawnGridX = Math.floor(x);
+    this.spawnGridY = Math.floor(y);
+  }
+
+ update(grid) {
+  this.age++;
+
+  this.prevX = this.x;
+  this.prevY = this.y;
+
+  if (this.gravity !== 0) {
+    this.vy += this.gravity;
+  }
+
+  if (this.curve !== 0) {
+    const speedSq = this.vx * this.vx + this.vy * this.vy;
+
+    if (speedSq > 0.0001) {
+      const inverseSpeed = 1 / Math.sqrt(speedSq);
+      const nx = -this.vy * inverseSpeed;
+      const ny = this.vx * inverseSpeed;
+
+      this.vx += nx * this.curve;
+      this.vy += ny * this.curve;
+    }
+  }
+
+  if (this.turbulence !== 0) {
+    this.vx += (Math.random() - 0.5) * this.turbulence;
+    this.vy += (Math.random() - 0.5) * this.turbulence;
+  }
+
+  this.vx *= this.drag;
+  this.vy *= this.drag;
+
+  this.x += this.vx;
+  this.y += this.vy;
+
+  if (this.collide && grid) {
+    const gx = Math.floor(this.x / this.voxelsize);
+    const gy = Math.floor(this.y / this.voxelsize);
+
+    const cell = grid.get(gx, gy);
+
+    if (cell && cell.element !== ELEMENTS.empty) {
+      this.life = 0;
+      return;
+    }
+  }
+
+  this.rotation += this.rotationSpeed;
+
+  this.size += this.sizeGrowth;
+
+  if (this.size < this.minSize) {
+    this.size = this.minSize;
+  }
+
+  this.life--;
+}
+  draw(ctx) {
+    if (this.life <= 0) {
+      return;
+    }
+
+    const lifeRatio =
+      this.life /
+      this.maxLife;
+
+    let alpha =
+      lifeRatio *
+      this.alpha;
+
+    if (this.fadeIn > 0) {
+      alpha *= Math.min(
+        1,
+        this.age /
+        this.fadeIn
+      );
+    }
+
+    let pulseScale = 1;
+
+    if (this.pulse !== 0) {
+      pulseScale +=
+        Math.sin(
+          this.age *
+          this.pulseSpeed +
+          this.pulseOffset
+        ) *
+        this.pulse;
+    }
+
+    const size =
+      Math.max(
+        this.minSize,
+        this.size *
+        pulseScale
+      );
+
+    const speed =
+      Math.sqrt(
+        this.vx * this.vx +
+        this.vy * this.vy
+      );
+
+    const canTrail =
+      this.trail > 0 &&
+      speed > 0.05;
+
+    ctx.globalCompositeOperation =
+      this.blend;
+
+    if (canTrail) {
+      let trailLength =
+        speed *
+        this.trail;
+
+      trailLength =
+        Math.min(
+          trailLength,
+          this.stretchMax
+        );
+
+      if (this.stretch > 0) {
+        trailLength *=
+          this.stretch;
+      }
+
+      const inverseSpeed =
+        1 /
+        Math.max(
+          speed,
+          0.001
+        );
+
+      const dirX =
+        this.vx *
+        inverseSpeed;
+
+      const dirY =
+        this.vy *
+        inverseSpeed;
+
+      const tailX =
+        this.x -
+        dirX *
+        trailLength;
+
+      const tailY =
+        this.y -
+        dirY *
+        trailLength;
+
+      ctx.globalAlpha =
+        alpha *
+        this.trailFade;
+
+      ctx.strokeStyle =
+        this.color;
+
+      ctx.lineWidth =
+        Math.max(
+          0.5,
+          size *
+          this.trailWidth
+        );
+
+      ctx.lineCap =
+        "round";
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        tailX,
+        tailY
+      );
+
+      ctx.lineTo(
+        this.x,
+        this.y
+      );
+
+      ctx.stroke();
+    }
+
+    if (this.glow > 0) {
+      ctx.globalAlpha =
+        alpha *
+        this.glowAlpha;
+
+      ctx.fillStyle =
+        this.color;
+
+      ctx.beginPath();
+
+      ctx.arc(
+        this.x,
+        this.y,
+        size +
+        this.glow,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+    }
+
+    ctx.globalAlpha =
+      alpha;
+
+    ctx.fillStyle =
+      this.color;
+
+    ctx.beginPath();
+
+    ctx.arc(
+      this.x,
+      this.y,
+      size,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fill();
+
+    if (
+      this.glow > 0 &&
+      size >= 2
+    ) {
+      ctx.globalAlpha =
+        alpha *
+        0.7;
+
+      ctx.beginPath();
+
+      ctx.arc(
+        this.x,
+        this.y,
+        size * 0.45,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+  }
+}
 let iframeStart = null;
 
   function makeIframe(x, y, x2, y2){
@@ -30585,6 +32948,479 @@ let iframeStart = null;
   let webID = 0;
  let currentConnectionPoint = 1;
 const ui = {
+  PaintingUIContainer: {
+  tag: "div",
+  style: {
+    display: "none",
+    position: "absolute",
+    width: "520px",
+    height: "420px",
+    borderRadius: "8px",
+    backgroundColor: "rgba(33, 33, 33)",
+    transform: "translate(-50%, -50%)",
+    fontSize: "20px",
+    opacity: "0.95"
+  },
+  children: {
+    PaintingCanvas: {
+      tag: "canvas",
+      style: {
+        display: "block",
+        position: "absolute",
+        left: "10px",
+        top: "10px",
+        width: "400px",
+        height: "400px",
+        backgroundColor: "rgb(33, 33, 33)",
+        imageRendering: "pixelated"
+      },
+   init(el, refs) {
+  el.width = 400;
+  el.height = 400;
+
+  const paintCtx = el.getContext("2d");
+  const paintRows = 4;
+  const paintCols = 4;
+  const paintCellSize = 100;
+
+  let paintMouseX = null;
+  let paintMouseY = null;
+  let paintMouseDown = false;
+  let paintButton = 0;
+
+  refs.PaintingUIContainer.pickedColor ??= "#ff0000";
+
+  function updatePaintPosition(e) {
+    const rect = el.getBoundingClientRect();
+
+    const scaleX = el.width / rect.width;
+    const scaleY = el.height / rect.height;
+
+    paintMouseX = Math.floor(
+      ((e.clientX - rect.left) * scaleX) / paintCellSize
+    );
+
+    paintMouseY = Math.floor(
+      ((e.clientY - rect.top) * scaleY) / paintCellSize
+    );
+
+    if(
+      paintMouseX < 0 ||
+      paintMouseX >= paintCols ||
+      paintMouseY < 0 ||
+      paintMouseY >= paintRows
+    ){
+      paintMouseX = null;
+      paintMouseY = null;
+    }
+  }
+
+  function paintCell() {
+    if(paintMouseX === null || paintMouseY === null){
+      return;
+    }
+
+    if(paintButton === 0){
+      refs.PaintingUIContainer.currentGrid[paintMouseX][paintMouseY] =
+        refs.PaintingUIContainer.pickedColor || "#ff0000";
+    }else if(paintButton === 2){
+      refs.PaintingUIContainer.currentGrid[paintMouseX][paintMouseY] = 0;
+    }
+  }
+
+  el.addEventListener("mousemove", (e) => {
+    updatePaintPosition(e);
+
+    if(paintMouseDown){
+      paintCell();
+    }
+  });
+
+  el.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+
+    updatePaintPosition(e);
+
+    if(e.button !== 0 && e.button !== 2){
+      return;
+    }
+
+    paintButton = e.button;
+    paintMouseDown = true;
+
+    paintCell();
+  });
+
+  el.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+  });
+
+  el.addEventListener("mouseleave", () => {
+    paintMouseX = null;
+    paintMouseY = null;
+  });
+
+  document.addEventListener("mouseup", (e) => {
+    if(e.button === paintButton){
+      paintMouseDown = false;
+    }
+  });
+
+ function drawPaintingGrid(ctx) {
+  ctx.clearRect(0, 0, el.width, el.height);
+
+  for(let x = 0; x < paintCols; x++){
+    for(let y = 0; y < paintRows; y++){
+      const paintValue =
+        refs.PaintingUIContainer.currentGrid[x][y];
+
+      const normalColor =
+        refs.PaintingUIContainer.cell.element.color || "#333333";
+
+      ctx.fillStyle =
+        paintValue === 0 ? normalColor : paintValue;
+
+      ctx.fillRect(
+        x * paintCellSize,
+        y * paintCellSize,
+        paintCellSize,
+        paintCellSize
+      );
+
+      if(
+        x === paintMouseX &&
+        y === paintMouseY
+      ){
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+
+        ctx.strokeRect(
+          x * paintCellSize + 1,
+          y * paintCellSize + 1,
+          paintCellSize - 2,
+          paintCellSize - 2
+        );
+      }
+    }
+  }
+}
+  function updatePaintingCanvas() {
+    if(refs.PaintingUIContainer.style.display !== "block"){
+      return;
+    }
+
+    canplace = false;
+
+    refs.PaintingUIContainer.cell.subGrid =
+      refs.PaintingUIContainer.currentGrid;
+
+    drawPaintingGrid(paintCtx);
+  }
+
+  return updatePaintingCanvas;
+}  },
+
+    PaintingColorWheel: {
+      tag: "canvas",
+      style: {
+        position: "absolute",
+        left: "420px",
+        top: "20px",
+        width: "80px",
+        height: "80px",
+        cursor: "crosshair"
+      },
+      init(el, refs) {
+        el.width = 160;
+        el.height = 160;
+
+        const wheelCtx = el.getContext("2d");
+        const wheelSize = 160;
+        const wheelCenter = wheelSize / 2;
+        const wheelRadius = 76;
+
+        function drawColorWheel(){
+          wheelCtx.clearRect(0, 0, wheelSize, wheelSize);
+
+          const wheelGradient =
+            wheelCtx.createConicGradient(
+              0,
+              wheelCenter,
+              wheelCenter
+            );
+
+          wheelGradient.addColorStop(0, "#ff0000");
+          wheelGradient.addColorStop(1 / 6, "#ffff00");
+          wheelGradient.addColorStop(2 / 6, "#00ff00");
+          wheelGradient.addColorStop(3 / 6, "#00ffff");
+          wheelGradient.addColorStop(4 / 6, "#0000ff");
+          wheelGradient.addColorStop(5 / 6, "#ff00ff");
+          wheelGradient.addColorStop(1, "#ff0000");
+
+          wheelCtx.beginPath();
+          wheelCtx.arc(
+            wheelCenter,
+            wheelCenter,
+            wheelRadius,
+            0,
+            Math.PI * 2
+          );
+
+          wheelCtx.fillStyle = wheelGradient;
+          wheelCtx.fill();
+
+          const colorWhiteGradient =
+            wheelCtx.createRadialGradient(
+              wheelCenter,
+              wheelCenter,
+              0,
+              wheelCenter,
+              wheelCenter,
+              wheelRadius
+            );
+
+          colorWhiteGradient.addColorStop(0, "rgba(255,255,255,1)");
+          colorWhiteGradient.addColorStop(0.25, "rgba(255,255,255,0)");
+          colorWhiteGradient.addColorStop(1, "rgba(255,255,255,0)");
+
+          wheelCtx.beginPath();
+          wheelCtx.arc(
+            wheelCenter,
+            wheelCenter,
+            wheelRadius,
+            0,
+            Math.PI * 2
+          );
+
+          wheelCtx.fillStyle = colorWhiteGradient;
+          wheelCtx.fill();
+
+          const colorBlackGradient =
+            wheelCtx.createRadialGradient(
+              wheelCenter,
+              wheelCenter,
+              0,
+              wheelCenter,
+              wheelCenter,
+              wheelRadius
+            );
+
+          colorBlackGradient.addColorStop(0, "rgba(0,0,0,0)");
+          colorBlackGradient.addColorStop(1, "rgba(0,0,0,1)");
+
+          wheelCtx.beginPath();
+          wheelCtx.arc(
+            wheelCenter,
+            wheelCenter,
+            wheelRadius,
+            0,
+            Math.PI * 2
+          );
+
+          wheelCtx.fillStyle = colorBlackGradient;
+          wheelCtx.fill();
+
+          wheelCtx.strokeStyle = "white";
+          wheelCtx.lineWidth = 3;
+
+          wheelCtx.beginPath();
+          wheelCtx.arc(
+            wheelCenter,
+            wheelCenter,
+            wheelRadius + 1,
+            0,
+            Math.PI * 2
+          );
+
+          wheelCtx.stroke();
+        }
+
+        function rgbToHex(r, g, b){
+          return "#" +
+            [r, g, b]
+              .map(v => Math.max(0, Math.min(255, v))
+                .toString(16)
+                .padStart(2, "0"))
+              .join("");
+        }
+
+        function pickWheelColor(e){
+          const rect = el.getBoundingClientRect();
+
+          const scaleX = el.width / rect.width;
+          const scaleY = el.height / rect.height;
+
+          const colorX =
+            (e.clientX - rect.left) * scaleX;
+
+          const colorY =
+            (e.clientY - rect.top) * scaleY;
+
+          const dx = colorX - wheelCenter;
+          const dy = colorY - wheelCenter;
+
+          const distance = Math.sqrt(
+            dx * dx + dy * dy
+          );
+
+          if(distance > wheelRadius){
+            return;
+          }
+
+          const pixel = wheelCtx.getImageData(
+            Math.floor(colorX),
+            Math.floor(colorY),
+            1,
+            1
+          ).data;
+
+          refs.PaintingUIContainer.pickedColor =
+            rgbToHex(
+              pixel[0],
+              pixel[1],
+              pixel[2]
+            );
+        }
+
+        el.addEventListener("mousedown", (e) => {
+          pickWheelColor(e);
+        });
+
+        el.addEventListener("mousemove", (e) => {
+          if(e.buttons & 1){
+            pickWheelColor(e);
+          }
+        });
+
+        drawColorWheel();
+
+        function updateColorWheel(){
+          if(refs.PaintingUIContainer.style.display !== "block"){
+            return;
+          }
+        }
+
+        return updateColorWheel;
+      }
+    },
+
+    PaintingColorPreview: {
+      tag: "div",
+      style: {
+        position: "absolute",
+        left: "420px",
+        top: "115px",
+        width: "80px",
+        height: "45px",
+        borderRadius: "6px",
+        border: "2px solid white",
+        boxSizing: "border-box"
+      },
+      init(el, refs) {
+        function updateColorPreview(){
+          el.style.backgroundColor =
+            refs.PaintingUIContainer.pickedColor || "#ff0000";
+        }
+
+        return updateColorPreview;
+      }
+    },
+
+    PaintingHeader: {
+      type: "div",
+      style: {
+        display: "block",
+        position: "absolute",
+        top: "-25px",
+        height: "25px",
+        width: "100%",
+        backgroundColor: "rgb(43, 43, 43)"
+      },
+      children: {
+        PaintingCloseButton: {
+          type: "div",
+          style: {
+            width: "25px",
+            position: "absolute",
+            textAlign: "center",
+            height: "25px",
+            right: "0px",
+            backgroundColor: "rgb(255, 0, 0)",
+            color: "rgb(255, 255, 255)",
+            cursor: "pointer"
+          },
+          text: "X",
+          onClick: (el, refs) => {
+            refs.PaintingUIContainer.style.display = "none";
+            canplace = true;
+          }
+        }
+      },
+
+      init(el, refs){
+        const paintingContainer =
+          refs.PaintingUIContainer;
+
+        let paintingDragging = false;
+        let paintingOffsetX = 0;
+        let paintingOffsetY = 0;
+
+        el.addEventListener("mousedown", (e) => {
+          paintingDragging = true;
+
+          const rect =
+            paintingContainer.getBoundingClientRect();
+
+          paintingOffsetX =
+            e.clientX - rect.left;
+
+          paintingOffsetY =
+            e.clientY - rect.top;
+
+          e.preventDefault();
+        });
+
+        document.addEventListener("mousemove", (e) => {
+          if(!paintingDragging){
+            return;
+          }
+
+          paintingContainer.style.left =
+            (e.clientX - paintingOffsetX) + "px";
+
+          paintingContainer.style.top =
+            (e.clientY - paintingOffsetY) + "px";
+
+          paintingContainer.style.transform = "none";
+        });
+
+        document.addEventListener("mouseup", () => {
+          paintingDragging = false;
+        });
+
+        function updatePaintingHeader(){
+        }
+
+        return updatePaintingHeader;
+      }
+    }
+  },
+
+  init(el, refs){
+    el.style.left =
+      window.innerWidth / 2 + "px";
+
+    el.style.top =
+      window.innerHeight / 2 + "px";
+
+    refs.PaintingUIContainer.pickedColor ??= "#ff0000";
+
+    function updatePaintingUI(){
+    }
+
+    return updatePaintingUI;
+  }
+},
     ChiselUIContainer: {
         tag: "div",
         style: {
@@ -30672,7 +33508,7 @@ const ui = {
                 for(let x = 0; x < cols; x++){
                   for(let y = 0; y < rows; y++){
                     const cell = refs.ChiselUIContainer.currentGrid[x][y];
-                    if(cell === 0){
+                    if(cell !== 1){
                       ctx.fillStyle = refs.ChiselUIContainer.pickedElement.color;
                         ctx.fillRect(
                           x * cellSize,
@@ -30791,6 +33627,7 @@ const ui = {
             return upd;
         }
     },
+    
  ColorUIContainer: {
     tag: "div",
     style: {
@@ -31236,18 +34073,29 @@ function startColony(){
   console.log("Colony started at "+qx+","+qy+", "+col.digQueue.length+" cells to dig, "+i+" ants assigned.");
 }           
 // Simple inline Perlin-like noise for jagged cracks
-
 function listelements(){
-const keys = Object.keys(ELEMENTS).join(", ");
-const textarea = document.createElement("textarea");
-textarea.value = keys;
-document.body.appendChild(textarea);
-textarea.select();
-document.execCommand("copy");
-document.body.removeChild(textarea);
-console.log("Copied:", keys);
+  const keys = [];
 
+  for(const key of Object.keys(ELEMENTS)){
+    const element = ELEMENTS[key];
 
+    keys.push(key);
+
+    if(element?.properties?.variants){
+      for(const variant of Object.keys(element.properties.variants)){
+        keys.push(`${key}-${variant}`);
+      }
+    }
+  }
+
+  const text = keys.join(", ");
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+  console.log("Copied:", text);
 }
 
 // =========================
@@ -31513,15 +34361,59 @@ countNearby(x, y, radius, condition) {
     return this.grid[y][x];
     } 
   }
-
-touching(x, y, condition, returnCoords = false) {
-  const dirs = [
+touching(x, y, condition, returnCoords = false, diag = true) {
+  const dirs = diag ? [
     [-1, -1], [0, -1], [1, -1],
     [-1, 0],           [1, 0],
     [-1, 1], [0, 1], [1, 1],
+  ] : [
+    [0, -1],
+    [-1, 0],
+    [1, 0],
+    [0, 1],
   ];
 
   const matches = [];
+
+  const checkCondition = (elem, neighbor, condition) => {
+    if (typeof condition === "string" && condition.includes("&")) {
+      return condition.split("&").every(part => checkCondition(elem, neighbor, part.trim()));
+    }
+
+    if (typeof condition === "string" && condition.startsWith("#")) {
+      const tag = condition.slice(1);
+      return elem.hasTag && elem.hasTag(tag);
+    }
+
+    if (typeof condition === "string" && condition.startsWith("@")) {
+      return elem.category === condition.slice(1);
+    }
+
+    if (typeof condition === "string" && condition.includes("!#")) {
+      const [elementName, tag] = condition.split("!#");
+      return elem.name === elementName && (!elem.hasTag || !elem.hasTag(tag));
+    }
+
+    if (typeof condition === "string" && condition.startsWith("!e")) {
+      return elem.name !== condition.slice(2);
+    }
+
+    if (typeof condition === "string" && elem.name === condition) {
+      return true;
+    }
+
+    if (typeof condition === "object" && !Array.isArray(condition)) {
+      return Object.keys(condition).every(
+        key => elem.properties[key] === condition[key]
+      );
+    }
+
+    if (typeof condition === "function") {
+      return condition(elem, neighbor);
+    }
+
+    return false;
+  };
 
   for (const [dx, dy] of dirs) {
     const nx = x + dx;
@@ -31532,52 +34424,19 @@ touching(x, y, condition, returnCoords = false) {
     const neighbor = this.get(nx, ny);
     const elem = neighbor.element;
 
-    let isMatch = false;
-
-    // Tag condition
-    if (typeof condition === "string" && condition.startsWith("#")) {
-      const tag = condition.slice(1);
-      if (elem.hasTag && elem.hasTag(tag)) isMatch = true;
-    }
-    else if (
-  typeof condition === "string" &&
-  condition.startsWith("@") &&
-  elem.category === condition.slice(1)
-) {
-  isMatch = true;
-}
-
-    // Element name
-    else if (typeof condition === "string" && elem.name === condition) {
-      isMatch = true;
-    }
-    // Object condition (property match)
-    else if (typeof condition === "object" && !Array.isArray(condition)) {
-      isMatch = Object.keys(condition).every(
-        key => elem.properties[key] === condition[key]
-      );
-    }
-    // Function condition
-    else if (typeof condition === "function") {
-      if (condition(elem, neighbor)) isMatch = true;
-    }
-
-    if (isMatch) {
+    if (checkCondition(elem, neighbor, condition)) {
       if (returnCoords) {
-        matches.push([nx, ny]); // store coordinates
+        matches.push([nx, ny]);
       } else {
-        return true; // early exit if just checking true/false
+        return true;
       }
     }
   }
 
-  // If using returnCoords, return array or null
   if (returnCoords) return matches.length > 0 ? matches : null;
 
-  // Default false if no match found
   return false;
 }
-
   fill(x, y, x2, y2, element){
     for(let row = y; row < y2; row++){
       for(let col = x; col < x2; col++){
@@ -31841,46 +34700,96 @@ addLight(x, y, color, level) {
 draw(ctx) {
   const { cols, rows, voxelsize } = this;
 
+  const renderScale = 4;
+  const pixelCols = cols * renderScale;
+  const pixelRows = rows * renderScale;
+
   // =========================================================
-  // ♻️ PERSISTENT OFFSCREEN CANVAS
+  // PERSISTENT OFFSCREEN CANVAS
   // =========================================================
-  if (!this._offCanvas || this._offCanvas.width !== cols || this._offCanvas.height !== rows) {
+  if (
+    !this._offCanvas ||
+    this._offCanvas.width !== pixelCols ||
+    this._offCanvas.height !== pixelRows
+  ) {
     this._offCanvas = document.createElement("canvas");
-    this._offCanvas.width = cols;
-    this._offCanvas.height = rows;
+    this._offCanvas.width = pixelCols;
+    this._offCanvas.height = pixelRows;
     this._offCtx = this._offCanvas.getContext("2d");
-    this._offImg = this._offCtx.createImageData(cols, rows);
+    this._offImg = this._offCtx.createImageData(pixelCols, pixelRows);
+    this._colorCache = new Map();
   }
 
-  const lerp = (a, b, t) => a + (b - a) * t;
+  const img = this._offImg;
+  const data = img.data;
+  const colorCache = this._colorCache;
 
-  const clamp = (v, min = 0, max = 255) =>
-    Math.max(min, Math.min(max, v));
+  const clamp = (v) => v < 0 ? 0 : v > 255 ? 255 : v;
 
   // =========================================================
-  // 🎨 GET / STORE CELL COLOR VARIATION
+  // FAST COLOR PARSER
   // =========================================================
-  // Variation belongs to the cell itself, so it follows the
-  // cell when the cell moves around the grid.
+  const parseColor = (color) => {
+    if (!color) return [0, 0, 0];
+
+    const cached = colorCache.get(color);
+
+    if (cached) return cached;
+
+    let result;
+
+    if (color[0] === "#") {
+      const num = parseInt(color.slice(1), 16);
+
+      result = [
+        (num >> 16) & 255,
+        (num >> 8) & 255,
+        num & 255
+      ];
+    } else if (color.startsWith("rgb")) {
+      const parts = color.match(/\d+/g);
+
+      result = parts
+        ? [Number(parts[0]), Number(parts[1]), Number(parts[2])]
+        : [0, 0, 0];
+    } else {
+      result = [0, 0, 0];
+    }
+
+    colorCache.set(color, result);
+
+    return result;
+  };
+
+  // =========================================================
+  // CELL COLOR VARIATION
+  // =========================================================
   const getCellVariation = (cell) => {
     if (cell.colorVariation === undefined) {
       cell.colorVariation = Math.random() * 8 - 4;
     }
+    if(cell.element.properties.noVaritation === true) return null;
 
     return cell.colorVariation;
   };
 
   // =========================================================
-  // GET COLOR FOR A CELL
+  // GET CELL COLOR
   // =========================================================
   const getCellColor = (cell, x, y) => {
+    const customColor = cell.customColor;
+
+    if (customColor) {
+      return parseColor(customColor);
+    }
+
     let r = 0;
     let g = 0;
     let b = 0;
 
-    // =========================
-    // 🔥 HEAT VIEW
-    // =========================
+    // =======================================================
+    // HEAT
+    // =======================================================
     if (this.showGrid === "heat") {
       const t = cell.temperature;
 
@@ -31888,42 +34797,36 @@ draw(ctx) {
         r = 180;
         g = 230;
         b = 255;
-
       } else if (t < 0) {
         const f = (t + 100) / 100;
 
         r = 180 + 50 * f;
         g = 230 + 25 * f;
         b = 255;
-
       } else if (t < 20) {
         const f = t / 20;
 
         r = 200 + 30 * f;
         g = 230 + 20 * f;
         b = 255 - 40 * f;
-
       } else if (t < 100) {
         const f = (t - 20) / 80;
 
         r = 230 + 25 * f;
         g = 230 - 100 * f;
         b = 215 - 215 * f;
-
       } else if (t < 500) {
         const f = (t - 100) / 400;
 
         r = 255;
         g = 130 - 100 * f;
         b = 0;
-
       } else if (t < 3000) {
         const f = (t - 500) / 2500;
 
         r = 255;
         g = 30 + 225 * f;
         b = 255 * f;
-
       } else {
         r = 255;
         g = 255;
@@ -31931,9 +34834,9 @@ draw(ctx) {
       }
     }
 
-    // =========================
-    // ⚡ ELECTRIC VIEW
-    // =========================
+    // =======================================================
+    // ELECTRICITY
+    // =======================================================
     else if (this.showGrid === "electricity") {
       const e = cell.e || 0;
 
@@ -31941,92 +34844,52 @@ draw(ctx) {
         r = 0;
         g = 0;
         b = 0;
-
       } else if (e < 5) {
         const f = e / 5;
 
         r = 20 * f;
         g = 100 * f;
         b = 255 * f;
-
       } else if (e < 20) {
         const f = (e - 5) / 15;
 
         r = 20 + 80 * f;
         g = 100 + 155 * f;
         b = 255;
-
       } else if (e < 50) {
         const f = (e - 20) / 30;
 
         r = 100 + 155 * f;
         g = 255;
         b = 255;
-
       } else {
         r = 255;
         g = 255;
         b = 255;
       }
     }
-// =========================
-// 🎨 NORMAL COLOR VIEW
-// =========================
-else {
-  const customColor = cell.customColor;
 
-  if (customColor) {
-    if (customColor.startsWith("#")) {
-      const num = parseInt(customColor.slice(1), 16);
+    // =======================================================
+    // NORMAL
+    // =======================================================
+    else {
+      const color = cell.color ?? cell.element?.color;
 
-      r = (num >> 16) & 255;
-      g = (num >> 8) & 255;
-      b = num & 255;
-
-    } else if (customColor.startsWith("rgb")) {
-      const parts = customColor.match(/\d+/g);
-
-      if (parts) {
-        [r, g, b] = parts.map(Number);
-      }
+      [r, g, b] = parseColor(color);
     }
 
-    // Custom colors completely override variation
-    return [r, g, b];
-  }
-
-  const color =
-    cell.color ??
-    cell.element?.color;
-
-  if (color?.startsWith("#")) {
-    const num = parseInt(color.slice(1), 16);
-
-    r = (num >> 16) & 255;
-    g = (num >> 8) & 255;
-    b = num & 255;
-
-  } else if (color?.startsWith("rgb")) {
-    const parts = color.match(/\d+/g);
-
-    if (parts) {
-      [r, g, b] = parts.map(Number);
-    }
-  }
-}
-
-    // =========================
-    // 🎨 SLIGHT STORED VARIATION
-    // =========================
+    // =======================================================
+    // VARIATION
+    // =======================================================
     const variation = getCellVariation(cell);
 
     r = clamp(r + variation);
     g = clamp(g + variation);
     b = clamp(b + variation);
 
-    // =========================
-    // ✨ SHINY EFFECT
-    // =========================
+    // =======================================================
+    // SHINY
+    // =======================================================
     if (
       cell.element?.properties?.shiny ||
       cell.shiny === true
@@ -32051,47 +34914,110 @@ else {
 
       const s = shine * intensity;
 
-      r = clamp(lerp(r, 255, s));
-      g = clamp(lerp(g, 255, s));
-      b = clamp(lerp(b, 255, s));
+      r = clamp(r + (255 - r) * s);
+      g = clamp(g + (255 - g) * s);
+      b = clamp(b + (255 - b) * s);
     }
 
     return [r, g, b];
   };
 
   // =========================================================
-  // 🖼 CREATE BASE IMAGE
+  // SET PIXEL
   // =========================================================
-  const img = this._offImg;
-  const data = img.data;
+  const setPixel = (px, py, r, g, b) => {
+    const i = (py * pixelCols + px) * 4;
 
-  let i = 0;
+    data[i] = r;
+    data[i + 1] = g;
+    data[i + 2] = b;
+    data[i + 3] = 255;
+  };
 
+  // =========================================================
+  // RENDER GRID
+  // =========================================================
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-
       const cell = this.grid[y][x];
 
-      // Subgrids are rendered separately
-      if (cell.subGrid) {
-        data[i++] = 0;
-        data[i++] = 0;
-        data[i++] = 0;
-        data[i++] = 0;
+      // =====================================================
+      // SUBGRID
+      // =====================================================
+    if (cell.subGrid) {
+  const subGrid = cell.subGrid;
+
+  for (let sy = 0; sy < 4; sy++) {
+    for (let sx = 0; sx < 4; sx++) {
+      const value = subGrid[sy]?.[sx];
+
+      const rotatedX = sy;
+      const rotatedY = sx;
+
+      const px = x * 4 + rotatedX;
+      const py = y * 4 + rotatedY;
+
+      const i = (py * pixelCols + px) * 4;
+
+      // 1 = transparent/chiseled out
+      if (value === 1) {
+        data[i] = 0;
+        data[i + 1] = 0;
+        data[i + 2] = 0;
+        data[i + 3] = 0;
         continue;
       }
 
+      if (value === 0 || typeof value === "string") {
+        let r;
+        let g;
+        let b;
+
+        if (typeof value === "string") {
+          [r, g, b] = parseColor(value);
+        } else {
+          [r, g, b] = getCellColor(
+            cell,
+            x + rotatedX / 4,
+            y + rotatedY / 4
+          );
+        }
+
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+        data[i + 3] = 255;
+      }
+    }
+  }
+
+  continue;
+}
+      // =====================================================
+      // NORMAL CELL
+      // =====================================================
       const [r, g, b] = getCellColor(cell, x, y);
 
-      data[i++] = r;
-      data[i++] = g;
-      data[i++] = b;
-      data[i++] = 255;
+      const startX = x * 4;
+      const startY = y * 4;
+
+      for (let py = 0; py < 4; py++) {
+        const rowIndex = ((startY + py) * pixelCols + startX) * 4;
+
+        for (let px = 0; px < 4; px++) {
+          const i = rowIndex + px * 4;
+
+          data[i] = r;
+          data[i + 1] = g;
+          data[i + 2] = b;
+          data[i + 3] = 255;
+        }
+      }
     }
   }
 
   // =========================================================
-  // 🖼 DRAW BASE GRID
+  // DRAW EVERYTHING AT ONCE
   // =========================================================
   this._offCtx.putImageData(img, 0, 0);
 
@@ -32106,108 +35032,34 @@ else {
   );
 
   // =========================================================
-  // 🔲 SUBGRID PASS
+  // GLUED OVERLAY
   // =========================================================
-  ctx.save();
-
-  ctx.imageSmoothingEnabled = false;
-
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-
-      const cell = this.grid[y][x];
-
-      if (!cell.subGrid) continue;
-
-      const subGrid = cell.subGrid;
-      const subSize = voxelsize / 4;
-
-      for (let sy = 0; sy < 4; sy++) {
-        for (let sx = 0; sx < 4; sx++) {
-
-          const value = subGrid[sy]?.[sx];
-
-          if (value === 1) continue;
-
-          if (value === 0) {
-
-            // Rotate 90° clockwise
-            const rotatedX = sy;
-            const rotatedY = sx;
-
-            const subX = x + rotatedX / 4;
-            const subY = y + rotatedY / 4;
-
-            const [r, g, b] =
-              getCellColor(cell, subX, subY);
-
-            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-
-            ctx.fillRect(
-              x * voxelsize + rotatedX * subSize,
-              y * voxelsize + rotatedY * subSize,
-              subSize,
-              subSize
-            );
-          }
-        }
-      }
-    }
-  }
-
-  ctx.restore();
-
-  // =========================================================
-  // 🧲 GLUED OVERLAY PASS
-  // =========================================================
-  if (this.showGrid === "normal") {
-
+  if (this.showGrid === "normal" && selectedElement === ELEMENTS.glue) {
     ctx.save();
 
-    ctx.strokeStyle =
-      "rgba(255,255,255,0.25)";
-
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 1;
 
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
-
         const cell = this.grid[y][x];
 
         if (!cell.glued) continue;
-        if (selectedElement !== ELEMENTS.glue) continue;
 
         const px = x * voxelsize;
         const py = y * voxelsize;
 
-        // ✖ Cross hatch
         ctx.beginPath();
 
         ctx.moveTo(px, py);
-        ctx.lineTo(
-          px + voxelsize,
-          py + voxelsize
-        );
+        ctx.lineTo(px + voxelsize, py + voxelsize);
+
+        ctx.moveTo(px + voxelsize, py);
+        ctx.lineTo(px, py + voxelsize);
 
         ctx.stroke();
 
-        ctx.beginPath();
-
-        ctx.moveTo(
-          px + voxelsize,
-          py
-        );
-
-        ctx.lineTo(
-          px,
-          py + voxelsize
-        );
-
-        ctx.stroke();
-
-        // ✨ Gloss highlight
-        ctx.fillStyle =
-          "rgba(255,255,255,0.15)";
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
 
         ctx.fillRect(
           px,
@@ -32222,24 +35074,20 @@ else {
   }
 
   // =========================================================
-  // 🌟 LIGHT OVERLAY PASS
+  // LIGHT OVERLAY
   // =========================================================
   if (this.lightGrid) {
-
     ctx.save();
 
     ctx.globalCompositeOperation = "lighter";
 
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
-
         const light = this.lightGrid[y][x];
 
         if (!light) continue;
 
-        const alpha = light.level / 16;
-
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = light.level / 16;
         ctx.fillStyle = light.color;
 
         ctx.fillRect(
@@ -32254,7 +35102,6 @@ else {
     ctx.restore();
   }
 }
-
 }
 
     let grid = new Grid({
@@ -33187,35 +36034,58 @@ function placeAtMouse(e) {
 
     if (!grid.isInside(x, y)) return;
 
-    if (Brush.mode === "replace") {
-        const cell = grid.get(x, y);
-        if (!Brush.replaceTarget) Brush.replaceTarget = cell.element.name;
-    }
+    const method = Brush.method;
 
     // --- FILL ---
-    if (Brush.method === "fill") {
+    if (method === "fill") {
         firstPoint = null;
         lastPaintCell = null;
+
         floodFill(x, y);
+
         return;
     }
 
     // --- ERASE ---
-    if (Brush.method === "erase") {
+    if (method === "erase") {
         firstPoint = null;
 
         if (lastPaintCell) {
-            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
+            eraseLine(lastPaintCell.x, lastPaintCell.y, x, y);
         } else {
             eraseAt(x, y);
         }
 
         lastPaintCell = { x, y };
+
+        return;
+    }
+
+    // --- REPLACE ---
+    if (method === "replace") {
+        firstPoint = null;
+
+        if (!Brush.replaceTarget) {
+            const cell = grid.get(x, y);
+
+            if (cell && cell.element) {
+                Brush.replaceTarget = cell.element.name;
+            }
+        }
+
+        if (lastPaintCell) {
+            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
+        } else {
+            applyBrush(x, y);
+        }
+
+        lastPaintCell = { x, y };
+
         return;
     }
 
     // --- LINE ---
-    if (e.shiftKey || Brush.method === "line") {
+    if (e.shiftKey || method === "line") {
         lastPaintCell = null;
 
         if (!firstPoint) {
@@ -33225,8 +36095,11 @@ function placeAtMouse(e) {
             firstPoint = null;
         }
 
+        return;
+    }
+
     // --- RECT ---
-    } else if (Brush.method === "rect") {
+    if (method === "rect") {
         lastPaintCell = null;
 
         if (!firstPoint) {
@@ -33236,8 +36109,11 @@ function placeAtMouse(e) {
             firstPoint = null;
         }
 
+        return;
+    }
+
     // --- CIRCLE ---
-    } else if (Brush.method === "circle") {
+    if (method === "circle") {
         lastPaintCell = null;
 
         if (!firstPoint) {
@@ -33247,30 +36123,44 @@ function placeAtMouse(e) {
             firstPoint = null;
         }
 
+        return;
+    }
+
     // --- SPRAY ---
-    } else if (Brush.method === "spray") {
-        firstPoint = null;
+   if (method === "spray") {
+    firstPoint = null;
 
-        if (lastPaintCell) {
-            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
-        } else {
-            spray(x, y);
+    if (lastPaintCell) {
+        const dx = x - lastPaintCell.x;
+        const dy = y - lastPaintCell.y;
+        const distance = Math.max(Math.abs(dx), Math.abs(dy));
+        const steps = Math.max(1, distance);
+
+        for (let i = 0; i <= steps; i++) {
+            const px = Math.round(lastPaintCell.x + (dx * i) / steps);
+            const py = Math.round(lastPaintCell.y + (dy * i) / steps);
+
+            spray(px, py);
         }
+    } else {
+        spray(x, y);
+    }
 
-        lastPaintCell = { x, y };
+    lastPaintCell = { x, y };
+
+    return;
+}
 
     // --- NORMAL PAINT ---
+    firstPoint = null;
+
+    if (lastPaintCell) {
+        drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
     } else {
-        firstPoint = null;
-
-        if (lastPaintCell) {
-            drawLine(lastPaintCell.x, lastPaintCell.y, x, y);
-        } else {
-            applyBrush(x, y);
-        }
-
-        lastPaintCell = { x, y };
+        applyBrush(x, y);
     }
+
+    lastPaintCell = { x, y };
 }
 function paint(cx, cy){
   if (!grid.isInside(cx, cy)) return;
@@ -33303,7 +36193,41 @@ function paint(cx, cy){
     selectedElement.onplace(grid, cx, cy);
   }
 }
+function eraseAt(x, y) {
+    if (!grid.isInside(x, y)) return;
 
+    const cell = grid.get(x, y);
+
+    if (cell.element === ELEMENTS.empty) return;
+
+    recordUndo(x, y);
+    grid.set(x, y, ELEMENTS.empty);
+}
+function eraseLine(x1, y1, x2, y2) {
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1;
+    const sy = y1 < y2 ? 1 : -1;
+    let err = dx - dy;
+
+    while (true) {
+        eraseAt(x1, y1);
+
+        if (x1 === x2 && y1 === y2) break;
+
+        const e2 = err * 2;
+
+        if (e2 > -dy) {
+            err -= dy;
+            x1 += sx;
+        }
+
+        if (e2 < dx) {
+            err += dx;
+            y1 += sy;
+        }
+    }
+}
 
 function beginUndo() {
     currentUndo = new Map();
@@ -33588,6 +36512,12 @@ function tick() {
   try {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     grid.draw(ctx);
+     for (let p of particles) {
+   
+    p.draw(ctx);
+  }
+  
+  
      UiManager.update();
   
    
@@ -33642,6 +36572,13 @@ function tick() {
       if ((!paused && timeScale > 0) || stepOnce) {
 
         grid.update();
+         for (let p of particles) {
+    p.update(grid);
+ 
+  }
+  
+  // Remove dead particles from the array to save memory
+  particles = particles.filter(p => p.life > 0);
         runTickListeners(TICK_MS);
         tpsSteps++;
 
@@ -33933,7 +36870,6 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
   // circle preview
   else if (Brush.method === "circle") {
     if (firstPoint) {
-      // Show preview of the ellipse outline
       const cx = (firstPoint.x + mouse.x) / 2;
       const cy = (firstPoint.y + mouse.y) / 2;
       const rx = Math.abs(mouse.x - firstPoint.x) / 2;
@@ -33956,7 +36892,6 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
           }
         }
       }
-      // Draw dimension label
       ctx.save();
       ctx.font = "12px monospace";
       ctx.fillStyle = "white";
@@ -33973,15 +36908,12 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
       
     }
   }
-  // erase preview
   else if (Brush.method === "erase") {
     addBrush(mouse.x, mouse.y);
   }
   else if(Brush.method === "measure" || Brush.method === "fill" || Brush.method === "select" || Brush.method === "transform"){
 
   }
-  
-  // normal mode
   else {
     addBrush(mouse.x, mouse.y);
   }
