@@ -947,6 +947,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
       <button onclick="grid.initGrid()">New</button>
         <button onclick="grid.download()">Save</button>
           <button onclick="loadGridFromFile()">Load</button>
+          <button onclick="UiManager.refs.ModManagerWindow.style.display = 'block'">Mods</button>
 
     </div>
   </details>
@@ -1192,7 +1193,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 
   <script>
     // version
-    const CURRENT_VERSION = "Va1.9";
+    const CURRENT_VERSION = "Va1.9.1";
     document.getElementById("version").textContent = CURRENT_VERSION;
     window.addEventListener('load', () => {
   requestAnimationFrame(() => {
@@ -22580,14 +22581,51 @@ star: new Element(
   {},
   (grid, x, y) => {
     const cell = grid.get(x, y);
-
+    if(cell.temperature < 20000){
+      cell.temperature*=1.4;
+    }
     if (cell.temperature > 50000) {
       explode(grid, x, y);
       return;
     }
 
+   const heatColors = [
+    [0, 0, 0],         // Black
+    [80, 0, 0],        // Dark red
+    [180, 0, 0],       // Red
+    [255, 80, 0],      // Orange-red
+    [255, 170, 0],     // Orange
+    [255, 240, 120],   // Yellow-white
+    [255, 255, 255],   // White
+    [210, 235, 255],   // Blue-white
+    [170, 210, 255]    // Slight blue
+];
+
+function heatColor(t) {
+    t = Math.max(0, Math.min(1, t));
+
+    const scaled = t * (heatColors.length - 1);
+    const i = Math.floor(scaled);
+    const f = scaled - i;
+
+    if (i >= heatColors.length - 1) return heatColors[heatColors.length - 1];
+
+    const a = heatColors[i];
+    const b = heatColors[i + 1];
+
+    return [
+        Math.round(a[0] + (b[0] - a[0]) * f),
+        Math.round(a[1] + (b[1] - a[1]) * f),
+        Math.round(a[2] + (b[2] - a[2]) * f)
+    ];
+}
+
+const t = Math.max(0, Math.min(1, cell.temperature / 50000));
+const c = heatColor(t);
+
+cell.color = rgbToHex(c[0], c[1], c[2]);
+cell.lightColor = rgbToHex(c[0], c[1], c[2]);
     cell.lightLevel = 16;
-    cell.lightColor = "#FCD568";
 
     const radius          = 12;
     const killRadius      = 2;
@@ -33013,6 +33051,10 @@ unfreeze: new Element(
 
 
     };
+      function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+}
+
     function hexToRgb(hex) {
   const bigint = parseInt(hex.slice(1), 16);
   return [
@@ -33020,6 +33062,19 @@ unfreeze: new Element(
     (bigint >> 8) & 255,
     bigint & 255
   ];
+}
+function rgbToHex(r, g, b) {
+
+            r = Math.round(clamp(r, 0, 255));
+            g = Math.round(clamp(g, 0, 255));
+            b = Math.round(clamp(b, 0, 255));
+
+            return "#" +
+                [r, g, b]
+                    .map(v =>
+                        v.toString(16).padStart(2, "0")
+                    )
+                    .join("");
 }
     class Particle {
   constructor(x, y, vx, vy, color, size, life, voxelsize = 1, options = {}) {
@@ -33427,7 +33482,933 @@ let iframeStart = null;
     let webCell = null;
   let webID = 0;
  let currentConnectionPoint = 1;
+ const exampleModCode = `
+ registerMod({
+    name: "Example Mod",
+    version: "1.0.0",
+
+    init() {
+        ELEMENTS.example = new Element(
+            "example", // name
+            "#ffffff", // color
+            "System", // category
+            {}, // properties
+            (grid,x,y) => { // what it does
+                // grid helpers:
+                // grid.get(x,y) gives you the cell and info
+                // grid.set(x,y, ELEMENTS.element) sets a cell at x/y to a element
+                // grid.swap(x1,y1,x2,y2); swaps 2 cells
+            },
+             (grid,x,y) => { // what it does when placed for 1 tick
+                
+            },
+        );
+        
+        // makes the element visible 
+        updateElementButtons();
+          
+
+    },
+
+    destroy() {
+
+        // you must remove what you added
+        delete ELEMENTS.example;
+
+        // updates the elements display
+        updateElementButtons();
+    }
+});
+ `
+class ModManager {
+
+    constructor(storageKey = "simbox_mods") {
+        this.storageKey = storageKey;
+        this.mods = new Map();
+
+        this.loadSavedMods();
+    }
+installBuiltInMod(name, version, code) {
+    const existing = this.getMods().find(mod => mod.name === name);
+
+    if (existing) {
+        return existing;
+    }
+
+    const id = this.generateId(name);
+
+    const mod = {
+        id: id,
+        name: name,
+        version: version || "1.0.0",
+        fileName: `${name}.js`,
+        code: code,
+        enabled: false,
+        instance: null
+    };
+
+    this.mods.set(id, mod);
+    this.saveMods();
+
+    return mod;
+}
+    loadSavedMods() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.storageKey) || "{}");
+
+            for (const [id, mod] of Object.entries(saved)) {
+                this.mods.set(id, {
+                    id: mod.id,
+                    name: mod.name,
+                    version: mod.version || "1.0.0",
+                    fileName: mod.fileName || mod.name,
+                    code: mod.code || "",
+                    enabled: false,
+                    instance: null
+                });
+            }
+        } catch (error) {
+            console.error("Failed to load saved mods:", error);
+        }
+    }
+
+    saveMods() {
+        const data = {};
+
+        for (const [id, mod] of this.mods) {
+            data[id] = {
+                id: mod.id,
+                name: mod.name,
+                version: mod.version,
+                fileName: mod.fileName,
+                code: mod.code
+            };
+        }
+
+        localStorage.setItem(this.storageKey, JSON.stringify(data));
+    }
+
+    generateId(name) {
+        let id = name
+            .toLowerCase()
+            .replace(/\.js$/, "")
+            .replace(/[^a-z0-9-_]/g, "-");
+
+        const originalId = id;
+        let number = 1;
+
+        while (this.mods.has(id)) {
+            id = `${originalId}-${number}`;
+            number++;
+        }
+
+        return id;
+    }
+
+    createMod(name = "New Mod", version = "1.0.0", code = "") {
+        const id = this.generateId(name);
+
+        const mod = {
+            id: id,
+            name: name,
+            version: version,
+            fileName: `${name}.js`,
+            code: code,
+            enabled: false,
+            instance: null
+        };
+
+        this.mods.set(id, mod);
+        this.saveMods();
+
+        return mod;
+    }
+
+    updateMod(id, data = {}) {
+        const mod = this.mods.get(id);
+
+        if (!mod) {
+            return false;
+        }
+
+        if (mod.enabled) {
+            this.disableMod(id);
+        }
+
+        if (data.name !== undefined) {
+            mod.name = data.name;
+        }
+
+        if (data.version !== undefined) {
+            mod.version = data.version;
+        }
+
+        if (data.fileName !== undefined) {
+            mod.fileName = data.fileName;
+        }
+
+        if (data.code !== undefined) {
+            mod.code = data.code;
+        }
+
+        this.saveMods();
+
+        return true;
+    }
+
+    deleteMod(id) {
+        return this.removeMod(id);
+    }
+
+    downloadMod(id) {
+        const mod = this.mods.get(id);
+
+        if (!mod) {
+            return false;
+        }
+
+        const blob = new Blob([mod.code], {
+            type: "text/javascript"
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        a.href = url;
+        a.download = mod.fileName || `${mod.name}.js`;
+
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        URL.revokeObjectURL(url);
+
+        return true;
+    }
+
+    duplicateMod(id) {
+        const original = this.mods.get(id);
+
+        if (!original) {
+            return null;
+        }
+
+        return this.createMod(
+            `${original.name} Copy`,
+            original.version,
+            original.code
+        );
+    }
+
+    async addModFromFile() {
+        return new Promise((resolve, reject) => {
+            const input = document.createElement("input");
+
+            input.type = "file";
+            input.accept = ".js,application/javascript,text/javascript";
+
+            input.onchange = async () => {
+                const file = input.files[0];
+
+                if (!file) {
+                    reject(new Error("No file selected."));
+                    return;
+                }
+
+                try {
+                    const code = await file.text();
+                    const name = file.name.replace(/\.js$/, "");
+                    const id = this.generateId(name);
+
+                    const mod = {
+                        id: id,
+                        name: name,
+                        version: "1.0.0",
+                        fileName: file.name,
+                        code: code,
+                        enabled: false,
+                        instance: null
+                    };
+
+                    this.mods.set(id, mod);
+                    this.saveMods();
+
+                    resolve(mod);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            input.click();
+        });
+    }
+
+    enableMod(id) {
+        const mod = this.mods.get(id);
+
+        if (!mod) {
+            console.error(`Mod not found: ${id}`);
+            return false;
+        }
+
+        if (mod.enabled) {
+            return true;
+        }
+
+        try {
+            let registeredMod = null;
+
+            const registerMod = data => {
+                registeredMod = data;
+            };
+
+            const modFunction = new Function(
+                "registerMod",
+                "ModManager",
+                mod.code
+            );
+
+            modFunction(registerMod, this);
+
+            if (registeredMod && typeof registeredMod.init === "function") {
+                registeredMod.init();
+            }
+
+            mod.instance = registeredMod;
+            mod.enabled = true;
+
+            console.log(`Enabled mod: ${mod.name}`);
+
+            return true;
+        } catch (error) {
+            console.error(`Failed to enable mod "${mod.name}":`, error);
+            return false;
+        }
+    }
+
+    disableMod(id) {
+        const mod = this.mods.get(id);
+
+        if (!mod) {
+            return false;
+        }
+
+        if (!mod.enabled) {
+            return true;
+        }
+
+        try {
+            if (mod.instance && typeof mod.instance.destroy === "function") {
+                mod.instance.destroy();
+            }
+
+            mod.instance = null;
+            mod.enabled = false;
+
+            return true;
+        } catch (error) {
+            console.error(`Failed to disable mod "${mod.name}":`, error);
+            return false;
+        }
+    }
+
+    toggleMod(id) {
+        const mod = this.mods.get(id);
+
+        if (!mod) {
+            return false;
+        }
+
+        if (mod.enabled) {
+            return this.disableMod(id);
+        }
+
+        return this.enableMod(id);
+    }
+
+    removeMod(id) {
+        const mod = this.mods.get(id);
+
+        if (!mod) {
+            return false;
+        }
+
+        if (mod.enabled) {
+            this.disableMod(id);
+        }
+
+        this.mods.delete(id);
+        this.saveMods();
+
+        return true;
+    }
+
+    getMod(id) {
+        return this.mods.get(id);
+    }
+
+    getMods() {
+        return Array.from(this.mods.values());
+    }
+
+    isEnabled(id) {
+        const mod = this.mods.get(id);
+
+        return mod ? mod.enabled : false;
+    }
+
+    enableAll() {
+        for (const mod of this.mods.values()) {
+            this.enableMod(mod.id);
+        }
+    }
+
+    disableAll() {
+        for (const mod of this.mods.values()) {
+            this.disableMod(mod.id);
+        }
+    }
+
+    clearMods() {
+        this.disableAll();
+        this.mods.clear();
+        this.saveMods();
+    }
+}
+function openModEditor(id) {
+    const mod = modManager.getMod(id);
+
+    if (!mod) {
+        return;
+    }
+
+    const refs = UiManager.refs;
+
+    refs.ModEditorWindow.dataset.modId = id;
+
+    refs.ModEditorName.value = mod.name;
+    refs.ModEditorVersion.value = mod.version;
+    refs.ModEditorCode.value = mod.code;
+
+    refs.ModEditorWindow.style.display = "flex";
+}
+const modManager = new ModManager();
+modManager.installBuiltInMod(
+    "Example Mod",
+    "1.0.0",
+    exampleModCode
+);
 const ui = {
+   ModManagerWindow: {
+        tag: "div",
+        style: {
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: "520px",
+            height: "600px",
+            transform: "translate(-50%, -50%)",
+            background: "#181818",
+            border: "1px solid #333",
+            borderRadius: "10px",
+            color: "#fff",
+            fontFamily: "Arial, sans-serif",
+            display: "none",
+            flexDirection: "column",
+            overflow: "hidden",
+            zIndex: "1000",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)"
+        },
+
+        children: {
+            ModManagerHeader: {
+                tag: "div",
+                style: {
+                    height: "55px",
+                    minHeight: "55px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 15px",
+                    background: "#202020",
+                    borderBottom: "1px solid #333",
+                    boxSizing: "border-box"
+                },
+
+                children: {
+                    ModManagerTitle: {
+                        tag: "div",
+                        text: "Mod Manager",
+                        style: {
+                            fontSize: "18px",
+                            fontWeight: "bold"
+                        }
+                    },
+
+                    ModManagerClose: {
+                        tag: "button",
+                        text: "×",
+                        style: {
+                            width: "32px",
+                            height: "32px",
+                            border: "none",
+                            borderRadius: "6px",
+                            background: "#2a2a2a",
+                            color: "#aaa",
+                            fontSize: "22px",
+                            cursor: "pointer"
+                        },
+
+                        onClick(el, refs) {
+                            refs.ModManagerWindow.style.display = "none";
+                        }
+                    }
+                }
+            },
+
+            ModManagerToolbar: {
+                tag: "div",
+                style: {
+                    display: "flex",
+                    gap: "8px",
+                    padding: "10px",
+                    borderBottom: "1px solid #333"
+                },
+
+                children: {
+                    ModManagerAdd: {
+                        tag: "button",
+                        text: "+ Add Mod",
+                        style: {
+                            flex: "1",
+                            height: "38px",
+                            border: "1px solid #444",
+                            borderRadius: "6px",
+                            background: "#292929",
+                            color: "#fff",
+                            cursor: "pointer",
+                            fontSize: "13px"
+                        },
+
+                        onClick() {
+                            modManager.addModFromFile()
+                                .then(() => {
+                                    UiManager.refs.ModManagerList.initMods();
+                                })
+                                .catch(error => {
+                                    console.error(error);
+                                });
+                        }
+                    },
+
+                    ModManagerRefresh: {
+                        tag: "button",
+                        text: "Refresh",
+                        style: {
+                            width: "90px",
+                            height: "38px",
+                            border: "1px solid #444",
+                            borderRadius: "6px",
+                            background: "#292929",
+                            color: "#fff",
+                            cursor: "pointer",
+                            fontSize: "13px"
+                        },
+
+                        onClick() {
+                            UiManager.refs.ModManagerList.initMods();
+                        }
+                    }
+                }
+            },
+
+            ModManagerList: {
+                tag: "div",
+                style: {
+                    flex: "1",
+                    overflowY: "auto",
+                    padding: "10px",
+                    boxSizing: "border-box"
+                },
+
+                init(el, refs) {
+                    el.initMods = () => {
+                        el.innerHTML = "";
+
+                        const mods = modManager.getMods();
+
+                        if (mods.length === 0) {
+                            const empty = document.createElement("div");
+
+                            empty.textContent = "No mods installed.";
+
+                            Object.assign(empty.style, {
+                                textAlign: "center",
+                                color: "#666",
+                                padding: "40px 10px",
+                                fontSize: "14px"
+                            });
+
+                            el.appendChild(empty);
+
+                            return;
+                        }
+
+                        for (const mod of mods) {
+                            const card = document.createElement("div");
+
+                            Object.assign(card.style, {
+                                background: "#222",
+                                border: "1px solid #333",
+                                borderRadius: "8px",
+                                padding: "12px",
+                                marginBottom: "8px",
+                                boxSizing: "border-box"
+                            });
+
+                            const top = document.createElement("div");
+
+                            Object.assign(top.style, {
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between"
+                            });
+
+                            const info = document.createElement("div");
+
+                            const name = document.createElement("div");
+
+                            name.textContent = mod.name;
+
+                            Object.assign(name.style, {
+                                fontSize: "15px",
+                                fontWeight: "bold",
+                                color: "#fff"
+                            });
+
+                            const version = document.createElement("div");
+
+                            version.textContent = `v${mod.version}`;
+
+                            Object.assign(version.style, {
+                                fontSize: "11px",
+                                color: "#777",
+                                marginTop: "3px"
+                            });
+
+                            info.appendChild(name);
+                            info.appendChild(version);
+
+                            const status = document.createElement("div");
+
+                            status.textContent = mod.enabled ? "ENABLED" : "DISABLED";
+
+                            Object.assign(status.style, {
+                                fontSize: "10px",
+                                fontWeight: "bold",
+                                color: mod.enabled ? "#6cff6c" : "#777"
+                            });
+
+                            top.appendChild(info);
+                            top.appendChild(status);
+
+                            const buttons = document.createElement("div");
+
+                            Object.assign(buttons.style, {
+                                display: "flex",
+                                gap: "6px",
+                                marginTop: "10px"
+                            });
+
+                            const toggle = document.createElement("button");
+
+                            toggle.textContent = mod.enabled ? "Disable" : "Enable";
+
+                            Object.assign(toggle.style, {
+                                flex: "1",
+                                height: "32px",
+                                border: "1px solid #444",
+                                borderRadius: "5px",
+                                background: mod.enabled ? "#303030" : "#292929",
+                                color: "#fff",
+                                cursor: "pointer"
+                            });
+
+                            toggle.onclick = () => {
+                                modManager.toggleMod(mod.id);
+                                el.initMods();
+                            };
+
+                            const remove = document.createElement("button");
+
+                            remove.textContent = "Remove";
+
+                            Object.assign(remove.style, {
+                                width: "75px",
+                                height: "32px",
+                                border: "1px solid #443333",
+                                borderRadius: "5px",
+                                background: "#291f1f",
+                                color: "#ff7777",
+                                cursor: "pointer"
+                            });
+
+                            remove.onclick = () => {
+                                modManager.removeMod(mod.id);
+                                el.initMods();
+                            };
+                            const edit = document.createElement("button");
+
+edit.textContent = "Edit";
+
+Object.assign(edit.style, {
+    width: "70px",
+    height: "32px",
+    border: "1px solid #444",
+    borderRadius: "5px",
+    background: "#292929",
+    color: "#fff",
+    cursor: "pointer"
+});
+
+edit.onclick = () => {
+    openModEditor(mod.id);
+};
+
+const download = document.createElement("button");
+
+download.textContent = "Download";
+
+Object.assign(download.style, {
+    width: "85px",
+    height: "32px",
+    border: "1px solid #444",
+    borderRadius: "5px",
+    background: "#292929",
+    color: "#fff",
+    cursor: "pointer"
+});
+
+download.onclick = () => {
+    modManager.downloadMod(mod.id);
+};
+
+buttons.appendChild(edit);
+buttons.appendChild(download);
+buttons.appendChild(toggle);
+buttons.appendChild(remove);
+                         
+
+                            card.appendChild(top);
+                            card.appendChild(buttons);
+
+                            el.appendChild(card);
+                        }
+                    };
+
+                    el.initMods();
+                }
+            }
+        }
+    },
+    ModEditorWindow: {
+    tag: "div",
+    style: {
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        width: "700px",
+        height: "650px",
+        transform: "translate(-50%, -50%)",
+        background: "#181818",
+        border: "1px solid #333",
+        borderRadius: "10px",
+        color: "#fff",
+        fontFamily: "Arial, sans-serif",
+        display: "none",
+        flexDirection: "column",
+        overflow: "hidden",
+        zIndex: "1100",
+        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)"
+    },
+
+    children: {
+        ModEditorHeader: {
+            tag: "div",
+            style: {
+                height: "55px",
+                minHeight: "55px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0 15px",
+                background: "#202020",
+                borderBottom: "1px solid #333",
+                boxSizing: "border-box"
+            },
+
+            children: {
+                ModEditorTitle: {
+                    tag: "div",
+                    text: "Mod Editor",
+                    style: {
+                        fontSize: "18px",
+                        fontWeight: "bold"
+                    }
+                },
+
+                ModEditorClose: {
+                    tag: "button",
+                    text: "×",
+                    style: {
+                        width: "32px",
+                        height: "32px",
+                        border: "none",
+                        borderRadius: "6px",
+                        background: "#2a2a2a",
+                        color: "#aaa",
+                        fontSize: "22px",
+                        cursor: "pointer"
+                    },
+
+                    onClick(el, refs) {
+                        refs.ModEditorWindow.style.display = "none";
+                    }
+                }
+            }
+        },
+
+        ModEditorInfo: {
+            tag: "div",
+            style: {
+                display: "flex",
+                gap: "8px",
+                padding: "10px",
+                borderBottom: "1px solid #333",
+                boxSizing: "border-box"
+            },
+
+            children: {
+                ModEditorName: {
+                    tag: "input",
+                    placeholder: "Mod name",
+                    style: {
+                        flex: "1",
+                        height: "34px",
+                        background: "#222",
+                        border: "1px solid #444",
+                        borderRadius: "5px",
+                        color: "#fff",
+                        padding: "0 10px",
+                        boxSizing: "border-box"
+                    }
+                },
+
+                ModEditorVersion: {
+                    tag: "input",
+                    placeholder: "Version",
+                    style: {
+                        width: "110px",
+                        height: "34px",
+                        background: "#222",
+                        border: "1px solid #444",
+                        borderRadius: "5px",
+                        color: "#fff",
+                        padding: "0 10px",
+                        boxSizing: "border-box"
+                    }
+                }
+            }
+        },
+
+        ModEditorCode: {
+            tag: "textarea",
+            placeholder: "// Write your mod here...",
+            style: {
+                flex: "1",
+                width: "100%",
+                resize: "none",
+                outline: "none",
+                border: "none",
+                padding: "15px",
+                boxSizing: "border-box",
+                background: "#111",
+                color: "#ddd",
+                fontFamily: "Consolas, monospace",
+                fontSize: "13px",
+                lineHeight: "1.5",
+                tabSize: "4"
+            }
+        },
+
+        ModEditorToolbar: {
+            tag: "div",
+            style: {
+                display: "flex",
+                gap: "8px",
+                padding: "10px",
+                background: "#202020",
+                borderTop: "1px solid #333"
+            },
+
+            children: {
+                ModEditorSave: {
+                    tag: "button",
+                    text: "Save",
+                    style: {
+                        flex: "1",
+                        height: "38px",
+                        border: "1px solid #444",
+                        borderRadius: "6px",
+                        background: "#292929",
+                        color: "#fff",
+                        cursor: "pointer"
+                    },
+
+                    onClick(el, refs) {
+                        const id = refs.ModEditorWindow.dataset.modId;
+
+                        modManager.updateMod(id, {
+                            name: refs.ModEditorName.value,
+                            version: refs.ModEditorVersion.value,
+                            fileName: `${refs.ModEditorName.value}.js`,
+                            code: refs.ModEditorCode.value
+                        });
+
+                        UiManager.refs.ModManagerList.initMods();
+                    }
+                },
+
+                ModEditorDownload: {
+                    tag: "button",
+                    text: "Download .js",
+                    style: {
+                        width: "120px",
+                        height: "38px",
+                        border: "1px solid #444",
+                        borderRadius: "6px",
+                        background: "#292929",
+                        color: "#fff",
+                        cursor: "pointer"
+                    },
+
+                    onClick(el, refs) {
+                        const id = refs.ModEditorWindow.dataset.modId;
+
+                        modManager.updateMod(id, {
+                            name: refs.ModEditorName.value,
+                            version: refs.ModEditorVersion.value,
+                            fileName: `${refs.ModEditorName.value}.js`,
+                            code: refs.ModEditorCode.value
+                        });
+
+                        modManager.downloadMod(id);
+                    }
+                }
+            }
+        }
+    }
+},
   PaintingUIContainer: {
   tag: "div",
   style: {
@@ -33600,190 +34581,34 @@ const ui = {
   return updatePaintingCanvas;
 }  },
 
-    PaintingColorWheel: {
-      tag: "canvas",
-      style: {
-        position: "absolute",
-        left: "420px",
-        top: "20px",
-        width: "80px",
-        height: "80px",
-        cursor: "crosshair"
-      },
-      init(el, refs) {
-        el.width = 160;
-        el.height = 160;
+  PaintingColorWheel: {
+  tag: "input",
+  
+  style: {
+    position: "absolute",
+    left: "420px",
+    top: "20px",
+    width: "80px",
+    height: "80px",
+    border: "none",
+    padding: "0",
+    background: "none",
+    cursor: "pointer"
+  },
+  init(el, refs) {
+    refs.PaintingUIContainer.pickedColor = el.value;
+    el.type ="color";
+    el.addEventListener("input", () => {
+      refs.PaintingUIContainer.pickedColor = el.value;
+    });
 
-        const wheelCtx = el.getContext("2d");
-        const wheelSize = 160;
-        const wheelCenter = wheelSize / 2;
-        const wheelRadius = 76;
-
-        function drawColorWheel(){
-          wheelCtx.clearRect(0, 0, wheelSize, wheelSize);
-
-          const wheelGradient =
-            wheelCtx.createConicGradient(
-              0,
-              wheelCenter,
-              wheelCenter
-            );
-
-          wheelGradient.addColorStop(0, "#ff0000");
-          wheelGradient.addColorStop(1 / 6, "#ffff00");
-          wheelGradient.addColorStop(2 / 6, "#00ff00");
-          wheelGradient.addColorStop(3 / 6, "#00ffff");
-          wheelGradient.addColorStop(4 / 6, "#0000ff");
-          wheelGradient.addColorStop(5 / 6, "#ff00ff");
-          wheelGradient.addColorStop(1, "#ff0000");
-
-          wheelCtx.beginPath();
-          wheelCtx.arc(
-            wheelCenter,
-            wheelCenter,
-            wheelRadius,
-            0,
-            Math.PI * 2
-          );
-
-          wheelCtx.fillStyle = wheelGradient;
-          wheelCtx.fill();
-
-          const colorWhiteGradient =
-            wheelCtx.createRadialGradient(
-              wheelCenter,
-              wheelCenter,
-              0,
-              wheelCenter,
-              wheelCenter,
-              wheelRadius
-            );
-
-          colorWhiteGradient.addColorStop(0, "rgba(255,255,255,1)");
-          colorWhiteGradient.addColorStop(0.25, "rgba(255,255,255,0)");
-          colorWhiteGradient.addColorStop(1, "rgba(255,255,255,0)");
-
-          wheelCtx.beginPath();
-          wheelCtx.arc(
-            wheelCenter,
-            wheelCenter,
-            wheelRadius,
-            0,
-            Math.PI * 2
-          );
-
-          wheelCtx.fillStyle = colorWhiteGradient;
-          wheelCtx.fill();
-
-          const colorBlackGradient =
-            wheelCtx.createRadialGradient(
-              wheelCenter,
-              wheelCenter,
-              0,
-              wheelCenter,
-              wheelCenter,
-              wheelRadius
-            );
-
-          colorBlackGradient.addColorStop(0, "rgba(0,0,0,0)");
-          colorBlackGradient.addColorStop(1, "rgba(0,0,0,1)");
-
-          wheelCtx.beginPath();
-          wheelCtx.arc(
-            wheelCenter,
-            wheelCenter,
-            wheelRadius,
-            0,
-            Math.PI * 2
-          );
-
-          wheelCtx.fillStyle = colorBlackGradient;
-          wheelCtx.fill();
-
-          wheelCtx.strokeStyle = "white";
-          wheelCtx.lineWidth = 3;
-
-          wheelCtx.beginPath();
-          wheelCtx.arc(
-            wheelCenter,
-            wheelCenter,
-            wheelRadius + 1,
-            0,
-            Math.PI * 2
-          );
-
-          wheelCtx.stroke();
-        }
-
-        function rgbToHex(r, g, b){
-          return "#" +
-            [r, g, b]
-              .map(v => Math.max(0, Math.min(255, v))
-                .toString(16)
-                .padStart(2, "0"))
-              .join("");
-        }
-
-        function pickWheelColor(e){
-          const rect = el.getBoundingClientRect();
-
-          const scaleX = el.width / rect.width;
-          const scaleY = el.height / rect.height;
-
-          const colorX =
-            (e.clientX - rect.left) * scaleX;
-
-          const colorY =
-            (e.clientY - rect.top) * scaleY;
-
-          const dx = colorX - wheelCenter;
-          const dy = colorY - wheelCenter;
-
-          const distance = Math.sqrt(
-            dx * dx + dy * dy
-          );
-
-          if(distance > wheelRadius){
-            return;
-          }
-
-          const pixel = wheelCtx.getImageData(
-            Math.floor(colorX),
-            Math.floor(colorY),
-            1,
-            1
-          ).data;
-
-          refs.PaintingUIContainer.pickedColor =
-            rgbToHex(
-              pixel[0],
-              pixel[1],
-              pixel[2]
-            );
-        }
-
-        el.addEventListener("pointerdown", (e) => {
-          pickWheelColor(e);
-        });
-
-        el.addEventListener("pointermove", (e) => {
-          if(e.buttons & 1){
-            pickWheelColor(e);
-          }
-        });
-
-        drawColorWheel();
-
-        function updateColorWheel(){
-          if(refs.PaintingUIContainer.style.display !== "block"){
-            return;
-          }
-        }
-
-        return updateColorWheel;
+    return function updateColorPicker() {
+      if (el.value !== refs.PaintingUIContainer.pickedColor) {
+        el.value = refs.PaintingUIContainer.pickedColor;
       }
-    },
-
+    };
+  }
+},
     PaintingColorPreview: {
       tag: "div",
       style: {
@@ -34657,6 +35482,7 @@ function loadGridFromFile() {
 
     input.click();
 }
+
 const perlin = new Perlin();
     // GRID SYSTEM
   class Grid {
