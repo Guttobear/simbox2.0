@@ -794,9 +794,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
       right: 46px !important;
     }
 
-    #version {
-      display: none; /* clutter on small screens, not actionable */
-    }
+  
 
     /* ---- Canvas area: full width, edge to edge, keeps 800x600 ratio ---- */
     #simWrap {
@@ -948,7 +946,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
       flex-shrink: 0;
       width: 62px;
       height: 62px;
-    
+     
     }
   }
 
@@ -1030,7 +1028,6 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 </button>
 </div>
 
-<div style="position:absolute; right: 0px; bottom: 0px;" id="version"></div>
  
 
 
@@ -1256,9 +1253,6 @@ let mobile = isMobile();
 if(mobile){
   console.log("on mobile");
 }
-    // version
-    const CURRENT_VERSION = "Va1.9.1";
-    document.getElementById("version").textContent = CURRENT_VERSION;
     window.addEventListener('load', () => {
   requestAnimationFrame(() => {
     document.body.classList.add('loaded');
@@ -2134,19 +2128,6 @@ canvas.addEventListener("pointermove", (e) => {
     
 
 
-
-
-function toggleCatalog(){
-  const catalog = document.getElementById("catalog-container");
-
-  if(catalog.style.display === "flex"){
-    catalog.style.display = "none";
-    // Mark this version as seen when user closes the catalog
-    localStorage.setItem("simbox_seen_version", CURRENT_VERSION);
-  } else{
-    catalog.style.display = "flex";
-  }
-}
 
 
 
@@ -3149,6 +3130,18 @@ function powderPhysics(grid, x, y, opts = {}) {
       if (!sinkLiquids) return 0;
 
       const targetDensity = getDensity(target);
+
+      if (targetDensity >= myDensity) return 0;
+
+      const difference = myDensity - targetDensity;
+      const ratio = difference / Math.max(myDensity, 1);
+
+      return Math.min(0.9, densitySwapChance + ratio * 0.65);
+    }
+
+    if (extraCanEnter && extraCanEnter(target)) {
+      const targetDensity = getDensity(target);
+
       if (targetDensity >= myDensity) return 0;
 
       const difference = myDensity - targetDensity;
@@ -3165,7 +3158,7 @@ function powderPhysics(grid, x, y, opts = {}) {
 
     if (target.element.name === "empty") return true;
 
-    if (extraCanEnter && extraCanEnter(target)) return true;
+    if (extraCanEnter && !extraCanEnter(target)) return false;
 
     return Math.random() < densityChance(target);
   }
@@ -3513,6 +3506,9 @@ const RECIPES = [
    },
   (grid, x, y) => {
     const cell = grid.get(x, y);
+
+   
+
     //interactions
     if(grid.touching(x, y, "burntwood")){
       if(Math.random() < 0.05){
@@ -3601,7 +3597,7 @@ const RECIPES = [
   "fire",
   "#ff4500",
   "Energy",
-  {conductivity: 2, temperature: 100, harmful: true},
+  {conductivity: 2, temperature: 300, harmful: true},
   (grid, x, y) => {
     const cell = grid.get(x, y);
  cell.age++;
@@ -5058,8 +5054,8 @@ orbital_laser: new Element(
               const sy = Math.floor(cy0 + Math.sin(angle) * rr);
 
               if (grid.isInside(sx, sy)) {
+                grid.set(sx,sy, ELEMENTS.vfx);
                 const s = grid.get(sx, sy);
-                s.element = ELEMENTS.vfx;
                 s.color = "rgb(230,255,255)";
                 s.age = -25;
               }
@@ -5097,9 +5093,9 @@ orbital_laser: new Element(
                   if (!grid.isInside(nx, ny)) {
                     break;
                   }
-
+                  grid.set(nx,ny,ELEMENTS.vfx);
                   const cell = grid.get(nx, ny);
-                  cell.element = ELEMENTS.vfx;
+                
                   cell.color =
                     nx === cx - laserWidth || nx === cx + laserWidth
                       ? EDGE_COLOR
@@ -5135,9 +5131,8 @@ orbital_laser: new Element(
                     const ay = b.baseY + curveOffset + h;
 
                     if (!grid.isInside(nx, ay)) continue;
-
+                    grid.set(nx, ay,ELEMENTS.vfx);
                     const cell = grid.get(nx, ay);
-                    cell.element = ELEMENTS.vfx;
                     cell.color = b.color;
                     cell.age = -70;
                   }
@@ -5281,8 +5276,9 @@ orbital_laser: new Element(
             if (Math.sqrt(xx * xx + yy * yy) <= bigRadius) {
               const c = grid.get(cx + xx, cy + yy);
               if (!c) continue;
-              c.element = ELEMENTS.vfx;
-              c.color = Math.sqrt(xx * xx + yy * yy) >= bigRadius - 1 ? OUTLINE : DARK;
+              grid.set(cx+xx, cy+yy, ELEMENTS.vfx);
+               const c2 = grid.get(cx + xx, cy + yy);
+              c2.color = Math.sqrt(xx * xx + yy * yy) >= bigRadius - 1 ? OUTLINE : DARK;
             }
           }
         }
@@ -5308,8 +5304,9 @@ orbital_laser: new Element(
               const c = grid.get(cx + Math.round(ox) + sx, cy + Math.round(oy) + sy);
               if (!c) continue;
               if (c.element === ELEMENTS.empty || c.element === ELEMENTS.vfx) {
-                c.element = ELEMENTS.vfx;
-                c.color = color;
+                grid.set(cx + Math.round(ox) + sx,  cy + Math.round(oy) + sy, ELEMENTS.vfx);
+                
+                grid.get(cx + Math.round(ox) + sx, cy + Math.round(oy) + sy).color = color;
               }
             }
           }
@@ -5793,8 +5790,9 @@ humantop: new Element(
     if (below.element !== ELEMENTS.human) {
       // Only bleed if this head wasn't cleared by the human itself
       if (!cell.selfCleared) {
+      
         grid.set(x, y, ELEMENTS.blood);
-        grid.set(x, y + 1, ELEMENTS.blood);
+       if(cell.get(x,y+1)?.ELEMENTS===ELEMENTS.empty) grid.set(x, y + 1, ELEMENTS.blood);
       } else {
         grid.set(x, y, ELEMENTS.empty);
         
@@ -7486,7 +7484,7 @@ ash: new Element(
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
-    if(cell.temperature > 900){
+    if(cell.temperature > 500){
       grid.set(x,y,ELEMENTS.smoke);
     }
     // Snow randomly drifts left/right or straight
@@ -10683,6 +10681,19 @@ glue: new Element(
     const cell = grid.get(x,y);
     if(cell.element === ELEMENTS.empty) return;
     if(cell.glued !== null){ cell.glued = true
+     } 
+
+  }
+),
+unglue: new Element(
+  "unglue",
+  "#ffffff",
+  "Tool",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.element === ELEMENTS.empty) return;
+    if(cell.glued === true){ cell.glued = false
      } 
 
   }
@@ -20086,10 +20097,10 @@ fat_oil: new Element(
   "fat_oil",
   "#E0D272",
   "Food",
-  {},
+  {conductivity: 10, density: 0.1},
   (grid,x,y) => {
   const cell = grid.get(x,y);
-   if(cell.temperature > 150) grid.set(x,y,ELEMENTS.steam);
+   if(cell.temperature > 350) grid.set(x,y,ELEMENTS.steam);
   liquidPhysics(grid,x,y);
   }
 ),
@@ -30053,7 +30064,7 @@ tentacle: (function() {
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-function coordToSubcoord(cx, cy, resolution = 4) {
+function coordToSubcoord(cx, cy, resolution = 1) {
     const cellX = Math.floor(cx), cellY = Math.floor(cy), localX = cx - cellX, localY = cy - cellY;
     return { cellX, cellY, subX: clamp(Math.floor(localX * resolution), 0, resolution - 1), subY: clamp(Math.floor(localY * resolution), 0, resolution - 1) };
 }
@@ -30078,7 +30089,7 @@ class CasterRenderer {
         this.grid = grid;
         this.element = options.element ?? ELEMENTS.tentacle_segment;
         this.owner = options.owner ?? {};
-        this.subResolution = options.subResolution ?? 4;
+        this.subResolution = options.subResolution ?? 1;
         this.anchorX = options.anchorX;
         this.anchorY = options.anchorY;
         this.previousCast = [];
@@ -33386,7 +33397,9 @@ chicken: new Element(
     const WANDER_RADIUS = 16;
     const WANDER_COOLDOWN = 0;
     const WANDER_ATTEMPTS = 12;
-
+    if(grid.touching(x,y,"vegetable_oil&neighbor.temperature>60")){
+      grid.set(x,y,ELEMENTS.fried_chicken);
+    }
     cell.tick ??= 0;
     cell.tick++;
 
@@ -33711,7 +33724,1600 @@ hydrogen: new Element(
     });
     gasPhysics(grid,x,y);
   }
-)
+),
+snake: new Element("snake", "#1f6e0a", "Life", {}, (grid, x, y) => {
+  const cell = grid.get(x, y);
+
+  const WANDER_RADIUS = 14;
+  const WANDER_ATTEMPTS = 10;
+
+  // --- Predator tuning ---
+  const HUNT_RADIUS = 18;        // how far it can spot prey
+  const STRIKE_RANGE = 9;        // distance at which it commits to a leap
+  const TARGET_LOCK_TICKS = 5;  // reticle telegraph duration (dodgeable)
+  const ARC_STEPS = 10;          // ticks to complete the airborne leap
+  const ARC_HEIGHT_FACTOR = 0.6; // how much the arc bulges upward per tile of distance
+  const ARC_HEIGHT_MAX = 12;
+  const POUNCE_COOLDOWN = 60;
+  const SCAN_INTERVAL = 6;       // ticks between full prey scans (perf)
+  const LOCK_TRACK_RADIUS = 3;   // cheap local re-acquire radius while reticle is locked on
+  const BASE_LENGTH = 4;
+  const MAX_LENGTH = 8;
+
+  // A harmless visual-only element used for the "locked on" reticle.
+  // Swap this for a fancier particle/laser element if your mod has one.
+  const MARKER_ELEMENT = ELEMENTS.vfx;
+
+  cell.trail ??= [];
+  cell.tailCells ??= [];
+  cell.dir ??= Math.random() < 0.5 ? 1 : -1;
+  cell.tick ??= 0;
+  cell.state ??= "idle";
+  cell.target ??= { x, y };
+  cell.path ??= null;
+  cell.pathIndex ??= 0;
+  cell.turnTimer ??= 0;
+  cell.length ??= BASE_LENGTH;
+
+  // Predator state
+  cell.mode ??= "wander";        // wander | hunt | target | airborne
+  cell.preyPos ??= null;
+  cell.pounceCooldown ??= 0;
+  cell.scanTimer ??= 0;
+  cell.targetLockTimer ??= 0;
+  cell.markerPos ??= null;
+  cell.strikePos ??= null;
+  cell.arcStart ??= null;
+  cell.arcStep ??= 0;
+
+  // =========================================================
+  // BASIC HELPERS
+  // =========================================================
+
+  function isEmpty(c) {
+    return c?.element === ELEMENTS.empty || c?.element === ELEMENTS.vfx;
+  }
+
+  function isHead(tx, ty) {
+    return tx === x && ty === y;
+  }
+
+  function isOwnTail(tx, ty) {
+    for (const segment of cell.trail) {
+      if (segment[0] === tx && segment[1] === ty) return true;
+    }
+    return false;
+  }
+
+  function tailHasGround(tx, ty, checked = new Set()) {
+    const key = tx + "," + ty;
+    if (checked.has(key)) return false;
+    checked.add(key);
+
+    const below = grid.get(tx, ty + 1);
+    if (!below) return true;
+
+    if (
+      below.element !== ELEMENTS.empty &&
+      below.element !== ELEMENTS.vfx &&
+      below.element !== ELEMENTS.snake_tail
+    ) {
+      return true;
+    }
+
+    if (isEmpty(below)) return false;
+
+    if (below.element === ELEMENTS.snake_tail && isOwnTail(tx, ty + 1)) {
+      return tailHasGround(tx, ty + 1, checked);
+    }
+    return false;
+  }
+
+  function trailIndexAt(tx, ty) {
+    for (let i = 0; i < cell.trail.length; i++) {
+      if (cell.trail[i][0] === tx && cell.trail[i][1] === ty) return i;
+    }
+    return -1;
+  }
+
+  // =========================================================
+  // PREDATOR HELPERS
+  // =========================================================
+
+  function hasLineOfSight(x0, y0, x1, y1) {
+    let cx = x0;
+    let cy = y0;
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    let guard = 0;
+
+    while (!(cx === x1 && cy === y1) && guard++ < 256) {
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; cx += sx; }
+      if (e2 < dx) { err += dx; cy += sy; }
+      if (cx === x1 && cy === y1) break;
+
+      const c = grid.get(cx, cy);
+      if (!c) return false;
+      if (!isEmpty(c) && c.element !== ELEMENTS.snake_tail && c.element !== ELEMENTS.human && c.element !== ELEMENTS.cat) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Full radius scan for the closest visible human.
+  function findPrey() {
+    let best = null;
+    let bestDistSq = Infinity;
+
+    for (let dx = -HUNT_RADIUS; dx <= HUNT_RADIUS; dx++) {
+      for (let dy = -HUNT_RADIUS; dy <= HUNT_RADIUS; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > HUNT_RADIUS * HUNT_RADIUS || distSq >= bestDistSq) continue;
+
+        const tx = x + dx;
+        const ty = y + dy;
+        const c = grid.get(tx, ty);
+        if ((c?.element === ELEMENTS.human || c?.element === ELEMENTS.cat)&& hasLineOfSight(x, y, tx, ty)) {
+          best = { x: tx, y: ty };
+          bestDistSq = distSq;
+        }
+      }
+    }
+    return best;
+  }
+
+  // Cheap local search used to keep the reticle glued to a moving target
+  // without re-running the full radius scan every tick.
+  function locatePreyNear(px, py, radius) {
+    let best = null;
+    let bestDistSq = Infinity;
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        const tx = px + dx;
+        const ty = py + dy;
+        const c = grid.get(tx, ty);
+        if (c?.element === ELEMENTS.human || c?.element === ELEMENTS.cat) {
+          const d = dx * dx + dy * dy;
+          if (d < bestDistSq) { bestDistSq = d; best = { x: tx, y: ty }; }
+        }
+      }
+    }
+    return best;
+  }
+
+  function clearMarker() {
+    if (!cell.markerPos) return;
+    const mc = grid.get(cell.markerPos.x, cell.markerPos.y);
+    if (mc?.element === MARKER_ELEMENT) grid.set(cell.markerPos.x, cell.markerPos.y, ELEMENTS.empty);
+    cell.markerPos = null;
+  }
+
+  function killHumanAt(hx, hy) {
+    const gib = ELEMENTS.blood || ELEMENTS.empty;
+    grid.set(hx, hy, gib);
+    for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const sc = grid.get(hx + ox, hy + oy);
+      if (isEmpty(sc) && Math.random() < 0.5) grid.set(hx + ox, hy + oy, gib);
+    }
+    cell.length = Math.min(MAX_LENGTH, cell.length + 2);
+  }
+
+  // =========================================================
+  // LOGIC & BEHAVIOR
+  // =========================================================
+
+  // Temperature checks
+  if (cell.temperature > 41) {
+    const t = Math.pow(cell.temperature / 72, 20);
+    if (Math.random() < t) cell.state = "dead";
+  }
+
+  if (cell.temperature < -7) {
+    const t = Math.abs(Math.pow(cell.temperature / 17, 20));
+    if (Math.random() < t) cell.state = "dead";
+  }
+
+  if (cell.temperature > 140) {
+    clearMarker();
+    grid.set(x, y, ELEMENTS.ash);
+    return;
+  }
+
+  if (cell.state === "dead") {
+    clearMarker();
+    return;
+  }
+
+  cell.tick++;
+  if (cell.pounceCooldown > 0) cell.pounceCooldown--;
+
+  // Safety net: if we somehow left "target" mode with a marker still lit
+  // (e.g. lock-on completed this tick), snuff it out.
+  if (cell.markerPos && cell.mode !== "target") clearMarker();
+
+  // Clear old tail cells
+  for (const pos of cell.tailCells) {
+    const tx = pos[0];
+    const ty = pos[1];
+    if (isHead(tx, ty)) continue;
+
+    const c = grid.get(tx, ty);
+    if (c?.element === ELEMENTS.snake_tail) {
+      grid.set(tx, ty, ELEMENTS.empty);
+    }
+  }
+  cell.tailCells = [];
+
+  // Remove duplicate trail segments
+  const seen = new Set();
+  cell.trail = cell.trail.filter((segment) => {
+    const key = segment[0] + "," + segment[1];
+    if (seen.has(key) || isHead(segment[0], segment[1])) return false;
+    seen.add(key);
+    return true;
+  });
+
+  function moveTailSegment(segment, index) {
+    const sx = segment[0];
+    const sy = segment[1];
+    const front = index === 0
+      ? { x, y }
+      : { x: cell.trail[index - 1][0], y: cell.trail[index - 1][1] };
+
+    const dx = front.x - sx;
+    const dy = front.y - sy;
+
+    if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) return;
+
+    const candidates = [];
+    if (Math.abs(dx) > 0) candidates.push({ x: sx + Math.sign(dx), y: sy });
+    if (Math.abs(dy) > 0) candidates.push({ x: sx, y: sy + Math.sign(dy) });
+    if (dx !== 0 && dy !== 0) candidates.push({ x: sx + Math.sign(dx), y: sy + Math.sign(dy) });
+
+    for (const candidate of candidates) {
+      const nx = candidate.x;
+      const ny = candidate.y;
+
+      if (isHead(nx, ny)) continue;
+
+      const c = grid.get(nx, ny);
+      if (!isEmpty(c)) continue;
+      if (trailIndexAt(nx, ny) !== -1) continue;
+
+      if (index < cell.trail.length - 1) {
+        const behind = cell.trail[index + 1];
+        const oldDistance = Math.abs(sx - behind[0]) + Math.abs(sy - behind[1]);
+        const newDistance = Math.abs(nx - behind[0]) + Math.abs(ny - behind[1]);
+        if (newDistance < oldDistance) continue;
+      }
+
+      segment[0] = nx;
+      segment[1] = ny;
+      return;
+    }
+  }
+
+  if (cell.tick % 2 === 0) {
+    for (let i = cell.trail.length - 1; i >= 0; i--) {
+      moveTailSegment(cell.trail[i], i);
+    }
+  }
+
+  function renderTail() {
+    const rendered = new Set();
+    for (const segment of cell.trail) {
+      const tx = segment[0];
+      const ty = segment[1];
+
+      if (isHead(tx, ty)) continue;
+
+      const key = tx + "," + ty;
+      if (rendered.has(key)) continue;
+      rendered.add(key);
+
+      const c = grid.get(tx, ty);
+      if (isEmpty(c)) {
+        grid.set(tx, ty, ELEMENTS.snake_tail);
+        cell.tailCells.push([tx, ty]);
+      }
+    }
+  }
+
+  // Handle falling — suspended while coiled to strike or mid-leap, since
+  // those phases are under full manual control.
+  if (cell.mode !== "target" && cell.mode !== "airborne") {
+    const below = grid.get(x, y + 1);
+    if (isEmpty(below)) {
+      cell.trail.unshift([x, y]);
+      while (cell.trail.length > cell.length) cell.trail.pop();
+
+      if (grid.get(x, y + 1)?.element === ELEMENTS.snake_tail) {
+        grid.set(x, y + 1, ELEMENTS.empty);
+      }
+
+      grid.swap(x, y, x, y + 1);
+      y++;
+      renderTail();
+    }
+  }
+
+  // ===== PREDATOR SCAN =====
+  if (cell.mode !== "target" && cell.mode !== "airborne") {
+    cell.scanTimer++;
+    if (cell.scanTimer >= SCAN_INTERVAL) {
+      cell.scanTimer = 0;
+      const prey = cell.pounceCooldown === 0 ? findPrey() : null;
+
+      if (prey) {
+        cell.preyPos = prey;
+        cell.mode = "hunt";
+        cell.target = prey;
+        cell.path = null;
+      } else if (cell.mode === "hunt") {
+        cell.mode = "wander";
+        cell.preyPos = null;
+        cell.target = { x, y };
+        cell.path = null;
+      }
+    }
+
+    if (cell.mode === "hunt" && cell.preyPos) {
+      const ddx = cell.preyPos.x - x;
+      const ddy = cell.preyPos.y - y;
+      const distSq = ddx * ddx + ddy * ddy;
+
+      if (
+        distSq <= STRIKE_RANGE * STRIKE_RANGE &&
+        cell.pounceCooldown === 0 &&
+        hasLineOfSight(x, y, cell.preyPos.x, cell.preyPos.y)
+      ) {
+        // Lock on — the telegraph before the leap.
+        cell.mode = "target";
+        cell.targetLockTimer = TARGET_LOCK_TICKS;
+      }
+    }
+  }
+
+  // ===== TARGET (reticle lock-on, dodgeable telegraph) =====
+  if (cell.mode === "target") {
+    clearMarker();
+
+    const reacquired = locatePreyNear(cell.preyPos.x, cell.preyPos.y, LOCK_TRACK_RADIUS) || findPrey();
+    if (!reacquired) {
+      cell.mode = "hunt";
+      renderTail();
+      return;
+    }
+    cell.preyPos = reacquired;
+
+    // Pulsing reticle hovering just above the target.
+    if (cell.tick % 2 === 0) {
+      const markerY = cell.preyPos.y - 1;
+      const mc = grid.get(cell.preyPos.x, markerY);
+      if (isEmpty(mc)) {
+        grid.set(cell.preyPos.x, markerY, MARKER_ELEMENT);
+        cell.markerPos = { x: cell.preyPos.x, y: markerY };
+      }
+    }
+
+    cell.targetLockTimer--;
+    if (cell.targetLockTimer <= 0) {
+      clearMarker();
+      cell.strikePos = { x: cell.preyPos.x, y: cell.preyPos.y };
+      cell.arcStart = { x, y };
+      cell.arcStep = 0;
+      cell.mode = "airborne";
+    }
+
+    renderTail();
+    return;
+  }
+
+  // ===== AIRBORNE (the sweeping leap through the air) =====
+  if (cell.mode === "airborne") {
+    cell.arcStep++;
+    const t = Math.min(1, cell.arcStep / ARC_STEPS);
+    const dist = Math.hypot(cell.strikePos.x - cell.arcStart.x, cell.strikePos.y - cell.arcStart.y);
+    const arcHeight = Math.min(ARC_HEIGHT_MAX, 2 + dist * ARC_HEIGHT_FACTOR);
+
+    const nx = Math.round(cell.arcStart.x + (cell.strikePos.x - cell.arcStart.x) * t);
+    const ny = Math.round(cell.arcStart.y + (cell.strikePos.y - cell.arcStart.y) * t - arcHeight * 4 * t * (1 - t));
+
+    let hit = false;
+
+    if (nx !== x || ny !== y) {
+      const destBefore = grid.get(nx, ny);
+
+      cell.trail.unshift([x, y]);
+      while (cell.trail.length > cell.length) cell.trail.pop();
+
+      // Flies clean through whatever's in the way — this leg is airborne,
+      // not walking, so normal ground collision doesn't apply.
+      grid.swap(x, y, nx, ny);
+
+      if (destBefore?.element === ELEMENTS.human || destBefore?.element === ELEMENTS.cat) {
+        // The human is now sitting where the snake used to be.
+        killHumanAt(x, y);
+        hit = true;
+      }
+
+      x = nx;
+      y = ny;
+    }
+
+    const arcDone = cell.arcStep >= ARC_STEPS;
+    if (hit || arcDone) {
+      cell.mode = "wander";
+      cell.preyPos = null;
+      cell.pounceCooldown = POUNCE_COOLDOWN;
+      cell.target = { x, y };
+      cell.path = null;
+    }
+
+    renderTail();
+    return;
+  }
+
+  // Wandering/walking runs at half speed; ground-hunting runs every tick
+  // so the chase actually feels urgent before it commits to a leap.
+  if (cell.tick % 2 === 0 && cell.mode !== "hunt") {
+    renderTail();
+    return;
+  }
+
+  // Handle Idle/Wandering
+  if (cell.target.x === x && cell.target.y === y) {
+    cell.state = "idle";
+    cell.path = null;
+    cell.pathIndex = 0;
+    cell.turnTimer++;
+
+    if (cell.turnTimer > 10 + Math.random() * 25) {
+      cell.turnTimer = 0;
+      if (Math.random() < 0.65) {
+        cell.dir *= -1;
+      }
+    }
+
+    for (let attempt = 0; attempt < WANDER_ATTEMPTS; attempt++) {
+      let dx = cell.dir * (3 + Math.floor(Math.random() * 8));
+      let dy = 0;
+
+      if (Math.random() < 0.22) {
+        dy = Math.floor(Math.random() * 5) - 2;
+      }
+      if (Math.random() < 0.12) {
+        dx = Math.floor(Math.random() * (WANDER_RADIUS * 2 + 1)) - WANDER_RADIUS;
+        dy = Math.floor(Math.random() * 5) - 2;
+      }
+      if (dx === 0 && dy === 0) {
+        dx = cell.dir;
+      }
+
+      const tx = x + dx;
+      const ty = y + dy;
+      const spot = grid.get(tx, ty);
+
+      if (!spot) continue;
+
+      const valid = spot.element === ELEMENTS.empty || spot.element === ELEMENTS.vfx || spot.element === ELEMENTS.snake_tail;
+      if (!valid) continue;
+
+      const path = findPath(x, y, tx, ty);
+      if (path) {
+        cell.target = { x: tx, y: ty };
+        cell.path = path;
+        cell.pathIndex = 1;
+        break;
+      }
+    }
+    renderTail();
+    return;
+  }
+
+  // Handle Walking
+  cell.state = "walking";
+
+  function isStepValid(step) {
+    if (!step) return false;
+
+    const c = grid.get(step.x, step.y);
+    if (!c) return false;
+
+    const isTarget = step.x === cell.target.x && step.y === cell.target.y;
+    if (isTarget) {
+      return (isEmpty(c) || c.element === ELEMENTS.snake_tail);
+    }
+
+    if (c.element === ELEMENTS.snake_tail) {
+      if (isOwnTail(step.x, step.y)) return tailHasGround(step.x, step.y);
+      return true;
+    }
+
+    return isEmpty(c);
+  }
+
+  const needsPath = !cell.path || cell.pathIndex >= cell.path.length || !isStepValid(cell.path[cell.pathIndex]);
+
+  if (needsPath) {
+    cell.path = findPath(x, y, cell.target.x, cell.target.y);
+    cell.pathIndex = 1;
+    if (!cell.path) {
+      if (cell.mode === "hunt") {
+        cell.mode = "wander";
+        cell.preyPos = null;
+      }
+      cell.target = { x, y };
+      cell.path = null;
+      if (Math.random() < 0.8) cell.dir *= -1;
+      renderTail();
+      return;
+    }
+  }
+
+  const next = cell.path[cell.pathIndex];
+  if (!next || !isStepValid(next)) {
+    cell.path = null;
+    renderTail();
+    return;
+  }
+
+  cell.trail.unshift([x, y]);
+  while (cell.trail.length > cell.length) cell.trail.pop();
+
+  const destination = grid.get(next.x, next.y);
+  if (destination?.element === ELEMENTS.snake_tail) {
+    grid.set(next.x, next.y, ELEMENTS.empty);
+  }
+
+  grid.swap(x, y, next.x, next.y);
+  x = next.x;
+  y = next.y;
+  cell.pathIndex++;
+
+  if (next.x > x) cell.dir = 1;
+  else if (next.x < x) cell.dir = -1;
+
+  renderTail();
+
+
+  function findPath(sx, sy, tx, ty) {
+    function getCell(cx, cy) {
+      return grid.get(cx, cy);
+    }
+
+    function isOpen(cx, cy) {
+      const c = getCell(cx, cy);
+      if (!c) return false;
+      if (cx === tx && cy === ty) return true;
+      if (isEmpty(c)) return true;
+
+      if (c.element === ELEMENTS.snake_tail) {
+        if (isOwnTail(cx, cy)) return tailHasGround(cx, cy);
+        return true;
+      }
+      return false;
+    }
+
+    function canMove(cx, cy, nx, ny) {
+      if (!isOpen(nx, ny)) return false;
+
+      const dx = nx - cx;
+      const dy = ny - cy;
+
+      if (dy >= 0) return true;
+
+      const support = getCell(cx, cy + 1);
+      if (!support) return false;
+
+      if (support.element === ELEMENTS.snake_tail && isOwnTail(cx, cy + 1)) {
+        if (!tailHasGround(cx, cy + 1)) return false;
+      }
+      return (support.element !== ELEMENTS.empty && support.element !== ELEMENTS.vfx);
+    }
+
+    function heuristic(ax, ay, bx, by) {
+      return (Math.abs(ax - bx) + Math.abs(ay - by));
+    }
+
+    const key = (cx, cy) => cx + "," + cy;
+    const startKey = key(sx, sy);
+
+    const openSet = new Map([[startKey, { x: sx, y: sy }]]);
+    const cameFrom = new Map();
+    const gScore = new Map([[startKey, 0]]);
+    const fScore = new Map([[startKey, heuristic(sx, sy, tx, ty)]]);
+
+    const neighbors = [
+      { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+      { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+      { dx: 1, dy: -1 }, { dx: -1, dy: -1 },
+      { dx: 1, dy: 1 }, { dx: -1, dy: 1 }
+    ];
+
+    const maxIterations = 3000;
+    let iterations = 0;
+
+    while (openSet.size > 0) {
+      if (++iterations > maxIterations) return null;
+
+      let currentKey = null;
+      let current = null;
+      let lowestF = Infinity;
+
+      for (const [k, node] of openSet) {
+        const f = fScore.get(k) ?? Infinity;
+        if (f < lowestF) {
+          lowestF = f;
+          currentKey = k;
+          current = node;
+        }
+      }
+
+      if (current.x === tx && current.y === ty) {
+        const path = [current];
+        let ck = currentKey;
+        while (cameFrom.has(ck)) {
+          ck = cameFrom.get(ck);
+          const [px, py] = ck.split(",").map(Number);
+          path.unshift({ x: px, y: py });
+        }
+        return path;
+      }
+
+      openSet.delete(currentKey);
+
+      for (const { dx, dy } of neighbors) {
+        const nx = current.x + dx;
+        const ny = current.y + dy;
+
+        if (!canMove(current.x, current.y, nx, ny)) continue;
+
+        if (dx !== 0 && dy !== 0) {
+          if (!isOpen(current.x + dx, current.y) || !isOpen(current.x, current.y + dy)) {
+            continue;
+          }
+        }
+
+        const nKey = key(nx, ny);
+        let moveCost = 1;
+        if (dy !== 0) moveCost = 1.4;
+        if (dx !== 0 && dy !== 0) moveCost = 1.55;
+
+        const tentativeG = gScore.get(currentKey) + moveCost;
+
+        if (tentativeG < (gScore.get(nKey) ?? Infinity)) {
+          cameFrom.set(nKey, currentKey);
+          gScore.set(nKey, tentativeG);
+          fScore.set(nKey, tentativeG + heuristic(nx, ny, tx, ty));
+
+          if (!openSet.has(nKey)) {
+            openSet.set(nKey, { x: nx, y: ny });
+          }
+        }
+      }
+    }
+    return null;
+  }
+  cell.color = null;
+}
+),
+snake_tail: new Element(
+  "snake_tail",
+  "#1f6e0a",
+  "hidden",
+  {noVaritation: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 100){
+      grid.set(x,y,ELEMENTS.ash);
+    }
+  }
+
+),
+cat: new Element(
+  "cat",
+  "#f7e031",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    const colors = [
+      { body: "#e6a15c", stripe: "#70452b" }, // orange
+      { body: "#d99b62", stripe: "#6b432b" }, // light orange
+      { body: "#f0c98a", stripe: "#806044" }, // cream
+      { body: "#c8c8c8", stripe: "#686868" }, // gray
+      { body: "#9f9f9f", stripe: "#4f4f4f" }, // dark gray
+      { body: "#bfa79d", stripe: "#684f46" }, // brown-gray
+      { body: "#5a5a5a", stripe: "#252525" }, // dark gray
+      { body: "#e8e0d4", stripe: "#9b8d7c" }  // white/cream
+    ];
+
+    cell.hasStripes ??= Math.random() < 0.7;
+
+    if(!cell.bodyColor){
+      const palette = colors[Math.floor(Math.random() * colors.length)];
+      cell.bodyColor = palette.body;
+      cell.stripeColor = palette.stripe;
+    }
+
+    cell.color = cell.bodyColor;
+
+    const s = cell.stripeColor;
+
+    cell.subGrid = cell.hasStripes ? [
+      [s, s, 0, 0],
+      [0, 0, 0, 0],
+      [s, s, 0, 0],
+      [0, 0, 0, 0]
+    ] : null;
+
+
+  const WANDER_RADIUS = 16;
+  const WANDER_ATTEMPTS = 6;
+  const MAX_PATH_NODES = 800;
+
+  const isEmpty = c => c && (c.element === ELEMENTS.empty || c.element === ELEMENTS.vfx);
+
+  const isSolid = c => !c || !isEmpty(c);
+
+  cell.state ??= "idle";
+  cell.target ??= { x, y };
+  cell.path ??= null;
+  cell.pathIndex ??= 0;
+  cell.wanderTimer ??= 0;
+  cell.tick ??=0;
+  cell.tick++;
+
+  // Temperature
+
+  if (cell.temperature > 41) {
+
+    const chance = Math.pow(cell.temperature / 72, 20);
+
+    if (Math.random() < chance) cell.state = "dead";
+
+  }
+
+  if (cell.temperature < -7) {
+
+    const chance = Math.abs(Math.pow(cell.temperature / 17, 20));
+
+    if (Math.random() < chance) cell.state = "dead";
+
+  }
+
+  if (cell.temperature > 140) {
+
+    grid.set(x, y, ELEMENTS.fire);
+    return;
+
+  }
+
+  if (cell.state === "dead") return;
+
+  // Gravity
+
+  const below = grid.get(x, y + 1);
+
+  if (isEmpty(below)) {
+
+    cell.state = "falling";
+    cell.path = null;
+
+    grid.swap(x, y, x, y + 1);
+
+    return;
+
+  }
+
+  // Reached target
+if(cell.tick % 2 === 0)return;
+  if (cell.target.x === x && cell.target.y === y) {
+
+    cell.state = "idle";
+    cell.path = null;
+    cell.pathIndex = 0;
+
+    // Pick somewhere new
+
+    for (let attempt = 0; attempt < WANDER_ATTEMPTS; attempt++) {
+
+      const tx = x + Math.floor(Math.random() * (WANDER_RADIUS * 2 + 1)) - WANDER_RADIUS;
+      const ty = y + Math.floor(Math.random() * (WANDER_RADIUS * 2 + 1)) - WANDER_RADIUS;
+
+      const targetCell = grid.get(tx, ty);
+      const targetBelow = grid.get(tx, ty + 1);
+
+      if (!targetCell || !isEmpty(targetCell)) continue;
+
+      if (isEmpty(targetBelow)) continue;
+
+      const path = findPath(x, y, tx, ty);
+
+      if (!path || path.length < 2) continue;
+
+      cell.target = { x: tx, y: ty };
+      cell.path = path;
+      cell.pathIndex = 1;
+      cell.state = "walking";
+
+      break;
+
+    }
+
+    return;
+
+  }
+
+  // Validate current path
+
+  const next = cell.path?.[cell.pathIndex];
+
+  if (!next || !isValidStep(next.x, next.y)) {
+
+    cell.path = findPath(x, y, cell.target.x, cell.target.y);
+    cell.pathIndex = 1;
+
+  }
+
+  const step = cell.path?.[cell.pathIndex];
+
+  if (!step || !isValidStep(step.x, step.y)) {
+
+    cell.path = null;
+    cell.target = { x, y };
+    cell.state = "idle";
+
+    return;
+
+  }
+
+  cell.state = "walking";
+
+  // Move immediately
+
+  grid.swap(x, y, step.x, step.y);
+  cell.pathIndex++;
+
+  function isValidStep(nx, ny) {
+
+    const target = grid.get(nx, ny);
+
+    if (!target) return false;
+
+    if (!isEmpty(target) && !(nx === cell.target.x && ny === cell.target.y)) return false;
+
+    const dx = nx - x;
+    const dy = ny - y;
+
+    // Horizontal movement
+
+    if (dy === 0) {
+
+      const ground = grid.get(nx, ny + 1);
+
+      return isSolid(ground);
+
+    }
+
+    // Step upward
+
+    if (dy === -1) {
+
+      const ground = grid.get(nx, ny + 1);
+      const middle = grid.get(x, y - 1);
+
+      return isSolid(ground) && isEmpty(middle);
+
+    }
+
+    // Step downward
+
+    if (dy === 1) {
+
+      const middle = grid.get(nx, y);
+
+      return isEmpty(middle);
+
+    }
+
+    return false;
+
+  }
+
+  function findPath(sx, sy, tx, ty) {
+
+    if (sx === tx && sy === ty) return [{ x: sx, y: sy }];
+
+    const queue = [{ x: sx, y: sy }];
+    const cameFrom = new Map();
+    const visited = new Set();
+
+    const startKey = `${sx},${sy}`;
+
+    visited.add(startKey);
+
+    let index = 0;
+    let found = false;
+
+    const directions = [
+      [1, 0],
+      [-1, 0],
+      [1, -1],
+      [-1, -1],
+      [1, 1],
+      [-1, 1]
+    ];
+
+    while (index < queue.length && queue.length <= MAX_PATH_NODES) {
+
+      const current = queue[index++];
+
+      if (current.x === tx && current.y === ty) {
+
+        found = true;
+        break;
+
+      }
+
+      for (const [dx, dy] of directions) {
+
+        const nx = current.x + dx;
+        const ny = current.y + dy;
+
+        const key = `${nx},${ny}`;
+
+        if (visited.has(key)) continue;
+
+        if (!canMove(current.x, current.y, nx, ny, tx, ty)) continue;
+
+        visited.add(key);
+        cameFrom.set(key, current);
+        queue.push({ x: nx, y: ny });
+
+      }
+
+    }
+
+    if (!found) return null;
+
+    const path = [];
+    let current = { x: tx, y: ty };
+
+    while (current.x !== sx || current.y !== sy) {
+
+      path.unshift(current);
+
+      const previous = cameFrom.get(`${current.x},${current.y}`);
+
+      if (!previous) return null;
+
+      current = previous;
+
+    }
+
+    path.unshift({ x: sx, y: sy });
+
+    return path;
+
+  }
+
+  function canMove(cx, cy, nx, ny, tx, ty) {
+
+    const target = grid.get(nx, ny);
+
+    if (!target) return false;
+
+    const isTarget = nx === tx && ny === ty;
+
+    if (!isEmpty(target) && !isTarget) return false;
+
+    const dx = nx - cx;
+    const dy = ny - cy;
+
+    // Walk
+
+    if (dy === 0) {
+
+      const ground = grid.get(nx, ny + 1);
+
+      return isSolid(ground);
+
+    }
+
+    // Step up
+
+    if (dy === -1) {
+
+      const spaceAbove = grid.get(cx, cy - 1);
+      const ground = grid.get(nx, ny + 1);
+
+      return isEmpty(spaceAbove) && isSolid(ground);
+
+    }
+
+    // Step down
+
+    if (dy === 1) {
+
+      const space = grid.get(nx, cy);
+
+      return isEmpty(space);
+
+    }
+
+    return false;
+
+  }
+
+
+  }
+),
+coffee: new Element(
+  "coffee",
+  "#260d03",
+  "Liquids",
+  {noVaritation: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 100) grid.set(x,y,ELEMENTS.steam);
+    liquidPhysics(grid,x,y);
+  }
+),
+raw_chicken: new Element(
+  "raw_chicken",
+  "#e8a6a3",
+  "Food",
+  {conductivity: 4, density: 0.101},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    cell.color ??= (() => {
+      const r = Math.random();
+
+      if(r < 0.08) return "#c97878";
+      if(r < 0.18) return "#d88c8b";
+      if(r < 0.35) return "#dfa09d";
+      if(r < 0.7) return "#e8aaa6";
+      if(r < 0.9) return "#efb8b0";
+      return "#f4c5ba";
+    })();
+    cell.densityChance = 0.92;
+    cell.baseColor ??= cell.color;
+    cell.age??=0;
+    cell.cookProgress ??= 0;
+     if(!cell.cooking && (grid.touching(x,y,"vegetable_oil&neighbor.temperature>100") || grid.touching(x,y,"raw_chicken&neighbor.cooking==='deepfrying'"))){
+      cell.cooking = "deepfrying";
+    }
+    if(!cell.cooking && (grid.touching(x,y,"!eempty&!eraw_chicken&@Solids&neighbor.temperature>40") || grid.touching(x,y,"raw_chicken&neighbor.cooking==='grilling'"))){
+      cell.cooking = "grilling";
+    }
+
+    if(!cell.cooking && (grid.touching(x,y,"fire") || grid.touching(x,y,"raw_chicken&neighbor.cooking==='roasting'"))){
+      cell.cooking = "roasting";
+    }
+    if(!cell.cooking && cell.temperature > 45 || grid.touching(x,y,"raw_chicken&neighbor.cooking==='cooking'")){
+      cell.color = "#ff0000";
+      cell.cooking = "cooking";
+    }
+     
+
+    if(cell.cooking === "deepfrying" && grid.touching(x,y,"vegetable_oil&neighbor.temperature>100")){
+     cell.age++;
+cell.densityChance = Math.max(0, 0.92 * (1 - cell.age / 10));
+    }
+
+      
+  if(cell.cooking === "cooking"){
+  const t = Math.min(1, Math.max(0, (cell.temperature - 50) / 25));
+
+  cell.cookProgress = Math.max(cell.cookProgress ?? 0, t);
+
+  const progress = cell.cookProgress;
+  const hex = cell.baseColor.replace("#","");
+  const r = parseInt(hex.slice(0,2),16);
+  const g = parseInt(hex.slice(2,4),16);
+  const b = parseInt(hex.slice(4,6),16);
+
+  const cookR = 218;
+  const cookG = 178;
+  const cookB = 160;
+
+  const nr = Math.round(r + (cookR - r) * progress);
+  const ng = Math.round(g + (cookG - g) * progress);
+  const nb = Math.round(b + (cookB - b) * progress);
+
+  cell.color = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+  if(cell.temperature > 74){
+    if(Math.random() < 0.05){
+      grid.set(x,y,ELEMENTS.cooked_chicken);
+      grid.get(x,y).temperature = 74;
+      grid.get(x,y).cookProgress = 1;
+    }
+  }
+}
+   if(cell.cooking === "deepfrying" && cell.temperature > 40){
+  const t = Math.min(1, Math.max(0, (cell.temperature - 40) / 34));
+
+  cell.cookProgress = Math.max(cell.cookProgress ?? 0, t);
+
+  const progress = cell.cookProgress;
+  const hex = cell.baseColor.replace("#","");
+  const r = parseInt(hex.slice(0,2),16);
+  const g = parseInt(hex.slice(2,4),16);
+  const b = parseInt(hex.slice(4,6),16);
+
+  const fryR = 214;
+  const fryG = 145;
+  const fryB = 18;
+
+  const nr = Math.round(r + (fryR - r) * progress);
+  const ng = Math.round(g + (fryG - g) * progress);
+  const nb = Math.round(b + (fryB - b) * progress);
+
+  cell.color = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+  if(cell.temperature > 74){
+    if(Math.random() < 0.05){
+      grid.set(x,y,ELEMENTS.fried_chicken);
+      grid.get(x,y).temperature = 74;
+      grid.get(x,y).cookProgress = 1;
+    }
+  }
+}
+
+    if(cell.cooking === "roasting" && cell.temperature > 40){
+      const t = Math.min(1, Math.max(0, (cell.temperature - 40) / 34));
+
+      cell.cookProgress = Math.max(cell.cookProgress, t);
+
+      const progress = cell.cookProgress;
+      const hex = cell.baseColor.replace("#","");
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+
+      const roastR = 150;
+      const roastG = 75;
+      const roastB = 30;
+
+      const nr = Math.round(r + (roastR - r) * progress);
+      const ng = Math.round(g + (roastG - g) * progress);
+      const nb = Math.round(b + (roastB - b) * progress);
+
+      cell.color = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+      if(cell.temperature > 74){
+        if(Math.random() < 0.01){
+          grid.set(x,y,ELEMENTS.roasted_chicken);
+          grid.get(x,y).temperature = 74;
+          grid.get(x,y).cookProgress = 1;
+        }
+      }
+    }
+
+    if(cell.cooking === "grilling" && cell.temperature > 30){
+      const t = Math.min(1, Math.max(0, (cell.temperature - 30) / 74));
+
+      cell.cookProgress = Math.max(cell.cookProgress, t);
+
+      const progress = cell.cookProgress;
+      const hex = cell.baseColor.replace("#","");
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+
+      const darkR = r * 0.45;
+      const darkG = g * 0.35;
+      const darkB = b * 0.3;
+
+      const nr = Math.round(r + (darkR - r) * progress);
+      const ng = Math.round(g + (darkG - g) * progress);
+      const nb = Math.round(b + (darkB - b) * progress);
+
+      cell.color = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+      if(cell.temperature > 74){
+        grid.set(x,y,ELEMENTS.grilled_chicken);
+        grid.get(x,y).temperature = 74;
+        grid.get(x,y).cookProgress = 1;
+      }
+    }
+
+    if(cell.glued) return;
+
+   powderPhysics(grid,x,y,{
+  extraCanEnter: t => t.element === ELEMENTS.vegetable_oil,
+  densitySwapChance: cell.densityChance,
+});
+  },
+  (grid,x,y) => {
+    grid.get(x,y).glued = true;
+  }
+),
+grilled_chicken: new Element(
+  "grilled_chicken",
+  "#c98b50",
+  "Food",
+  {conductivity: 4,
+    flammable: true,
+    variants: {
+      burnt: {
+        color: "#12100c",
+        hidden: true
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    cell.color ??= (() => {
+      const colors = [
+        "#c98b50",
+        "#d49a5b",
+        "#b97840",
+        "#e0aa6c",
+        "#a96535"
+      ];
+      
+      const base = colors[Math.floor(Math.random() * colors.length)];
+
+      if(x % 5 === 0 || x % 2 === 1){
+        if(Math.random() < 0.65) return "#5c351e";
+        if(Math.random() < 0.25) return "#764522";
+      }
+
+      if(y % 7 === 0 && Math.random() < 0.35){
+        return "#63391f";
+      }
+
+      return base;
+    })();
+
+    cell.baseColor ??= cell.color;
+    firePhysics(grid,x,y,{minTemp: 200, burnTemp: 500, fireChance: 0.01, heatSpeed: 0, burnChance: 0.1, burnElement: ELEMENTS.ash, catchChance: 0.01 })
+    if(cell.element.hasTag("burnt")) return;
+    if(cell.temperature > 100){
+      const t = Math.min(1, (cell.temperature - 100) / 150);
+      const hex = cell.baseColor.replace("#","");
+      
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+
+      const br = 18;
+      const bg = 16;
+      const bb = 12;
+
+      const nr = Math.round(r + (br - r) * t);
+      const ng = Math.round(g + (bg - g) * t);
+      const nb = Math.round(b + (bb - b) * t);
+
+      cell.color = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+      if(t >= 1){
+        cell.element = cell.element.withTag("burnt");
+      }
+    }
+  }
+),
+roasted_chicken: new Element(
+  "roasted_chicken",
+  "#b96532",
+  "Food",
+  {
+    conductivity: 4,
+    flammable: false,
+    variants: {
+      burnt: {
+        color: "#12100c",
+        hidden: true
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    const hash = Math.abs(Math.sin(x * 127.1 + y * 311.7) * 43758.5453) % 1;
+    const pattern = Math.abs(Math.sin(x * 0.47 + y * 0.31) * 43758.5453) % 1;
+    const char = Math.abs(Math.sin(x * 1.37 - y * 0.83) * 43758.5453) % 1;
+
+    let color = "#b96532";
+
+    if(hash < 0.08) color = "#351d13";
+    else if(hash < 0.16) color = "#4b2717";
+    else if(hash < 0.25) color = "#69351b";
+    else if(hash < 0.38) color = "#8d4722";
+    else if(hash < 0.55) color = "#a9572b";
+    else if(hash < 0.72) color = "#bd6834";
+    else color = "#ce7940";
+
+    if(pattern > 0.83 && hash < 0.65) color = "#71391e";
+    if(pattern > 0.91 && hash < 0.5) color = "#482518";
+
+    if(char > 0.94) color = "#2b1911";
+    else if(char > 0.86) color = "#422216";
+
+    cell.color ??= color;
+    cell.baseColor ??= cell.color;
+    if(cell.temperature > 300) grid.set(x,y,ELEMENTS.ash);
+    if(cell.element.hasTag("burnt")){
+      cell.color = "#12100c";
+      return;
+    }
+
+    if(cell.temperature > 100){
+      const t = Math.min(1, (cell.temperature - 100) / 150);
+      const hex = cell.baseColor.replace("#","");
+
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+
+      const br = 18;
+      const bg = 16;
+      const bb = 12;
+
+      const nr = Math.round(r + (br - r) * t);
+      const ng = Math.round(g + (bg - g) * t);
+      const nb = Math.round(b + (bb - b) * t);
+
+      const newColor = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+      if(!cell.burnColor){
+        cell.burnColor = newColor;
+      }else{
+        const oldHex = cell.burnColor.replace("#","");
+
+        const oldR = parseInt(oldHex.slice(0,2),16);
+        const oldG = parseInt(oldHex.slice(2,4),16);
+        const oldB = parseInt(oldHex.slice(4,6),16);
+
+        const newR = Math.min(oldR,nr);
+        const newG = Math.min(oldG,ng);
+        const newB = Math.min(oldB,nb);
+
+        cell.burnColor = `#${newR.toString(16).padStart(2,"0")}${newG.toString(16).padStart(2,"0")}${newB.toString(16).padStart(2,"0")}`;
+      }
+
+      cell.color = cell.burnColor;
+
+      if(t >= 1){
+        cell.burnt = true;
+        cell.color = "#12100c";
+        cell.baseColor = "#12100c";
+        cell.element = cell.element.withTag("burnt");
+      }
+    }
+  }
+),
+fried_chicken: new Element(
+  "fried_chicken",
+  "#d69b11",
+  "Food",
+  {
+    conductivity: 2,
+    flammable: false,
+    variants: {
+      burnt: {
+        color: "#12100c",
+        hidden: true
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    const hash = Math.abs(Math.sin(x * 127.1 + y * 311.7) * 43758.5453) % 1;
+    const pattern = Math.abs(Math.sin(x * 0.47 + y * 0.31) * 43758.5453) % 1;
+    const crispy = Math.abs(Math.sin(x * 1.37 - y * 0.83) * 43758.5453) % 1;
+
+    let color = "#d69b11";
+
+    if(hash < 0.08) color = "#6b350b";
+    else if(hash < 0.16) color = "#8a470d";
+    else if(hash < 0.25) color = "#a95b0e";
+    else if(hash < 0.38) color = "#bd6f12";
+    else if(hash < 0.55) color = "#d08013";
+    else if(hash < 0.72) color = "#d99216";
+    else color = "#e3a51c";
+
+    if(pattern > 0.83 && hash < 0.65) color = "#a95b0e";
+    if(pattern > 0.91 && hash < 0.5) color = "#7c3f0c";
+
+    if(crispy > 0.94) color = "#542907";
+    else if(crispy > 0.86) color = "#733707";
+
+    cell.color ??= color;
+    cell.baseColor ??= cell.color;
+
+    if(cell.temperature > 300){
+      grid.set(x,y,ELEMENTS.ash);
+      return;
+    }
+
+    if(cell.element.hasTag("burnt")){
+      cell.color = "#12100c";
+      return;
+    }
+
+    if(cell.temperature > 100){
+      const t = Math.min(1, (cell.temperature - 100) / 150);
+      const hex = cell.baseColor.replace("#","");
+
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+
+      const br = 18;
+      const bg = 16;
+      const bb = 12;
+
+      const nr = Math.round(r + (br - r) * t);
+      const ng = Math.round(g + (bg - g) * t);
+      const nb = Math.round(b + (bb - b) * t);
+
+      const newColor = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+      if(!cell.burnColor){
+        cell.burnColor = newColor;
+      }else{
+        const oldHex = cell.burnColor.replace("#","");
+
+        const oldR = parseInt(oldHex.slice(0,2),16);
+        const oldG = parseInt(oldHex.slice(2,4),16);
+        const oldB = parseInt(oldHex.slice(4,6),16);
+
+        const newR = Math.min(oldR,nr);
+        const newG = Math.min(oldG,ng);
+        const newB = Math.min(oldB,nb);
+
+        cell.burnColor = `#${newR.toString(16).padStart(2,"0")}${newG.toString(16).padStart(2,"0")}${newB.toString(16).padStart(2,"0")}`;
+      }
+
+      cell.color = cell.burnColor;
+
+      if(t >= 1){
+        cell.burnt = true;
+        cell.color = "#12100c";
+        cell.baseColor = "#12100c";
+        cell.element = cell.element.withTag("burnt");
+      }
+    }
+  }
+),
+cooked_chicken: new Element(
+  "cooked_chicken",
+  "#d9b08f",
+  "Food",
+  {
+    conductivity: 2,
+    flammable: false,
+    variants: {
+      burnt: {
+        color: "#12100c",
+        hidden: true
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    const hash = Math.abs(Math.sin(x * 127.1 + y * 311.7) * 43758.5453) % 1;
+    const pattern = Math.abs(Math.sin(x * 0.47 + y * 0.31) * 43758.5453) % 1;
+    const meat = Math.abs(Math.sin(x * 1.37 - y * 0.83) * 43758.5453) % 1;
+
+    let color = "#d9b08f";
+
+    if(hash < 0.10) color = "#b8785d";
+    else if(hash < 0.20) color = "#c48869";
+    else if(hash < 0.32) color = "#ce9877";
+    else if(hash < 0.48) color = "#d5a27f";
+    else if(hash < 0.65) color = "#dcb08e";
+    else if(hash < 0.82) color = "#e0b795";
+    else color = "#e5bea0";
+
+    if(pattern > 0.84 && hash < 0.65) color = "#c58a6b";
+    if(pattern > 0.93 && hash < 0.5) color = "#a96b53";
+
+    if(meat > 0.94) color = "#9b604a";
+    else if(meat > 0.87) color = "#b8785d";
+
+    cell.color ??= color;
+    cell.baseColor ??= cell.color;
+
+    if(cell.temperature > 300){
+      grid.set(x,y,ELEMENTS.ash);
+      return;
+    }
+
+    if(cell.element.hasTag("burnt")){
+      cell.color = "#12100c";
+      return;
+    }
+
+    if(cell.temperature > 100){
+      const t = Math.min(1, (cell.temperature - 100) / 150);
+      const hex = cell.baseColor.replace("#","");
+
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+
+      const br = 18;
+      const bg = 16;
+      const bb = 12;
+
+      const nr = Math.round(r + (br - r) * t);
+      const ng = Math.round(g + (bg - g) * t);
+      const nb = Math.round(b + (bb - b) * t);
+
+      const newColor = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+
+      if(!cell.burnColor){
+        cell.burnColor = newColor;
+      }else{
+        const oldHex = cell.burnColor.replace("#","");
+
+        const oldR = parseInt(oldHex.slice(0,2),16);
+        const oldG = parseInt(oldHex.slice(2,4),16);
+        const oldB = parseInt(oldHex.slice(4,6),16);
+
+        const newR = Math.min(oldR,nr);
+        const newG = Math.min(oldG,ng);
+        const newB = Math.min(oldB,nb);
+
+        cell.burnColor = `#${newR.toString(16).padStart(2,"0")}${newG.toString(16).padStart(2,"0")}${newB.toString(16).padStart(2,"0")}`;
+      }
+
+      cell.color = cell.burnColor;
+
+      if(t >= 1){
+        cell.burnt = true;
+        cell.color = "#12100c";
+        cell.baseColor = "#12100c";
+        cell.element = cell.element.withTag("burnt");
+      }
+    }
+  }
+),
+vegetable_oil: new Element(
+  "vegetable_oil",
+  "#c9a655",
+  "Food",
+  {conductivity: 0.1, density: 0.1,
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    if(cell.temperature > 250) grid.set(x,y,ELEMENTS.steam);
+     if (cell.temperature > 100) {
+ 
+ if (!cell.boiling) {
+    cell.boiling = true;
+  }
+} else if (cell.temperature < 80 && cell.boiling) {
+  cell.boiling = false;
+}
+
+    if(cell.boiling){
+      if(Math.random() < 0.1){
+        if(grid.get(x,y-1) && (grid.get(x,y-1).element === ELEMENTS.empty)){
+          grid.swap(x,y,x,y-1);
+        }
+      }
+    }
+    liquidPhysics(grid,x,y);
+  }
+),
 
 
 
@@ -34195,17 +35801,38 @@ class ModManager {
     }
 installBuiltInMod(name, version, code) {
     const existing = this.getMods().find(mod => mod.name === name);
+    const builtInVersion = version || "1.0.0";
 
     if (existing) {
-        return existing;
+        if (existing.code === code && existing.version === builtInVersion) {
+            return existing;
+        }
+
+        if (existing.code !== code) {
+            const oldId = existing.id;
+            const newName = `${name} (Modified)`;
+            const newId = this.generateId(newName);
+
+            existing.id = newId;
+            existing.name = newName;
+            existing.fileName = `${newName}.js`;
+
+            this.mods.delete(oldId);
+            this.mods.set(newId, existing);
+            this.saveMods();
+        } else {
+            existing.version = builtInVersion;
+            existing.code = code;
+            this.saveMods();
+            return existing;
+        }
     }
 
     const id = this.generateId(name);
-
     const mod = {
         id: id,
         name: name,
-        version: version || "1.0.0",
+        version: builtInVersion,
         fileName: `${name}.js`,
         code: code,
         enabled: false,
@@ -34214,7 +35841,6 @@ installBuiltInMod(name, version, code) {
 
     this.mods.set(id, mod);
     this.saveMods();
-
     return mod;
 }
     loadSavedMods() {
@@ -34582,7 +36208,7 @@ const ui = {
         fontFamily: "Arial, sans-serif",
         display: "none",
         flexDirection: "column",
-        overflow: "hidden",
+        overflow: "auto",
         zIndex: "1000",
         boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)"
     },
@@ -36623,7 +38249,35 @@ touching(x, y, condition, returnCoords = false, diag = true) {
     if (typeof condition === "string" && condition.includes("&")) {
       return condition.split("&").every(part => checkCondition(elem, neighbor, part.trim()));
     }
+    if (typeof condition === "string" && condition.startsWith("neighbor.")) {
+  const expression = condition.slice(9);
+  const match = expression.match(/^([a-zA-Z_$][\w$]*)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/);
 
+  if (!match) return false;
+
+  const [, property, operator, rawValue] = match;
+  const value = rawValue === "true" ? true :
+                rawValue === "false" ? false :
+                rawValue === "null" ? null :
+                rawValue === "undefined" ? undefined :
+                !isNaN(rawValue) ? Number(rawValue) :
+                rawValue.replace(/^["']|["']$/g, "");
+
+  const actual = neighbor[property];
+
+  switch (operator) {
+    case "===": return actual === value;
+    case "!==": return actual !== value;
+    case "==": return actual == value;
+    case "!=": return actual != value;
+    case ">": return actual > value;
+    case "<": return actual < value;
+    case ">=": return actual >= value;
+    case "<=": return actual <= value;
+  }
+
+  return false;
+}
     if (typeof condition === "string" && condition.startsWith("#")) {
       const tag = condition.slice(1);
       return elem.hasTag && elem.hasTag(tag);
@@ -36631,6 +38285,9 @@ touching(x, y, condition, returnCoords = false, diag = true) {
 
     if (typeof condition === "string" && condition.startsWith("@")) {
       return elem.category === condition.slice(1);
+    }
+     if (typeof condition === "string" && condition.startsWith("!@")) {
+      return elem.category !== condition.slice(2);
     }
 
     if (typeof condition === "string" && condition.includes("!#")) {
@@ -36641,6 +38298,7 @@ touching(x, y, condition, returnCoords = false, diag = true) {
     if (typeof condition === "string" && condition.startsWith("!e")) {
       return elem.name !== condition.slice(2);
     }
+    
 
     if (typeof condition === "string" && elem.name === condition) {
       return true;
@@ -37279,7 +38937,7 @@ draw(ctx) {
   // =========================================================
   // GLUED OVERLAY
   // =========================================================
-  if (this.showGrid === "normal" && selectedElement === ELEMENTS.glue) {
+  if (this.showGrid === "normal" && (selectedElement === ELEMENTS.glue || selectedElement === ELEMENTS.unglue)) {
     ctx.save();
 
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
