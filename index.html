@@ -60,8 +60,10 @@
   border-radius: 6px;
   color: white;
   cursor: pointer;
-  transition: background-color 0.2s ease, text-decoration-color 0.2s ease;
+  transition: background-color 0.2s ease, text-decoration-color 0.2s ease, transform 0.08s linear, filter 0.08s linear;
   font-size: 0.9em;
+  transform: translate(var(--bob-glitch-x, 0px), var(--bob-glitch-y, 0px)) skew(var(--bob-glitch-skew, 0deg));
+  filter: hue-rotate(var(--bob-glitch-hue, 0deg));
 }
 
 .cat-btn:hover {
@@ -132,10 +134,24 @@
   --repel-y: 0px;
   --scroll-scale: 1;
 
-  transform: translate(var(--repel-x), var(--repel-y)) scale(var(--scroll-scale));
+  /* Driven by Bob's spawn-in UI glitch effect (see bottom of body).
+     Stay at 0 / 0deg by default so nothing changes while Bob is
+     dormant or absent. */
+  --bob-glitch-x: 0px;
+  --bob-glitch-y: 0px;
+  --bob-glitch-skew: 0deg;
+  --bob-glitch-hue: 0deg;
+
+  transform:
+    translate(var(--repel-x), var(--repel-y))
+    scale(var(--scroll-scale))
+    translate(var(--bob-glitch-x), var(--bob-glitch-y))
+    skew(var(--bob-glitch-skew));
   transform-origin: center top;
 
-  transition: filter 0.2s, transform 0.15s ease-out, opacity 0.1s ease-out;
+  filter: hue-rotate(var(--bob-glitch-hue));
+
+  transition: filter 0.08s linear, transform 0.15s ease-out, opacity 0.1s ease-out;
 
   animation: elemIn 0.15s ease-out backwards,
              scrollButtonEffect both linear;
@@ -218,6 +234,7 @@ canvas {
   width: 800px;
   height: 600px;
   margin: auto;
+  
 }
 .pause-btn {
   position: absolute;
@@ -812,6 +829,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
       max-width: 100vw !important;
       height: auto !important;
       aspect-ratio: 800 / 600;
+
     }
 
     /* Epilepsy warning banner: shrink to fit, sit just under the menubar */
@@ -968,7 +986,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 <div class="settings" id="settings">
   <div style="font-size: 50px;">Settings</div>
   <button style="position:absolute; top: 10px; right: 10px; width: 30px; height: 30px; background-color: red; cursor: pointer; color: white; " onclick= "closeWindow('settings')">X</button>
-  <div class="settingsOption"><label> <input type="checkbox" id="epilepsyMode" onchange="epilepsyMode = this.checked">Remove Flashing Lights</label>
+  <div class="settingsOption"><label> <input type="checkbox" id="epilepsyMode" onchange="epilepsyMode = this.checked; updateElementButtons();">Remove Flashing Lights</label>
 
   </div>
 </div>
@@ -2911,6 +2929,7 @@ function liquidPhysics(grid, x, y, opts = {}) {
     if (!target) return false;
 
     if (target.element.name === "empty") return true;
+    if (target.element.name === "fire") return true;
 
     if (extraCanEnter && extraCanEnter(target)) return true;
 
@@ -3559,7 +3578,7 @@ const RECIPES = [
     const cell = grid.get(x, y);
       // color
     // normalize temperature 0–1200°C
-    const t = Math.min(Math.max(cell.temperature / 1200, 0), 1);
+    const t = Math.min(Math.max(cell.temperature / 700, 0), 1);
 
     // smoothly blend from gray -> red -> orange -> yellow-white
     let r, g, b;
@@ -3583,7 +3602,7 @@ const RECIPES = [
     cell.color = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
     // temp
     // melt into lava
-    if (cell.temperature > 1200) {
+    if (cell.temperature > 700) {
       if(Math.random() < 0.4){
       grid.set(x, y, ELEMENTS.lava);
       return;
@@ -3601,7 +3620,11 @@ const RECIPES = [
   (grid, x, y) => {
     const cell = grid.get(x, y);
  cell.age++;
- 
+
+  const touchingFlammable = grid.touching(x, y, { flammable: true });
+    if (cell.age > 60 && !touchingFlammable) {
+      grid.set(x, y, ELEMENTS.empty);
+    }
 // interactions
 if(grid.touching(x, y, "water")){
   grid.set(x, y, ELEMENTS.empty);
@@ -3613,7 +3636,7 @@ if(grid.touching(x, y, "o2")){
     if (Math.random() < 0.2) cell.temperature += (Math.random() - 0.5) * 20;
 
     // If touching flammable, heat it up
-    const touchingFlammable = grid.touching(x, y, { flammable: true });
+   
     if (touchingFlammable) {
  
     cell.temperature = 580;
@@ -3685,10 +3708,7 @@ if (!moved) {
    
 // lifespan
   
-    if (cell.age > 10 && !touchingFlammable || cell.temperature < 25) {
-      grid.set(x, y, ELEMENTS.empty);
-      cell.age = 0;
-    }
+ 
   }
 ),
 
@@ -4116,74 +4136,89 @@ grid.set(x, y, ELEMENTS.plasma);
   },
  
 ),
-  lava: new Element(
+ lava: new Element(
   "lava",
   "rgb(255, 180, 70)",
   "Liquids",
-  { density: 2.9,
-    conductivity: 0.56,
-    temperature: 1200,
-    variants:{
-     
+  {
+    density: 2.9,
+    conductivity: 0.16,
+    temperature: 2000,
+    variants: {
+
     }
-    
-   },
+  },
   (grid, x, y) => {
     const cell = grid.get(x, y);
-    // color
-   const t = Math.min(Math.max((cell.temperature - 20) / (1700 - 20), 0), 1); // normalize 0–1
- 
-let r, g, b;
 
-// multi-stage gradient (cool → red → orange → yellow → white)
-if (t < 0.25) {
-  // dark red → red
-  const k = t / 0.25;
-  r = 100 + 155 * k;
-  g = 0;
-  b = 0;
-} else if (t < 0.5) {
-  // red → orange
-  const k = (t - 0.25) / 0.25;
-  r = 255;
-  g = 80 * k;
-  b = 0;
-} else if (t < 0.75) {
-  // orange → yellow
-  const k = (t - 0.5) / 0.25;
-  r = 255;
-  g = 80 + 175 * k;
-  b = 0;
-} else {
-  // yellow → white
-  const k = (t - 0.75) / 0.25;
-  r = 255;
-  g = 255;
-  b = 50 + 205 * k;
-}
+    // 700°C = fully molten/liquid lava threshold
+    const t = Math.min(Math.max((cell.temperature - 700) / (3000 - 700), 0), 1);
 
-cell.color = `rgb(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)})`;
-// temp
-  if(cell.temperature > 9000){
-    if(Math.random() < 0.99){
-      grid.set(x, y, ELEMENTS.plasma);
+    let r, g, b;
+
+    if (t < 0.2) {
+      const k = t / 0.2;
+      r = 210 + 45 * k;
+      g = 45 + 55 * k;
+      b = 5 + 10 * k;
+    } else if (t < 0.4) {
+      const k = (t - 0.2) / 0.2;
+      r = 255;
+      g = 100 + 55 * k;
+      b = 15 + 15 * k;
+    } else if (t < 0.6) {
+      const k = (t - 0.4) / 0.2;
+      r = 255;
+      g = 155 + 55 * k;
+      b = 30 + 30 * k;
+    } else if (t < 0.8) {
+      const k = (t - 0.6) / 0.2;
+      r = 255;
+      g = 210 + 45 * k;
+      b = 60 + 80 * k;
+    } else {
+      const k = (t - 0.8) / 0.2;
+      r = 255;
+      g = 255;
+      b = 140 + 115 * k;
     }
-   }
-    
-    
-    // movement
-  if(t <= 0.363){
 
-    if((t <= 0.366 && t>=0.27) && grid.touching(x, y, "water") ){
-      grid.set(x,y,ELEMENTS.obsidian);
+    cell.color = `rgb(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)})`;
+    cell.lightColor = cell.color;
+    cell.lightLevel = 10 * t;
+
+    if (cell.temperature > 9000) {
+      if (Math.random() < 0.99) {
+        grid.set(x, y, ELEMENTS.plasma);
+      }
     }
-   return;
+
+    if (t > 0.3) {
+      if (grid.get(x, y - 1)?.element === ELEMENTS.empty) {
+        if (Math.random() < 0.01) {
+          grid.set(x, y - 1, ELEMENTS.fire);
+          const c = grid.get(x, y - 1);
+          c.age = 40;
+          c.temperature = cell.temperature / 2;
+        }
+      }
+    }
+
+    // Below 700°C, lava solidifies and no longer flows.
+    if (cell.temperature < 700) {
+      if (cell.temperature <= 750 && cell.temperature >= 650 && grid.touching(x, y, "water")) {
+        grid.set(x, y, ELEMENTS.obsidian);
+      }
+      return;
+    }
+
+    liquidPhysics(grid, x, y, {
+      spreadChance: 0.5 + t * 0.5,
+      sinkPowders: true
+    });
   }
-
-  liquidPhysics(grid, x, y, { spreadChance: t * 0.5, sinkPowders: true });
-  },
-  
 ),
+
 obsidian: new Element(
   "obsidian",
   "#0f0f0f",
@@ -6276,7 +6311,7 @@ blackhole: new Element(
         if (!grid.isInside(nx, ny)) continue;
 
         const cell = grid.get(nx, ny);
-        if (!cell || cell.element === ELEMENTS.empty) continue;
+        if (!cell || cell.element === ELEMENTS.empty || cell.element === ELEMENTS.bob || cell.element === ELEMENTS.bob_body) continue;
 
         const distX = nx - x;
         const distY = ny - y;
@@ -6373,7 +6408,7 @@ glitch: new Element(
 
     const corruptible = neighbors.filter(pos => {
       const c = grid.get(pos.x, pos.y);
-      return c && c.element.name !== "empty" && c.element.name !== "glitch";
+      return c && c.element.name !== "empty" && c.element.name !== "glitch"  && c.element.name !== "bob"  && c.element.name !== "bob_body";
     });
 
     // Spread to only one random corruptible neighbor
@@ -7770,7 +7805,7 @@ copper: new Element(
   "copper",
   "#FA8334",
   "Solids",
-  { shiny: "willbe", conductivity: 1.75,
+  { shiny: "willbe", conductivity: 4.75,
     econductivity: 20,
     mix: true,
     variants: {
@@ -22980,7 +23015,7 @@ cell.lightColor = rgbToHex(c[0], c[1], c[2]);
         if (!grid.isInside(nx, ny)) continue;
 
         const c = grid.get(nx, ny);
-        if (!c || c.element === ELEMENTS.empty) continue;
+        if (!c || c.element === ELEMENTS.empty || c.element === ELEMENTS.bob || c.element === ELEMENTS.bob_body) continue;
 
         const distX = nx - x;
         const distY = ny - y;
@@ -31974,7 +32009,7 @@ neutron_star: new Element(
         if (!grid.isInside(nx, ny)) continue;
 
         const cell = grid.get(nx, ny);
-        if (!cell || cell.element === ELEMENTS.empty) continue;
+        if (!cell || cell.element === ELEMENTS.empty || cell.element === ELEMENTS.bob || cell.element === ELEMENTS.bob_body) continue;
 
         const distX = nx - x;
         const distY = ny - y;
@@ -34452,7 +34487,7 @@ cat: new Element(
 
     const s = cell.stripeColor;
 
-    cell.subGrid = cell.hasStripes ? [
+    cell.subGrid ??= cell.hasStripes ? [
       [s, s, 0, 0],
       [0, 0, 0, 0],
       [s, s, 0, 0],
@@ -35318,10 +35353,3707 @@ vegetable_oil: new Element(
     liquidPhysics(grid,x,y);
   }
 ),
+bob: (function () {
+
+  const SUBRES = 4;
+
+  const BREATH_SPEED = 1.2;
+  const BREATH_AMOUNT = 0.05;
+
+  const TELEPORT_DIST = 20;
+  const TELEPORT_COOLDOWN = 0.3;
+  const SMEAR_LIFETIME = 0.1;
+
+  const HEAD_R = 0.85;
+  const HEAD_INNER_R = 0.60;
+
+  const NECK_LEN = 0.18;
+  const TORSO_LEN = 1.35;
+  const LEG_LEN = 1.85;
+  const ARM_LEN = 1.35;
+
+  const LIMB_R = 0.16;
+
+  const SHOULDER_W = 0.42;
+  const LEG_SPREAD = 0.58;
+
+  const GLITCH_RADIUS = 20;
+  const GLITCH_CHANGE_DELAY = 0.1;
+  const GLITCH_CELL_DELAY = 0.035;
+  const GLITCH_CHANCE = 0.9;
+
+  const GLITCH_PROTECTED = new Set();
+
+  const SPAWN_GRACE = 2.5;
+  const SPAWN_RAMP = 4.5;
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function dist(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getElementKey(element) {
+    if (!element) return null;
+
+    for (const key of Object.keys(ELEMENTS)) {
+      if (ELEMENTS[key] === element) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  class BobRenderer {
+
+    constructor(grid, owner, element) {
+      this.grid = grid;
+      this.owner = owner;
+      this.element = element;
+
+      this.prevCast = [];
+      this.prevSet = new Set();
+    }
+
+    clear() {
+      for (const p of this.prevCast) {
+        const cell = this.grid.get(p.x, p.y);
+
+        if (
+          cell &&
+          cell.element === this.element &&
+          cell.castOwner === this.owner
+        ) {
+          this.grid.set(
+            p.x,
+            p.y,
+            ELEMENTS.empty
+          );
+        }
+      }
+
+      this.prevCast.length = 0;
+      this.prevSet.clear();
+    }
+
+    isBlocked(cx, cy) {
+      const cell = this.grid.get(cx, cy);
+
+      if (!cell) return true;
+
+      return (
+        cell.element !== ELEMENTS.empty &&
+        cell.element !== this.element
+      );
+    }
+
+    ensureFullGrid(cell) {
+      if (
+        !cell.subGrid ||
+        cell.subGrid.length !== SUBRES ||
+        cell.subGrid[0].length !== SUBRES
+      ) {
+        cell.subGrid = Array.from(
+          { length: SUBRES },
+          () => Array(SUBRES).fill(1)
+        );
+      }
+    }
+
+    markSub(px, py) {
+      const cx = Math.floor(px);
+      const cy = Math.floor(py);
+
+      if (this.isBlocked(cx, cy)) return;
+
+      const key = cx + "," + cy;
+
+      if (!this.prevSet.has(key)) {
+        this.prevSet.add(key);
+
+        this.prevCast.push({
+          x: cx,
+          y: cy
+        });
+      }
+
+      let cell = this.grid.get(cx, cy);
+
+      if (!cell) return;
+
+      if (cell.element !== this.element) {
+        this.grid.set(
+          cx,
+          cy,
+          this.element
+        );
+      }
+
+      cell = this.grid.get(cx, cy);
+
+      cell.castOwner = this.owner;
+
+      this.ensureFullGrid(cell);
+
+      const lx = px - cx;
+      const ly = py - cy;
+
+      const sx = Math.min(
+        SUBRES - 1,
+        Math.max(
+          0,
+          Math.floor(lx * SUBRES)
+        )
+      );
+
+      const sy = Math.min(
+        SUBRES - 1,
+        Math.max(
+          0,
+          Math.floor(ly * SUBRES)
+        )
+      );
+
+      cell.subGrid[sx][sy] = 0;
+    }
+
+    capsule(x1, y1, r1, x2, y2, r2) {
+      const maxR = Math.max(r1, r2);
+
+      const minX = Math.floor(
+        Math.min(x1, x2) -
+        maxR -
+        1
+      );
+
+      const maxX = Math.ceil(
+        Math.max(x1, x2) +
+        maxR +
+        1
+      );
+
+      const minY = Math.floor(
+        Math.min(y1, y2) -
+        maxR -
+        1
+      );
+
+      const maxY = Math.ceil(
+        Math.max(y1, y2) +
+        maxR +
+        1
+      );
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+
+      const lenSq =
+        (dx * dx + dy * dy) || 1;
+
+      const step = 1 / SUBRES;
+
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+
+          if (this.isBlocked(cx, cy)) {
+            continue;
+          }
+
+          for (let sy = 0; sy < SUBRES; sy++) {
+
+            const py =
+              cy +
+              (sy + 0.5) *
+              step;
+
+            for (let sx = 0; sx < SUBRES; sx++) {
+
+              const px =
+                cx +
+                (sx + 0.5) *
+                step;
+
+              let t =
+                (
+                  (px - x1) * dx +
+                  (py - y1) * dy
+                ) /
+                lenSq;
+
+              t = Math.max(
+                0,
+                Math.min(1, t)
+              );
+
+              const cxp =
+                x1 +
+                dx * t;
+
+              const cyp =
+                y1 +
+                dy * t;
+
+              const r =
+                lerp(r1, r2, t);
+
+              const ddx =
+                px - cxp;
+
+              const ddy =
+                py - cyp;
+
+              if (
+                ddx * ddx +
+                ddy * ddy <=
+                r * r
+              ) {
+                this.markSub(
+                  px,
+                  py
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    circle(cx, cy, r) {
+      this.capsule(
+        cx,
+        cy,
+        r,
+        cx + 0.001,
+        cy,
+        r
+      );
+    }
+
+    ring(
+      cx,
+      cy,
+      outerR,
+      innerR
+    ) {
+      const minX =
+        Math.floor(
+          cx -
+          outerR -
+          1
+        );
+
+      const maxX =
+        Math.ceil(
+          cx +
+          outerR +
+          1
+        );
+
+      const minY =
+        Math.floor(
+          cy -
+          outerR -
+          1
+        );
+
+      const maxY =
+        Math.ceil(
+          cy +
+          outerR +
+          1
+        );
+
+      const step =
+        1 / SUBRES;
+
+      for (
+        let cy2 = minY;
+        cy2 <= maxY;
+        cy2++
+      ) {
+        for (
+          let cx2 = minX;
+          cx2 <= maxX;
+          cx2++
+        ) {
+
+          if (
+            this.isBlocked(
+              cx2,
+              cy2
+            )
+          ) {
+            continue;
+          }
+
+          for (
+            let sy = 0;
+            sy < SUBRES;
+            sy++
+          ) {
+
+            const py =
+              cy2 +
+              (sy + 0.5) *
+              step;
+
+            for (
+              let sx = 0;
+              sx < SUBRES;
+              sx++
+            ) {
+
+              const px =
+                cx2 +
+                (sx + 0.5) *
+                step;
+
+              const dx =
+                px - cx;
+
+              const dy =
+                py - cy;
+
+              const d2 =
+                dx * dx +
+                dy * dy;
+
+              if (
+                d2 <=
+                outerR * outerR &&
+                d2 >=
+                innerR * innerR
+              ) {
+                this.markSub(
+                  px,
+                  py
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  class Bob {
+
+    constructor(grid, x, y) {
+      this.grid = grid;
+
+      this.rootX =
+        x + 0.5;
+
+      this.rootY =
+        y + 0.5;
+
+      this.cellX = x;
+      this.cellY = y;
+
+      this.owner = {};
+
+      this.renderer =
+        new BobRenderer(
+          grid,
+          this.owner,
+          ELEMENTS.bob_body
+        );
+
+      this.breathPhase =
+        Math.random() *
+        Math.PI *
+        2;
+
+      this.teleportCooldown = 0;
+
+      this.smear = null;
+
+      this.lastTime = 0;
+
+      this.spawnTime = null;
+      this.spawnRamp = 0;
+
+      this.glitchMap = new Map();
+      this.glitchTimers = new Map();
+      this.glitchCellTimers = new Map();
+
+      this.glitchLastChange = 0;
+
+      this.glitchElements = [];
+
+      this.refreshGlitchElements();
+
+      GLITCH_PROTECTED.add(
+        ELEMENTS.empty
+      );
+
+      GLITCH_PROTECTED.add(
+        ELEMENTS.bob
+      );
+
+      GLITCH_PROTECTED.add(
+        ELEMENTS.bob_body
+      );
+    }
+
+    refreshGlitchElements() {
+      const elements = [];
+
+      for (const key of Object.keys(ELEMENTS)) {
+        const element = ELEMENTS[key];
+
+        if (
+          element.category !== "Tool" &&
+          element !== ELEMENTS.tentacle &&
+          element !== ELEMENTS.spider &&
+          element !== ELEMENTS.thunderstorm
+        ) {
+          elements.push(element);
+
+          for (
+            const tag of Object.keys(
+              element.variants
+            )
+          ) {
+            elements.push(
+              element.withTag(tag)
+            );
+          }
+        }
+      }
+
+      this.glitchElements =
+        elements;
+    }
+
+    getRandomGlitchElement(source) {
+      if (
+        !this.glitchElements.length
+      ) {
+        return source;
+      }
+
+      if (
+        this.glitchElements.length === 1
+      ) {
+        return this.glitchElements[0];
+      }
+
+      let relement = source;
+
+      for (
+        let i = 0;
+        i < 20 &&
+        relement === source;
+        i++
+      ) {
+        relement =
+          this.glitchElements[
+            Math.floor(
+              Math.random() *
+              this.glitchElements.length
+            )
+          ];
+      }
+
+      return relement;
+    }
+
+    updateGlitchMap(time) {
+      if (
+        time -
+        this.glitchLastChange <
+        GLITCH_CHANGE_DELAY
+      ) {
+        return;
+      }
+
+      this.glitchLastChange = time;
+
+      const seen =
+        new Set();
+
+      const minX =
+        Math.max(
+          0,
+          Math.floor(
+            this.rootX -
+            GLITCH_RADIUS
+          )
+        );
+
+      const maxX =
+        Math.min(
+          this.grid.cols - 1,
+          Math.ceil(
+            this.rootX +
+            GLITCH_RADIUS
+          )
+        );
+
+      const minY =
+        Math.max(
+          0,
+          Math.floor(
+            this.rootY -
+            GLITCH_RADIUS
+          )
+        );
+
+      const maxY =
+        Math.min(
+          this.grid.rows - 1,
+          Math.ceil(
+            this.rootY +
+            GLITCH_RADIUS
+          )
+        );
+
+      for (
+        let y = minY;
+        y <= maxY;
+        y++
+      ) {
+        for (
+          let x = minX;
+          x <= maxX;
+          x++
+        ) {
+
+          const dx =
+            x + 0.5 -
+            this.rootX;
+
+          const dy =
+            y + 0.5 -
+            this.rootY;
+
+          if (
+            dx * dx +
+            dy * dy >
+            GLITCH_RADIUS *
+            GLITCH_RADIUS
+          ) {
+            continue;
+          }
+
+          const cell =
+            this.grid.get(
+              x,
+              y
+            );
+
+          if (!cell) continue;
+
+          const source =
+            cell.element;
+
+          if (!source) continue;
+
+          if (
+            GLITCH_PROTECTED.has(
+              source
+            )
+          ) {
+            continue;
+          }
+
+          const key =
+            getElementKey(
+              source
+            );
+
+          if (!key) continue;
+
+          seen.add(key);
+
+          if (
+            !this.glitchMap.has(key)
+          ) {
+            this.glitchMap.set(
+              key,
+              this.getRandomGlitchElement(
+                source
+              )
+            );
+          }
+        }
+      }
+
+      for (
+        const key of seen
+      ) {
+        const source =
+          ELEMENTS[key];
+
+        this.glitchMap.set(
+          key,
+          this.getRandomGlitchElement(
+            source
+          )
+        );
+      }
+    }
+
+    glitchNearby(time, dt, instant = false) {
+      if (
+        this.spawnRamp <= 0
+      ) {
+        return;
+      }
+
+      this.updateGlitchMap(
+        time
+      );
+
+      const minX =
+        Math.max(
+          0,
+          Math.floor(
+            this.rootX -
+            GLITCH_RADIUS
+          )
+        );
+
+      const maxX =
+        Math.min(
+          this.grid.cols - 1,
+          Math.ceil(
+            this.rootX +
+            GLITCH_RADIUS
+          )
+        );
+
+      const minY =
+        Math.max(
+          0,
+          Math.floor(
+            this.rootY -
+            GLITCH_RADIUS
+          )
+        );
+
+      const maxY =
+        Math.min(
+          this.grid.rows - 1,
+          Math.ceil(
+            this.rootY +
+            GLITCH_RADIUS
+          )
+        );
+
+      for (
+        let y = minY;
+        y <= maxY;
+        y++
+      ) {
+        for (
+          let x = minX;
+          x <= maxX;
+          x++
+        ) {
+
+          const dx =
+            x + 0.5 -
+            this.rootX;
+
+          const dy =
+            y + 0.5 -
+            this.rootY;
+
+          const d2 =
+            dx * dx +
+            dy * dy;
+
+          if (
+            d2 >
+            GLITCH_RADIUS *
+            GLITCH_RADIUS
+          ) {
+            continue;
+          }
+
+          const cell =
+            this.grid.get(
+              x,
+              y
+            );
+
+          if (!cell) continue;
+
+          const source =
+            cell.element;
+
+          if (!source) continue;
+
+          if (
+            GLITCH_PROTECTED.has(
+              source
+            )
+          ) {
+            continue;
+          }
+
+          const sourceKey =
+            getElementKey(
+              source
+            );
+
+          if (!sourceKey) continue;
+
+          const target =
+            this.glitchMap.get(
+              sourceKey
+            );
+
+          if (!target) continue;
+
+          if (
+            target === source
+          ) {
+            continue;
+          }
+
+        const cellKey =
+  x + "," + y;
+
+if (!instant) {
+  let timer =
+    this.glitchCellTimers.get(
+      cellKey
+    );
+
+  if (
+    timer === undefined
+  ) {
+    timer =
+      Math.random() *
+      GLITCH_CELL_DELAY;
+
+    this.glitchCellTimers.set(
+      cellKey,
+      timer
+    );
+  }
+
+  timer -= dt;
+
+  if (timer > 0) {
+    this.glitchCellTimers.set(
+      cellKey,
+      timer
+    );
+
+    continue;
+  }
+
+  this.glitchCellTimers.delete(
+    cellKey
+  );
+}
+
+          if (
+            Math.random() >
+            GLITCH_CHANCE
+          ) {
+            continue;
+          }
+
+          if (
+            Math.random() >
+            this.spawnRamp
+          ) {
+            continue;
+          }
+
+          if (
+            target === ELEMENTS.bob ||
+            target === ELEMENTS.bob_body
+          ) {
+            continue;
+          }
+
+          const oldData = {
+            ...cell
+          };
+
+          this.grid.set(
+            x,
+            y,
+            target
+          );
+
+          const newCell =
+            this.grid.get(
+              x,
+              y
+            );
+
+          if (
+            newCell &&
+            oldData
+          ) {
+            if (
+              oldData.temperature !==
+              undefined
+            ) {
+              newCell.temperature =
+                oldData.temperature;
+            }
+
+            if (
+              oldData.velocityX !==
+              undefined
+            ) {
+              newCell.velocityX =
+                oldData.velocityX;
+            }
+
+            if (
+              oldData.velocityY !==
+              undefined
+            ) {
+              newCell.velocityY =
+                oldData.velocityY;
+            }
+          }
+        }
+      }
+
+      for (
+        const key of this.glitchCellTimers.keys()
+      ) {
+        const parts =
+          key.split(",");
+
+        const x =
+          Number(parts[0]);
+
+        const y =
+          Number(parts[1]);
+
+        const dx =
+          x + 0.5 -
+          this.rootX;
+
+        const dy =
+          y + 0.5 -
+          this.rootY;
+
+        if (
+          dx * dx +
+          dy * dy >
+          (GLITCH_RADIUS + 2) *
+          (GLITCH_RADIUS + 2)
+        ) {
+          this.glitchCellTimers.delete(
+            key
+          );
+        }
+      }
+    }
+
+    findSafeTeleportCell(x, y) {
+      const tx =
+        Math.floor(x);
+
+      const ty =
+        Math.floor(y);
+
+      const target =
+        this.grid.get(
+          tx,
+          ty
+        );
+
+      if (
+        target &&
+        target.element ===
+        ELEMENTS.empty
+      ) {
+        return {
+          x: tx,
+          y: ty
+        };
+      }
+
+      for (
+        let radius = 1;
+        radius <= 4;
+        radius++
+      ) {
+        for (
+          let oy = -radius;
+          oy <= radius;
+          oy++
+        ) {
+          for (
+            let ox = -radius;
+            ox <= radius;
+            ox++
+          ) {
+
+            if (
+              Math.abs(ox) !== radius &&
+              Math.abs(oy) !== radius
+            ) {
+              continue;
+            }
+
+            const cx =
+              tx + ox;
+
+            const cy =
+              ty + oy;
+
+            if (
+              cx < 0 ||
+              cy < 0 ||
+              cx >= this.grid.cols ||
+              cy >= this.grid.rows
+            ) {
+              continue;
+            }
+
+            const cell =
+              this.grid.get(
+                cx,
+                cy
+              );
+
+            if (
+              cell &&
+              cell.element ===
+              ELEMENTS.empty
+            ) {
+              return {
+                x: cx,
+                y: cy
+              };
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    moveElementWithBody() {
+      const newX =
+        Math.floor(
+          this.rootX
+        );
+
+      const newY =
+        Math.floor(
+          this.rootY
+        );
+
+      if (
+        newX === this.cellX &&
+        newY === this.cellY
+      ) {
+        return;
+      }
+
+      const oldCell =
+        this.grid.get(
+          this.cellX,
+          this.cellY
+        );
+
+      if (
+        oldCell &&
+        oldCell.element ===
+        ELEMENTS.bob &&
+        oldCell.bob === this
+      ) {
+        this.grid.set(
+          this.cellX,
+          this.cellY,
+          ELEMENTS.empty
+        );
+      }
+
+      const newCell =
+        this.grid.get(
+          newX,
+          newY
+        );
+
+      if (
+        !newCell ||
+        newCell.element !==
+        ELEMENTS.empty
+      ) {
+        return;
+      }
+
+      this.grid.set(
+        newX,
+        newY,
+        ELEMENTS.bob
+      );
+
+      const placed =
+        this.grid.get(
+          newX,
+          newY
+        );
+
+      if (placed) {
+        placed.bob = this;
+      }
+
+      this.cellX = newX;
+      this.cellY = newY;
+    }
+
+    teleportTo(x, y, time) {
+      vfx.shake(100, 1000);
+      const safe =
+        this.findSafeTeleportCell(
+          x,
+          y
+        );
+
+      if (!safe) {
+        this.teleportCooldown =
+          TELEPORT_COOLDOWN;
+
+        return;
+      }
+
+      this.smear = {
+        x1: this.rootX,
+        y1: this.rootY,
+        x2: safe.x + 0.5,
+        y2: safe.y + 0.5,
+        born: time
+      };
+
+      this.rootX =
+        safe.x + 0.5;
+
+      this.rootY =
+        safe.y + 0.5;
+
+      this.moveElementWithBody();
+
+      this.teleportCooldown =
+        TELEPORT_COOLDOWN;
+    }
+
+    drawBody(breath) {
+      const rootX =
+        this.rootX;
+
+      const rootY =
+        this.rootY;
+
+      const hipX =
+        rootX;
+
+      const hipY =
+        rootY -
+        LEG_LEN;
+
+      const chestX =
+        rootX;
+
+      const chestY =
+        hipY -
+        TORSO_LEN -
+        breath;
+
+      const neckX =
+        rootX;
+
+      const neckY =
+        chestY -
+        NECK_LEN;
+
+      const headCY =
+        neckY -
+        HEAD_R;
+
+      this.renderer.ring(
+        rootX,
+        headCY,
+        HEAD_R +
+        breath * 0.3,
+        HEAD_INNER_R +
+        breath * 0.15
+      );
+
+      this.renderer.capsule(
+        rootX,
+        chestY,
+        LIMB_R,
+        neckX,
+        neckY,
+        LIMB_R
+      );
+
+      this.renderer.capsule(
+        rootX,
+        chestY,
+        LIMB_R,
+        hipX,
+        hipY,
+        LIMB_R
+      );
+
+      const shoulderY =
+        chestY + 0.04;
+
+      const leftShoulderX =
+        rootX -
+        SHOULDER_W;
+
+      const rightShoulderX =
+        rootX +
+        SHOULDER_W;
+
+      this.renderer.capsule(
+        leftShoulderX,
+        shoulderY,
+        LIMB_R,
+        rightShoulderX,
+        shoulderY,
+        LIMB_R
+      );
+
+      const armSway =
+        Math.sin(
+          this.breathPhase *
+          0.7
+        ) * 0.045;
+
+      const leftHandX =
+        rootX -
+        SHOULDER_W -
+        ARM_LEN * 0.48 -
+        armSway;
+
+      const leftHandY =
+        shoulderY +
+        ARM_LEN * 0.82;
+
+      const rightHandX =
+        rootX +
+        SHOULDER_W +
+        ARM_LEN * 0.48 +
+        armSway;
+
+      const rightHandY =
+        shoulderY +
+        ARM_LEN * 0.82;
+
+      this.renderer.capsule(
+        leftShoulderX,
+        shoulderY,
+        LIMB_R,
+        leftHandX,
+        leftHandY,
+        LIMB_R
+      );
+
+      this.renderer.capsule(
+        rightShoulderX,
+        shoulderY,
+        LIMB_R,
+        rightHandX,
+        rightHandY,
+        LIMB_R
+      );
+
+      const leftKneeX =
+        rootX -
+        LEG_SPREAD * 0.34;
+
+      const leftKneeY =
+        hipY +
+        LEG_LEN * 0.43;
+
+      const rightKneeX =
+        rootX +
+        LEG_SPREAD * 0.34;
+
+      const rightKneeY =
+        hipY +
+        LEG_LEN * 0.43;
+
+      const leftFootX =
+        rootX -
+        LEG_SPREAD;
+
+      const leftFootY =
+        rootY;
+
+      const rightFootX =
+        rootX +
+        LEG_SPREAD;
+
+      const rightFootY =
+        rootY;
+
+      this.renderer.capsule(
+        hipX,
+        hipY,
+        LIMB_R,
+        leftKneeX,
+        leftKneeY,
+        LIMB_R
+      );
+
+      this.renderer.capsule(
+        leftKneeX,
+        leftKneeY,
+        LIMB_R,
+        leftFootX,
+        leftFootY,
+        LIMB_R
+      );
+
+      this.renderer.capsule(
+        hipX,
+        hipY,
+        LIMB_R,
+        rightKneeX,
+        rightKneeY,
+        LIMB_R
+      );
+
+      this.renderer.capsule(
+        rightKneeX,
+        rightKneeY,
+        LIMB_R,
+        rightFootX,
+        rightFootY,
+        LIMB_R
+      );
+    }
+
+    drawSmear(k) {
+      const {
+        x1,
+        y1,
+        x2,
+        y2
+      } = this.smear;
+
+      const dx =
+        x2 - x1;
+
+      const dy =
+        y2 - y1;
+
+      const len =
+        Math.hypot(
+          dx,
+          dy
+        ) || 1;
+
+      const ux =
+        dx / len;
+
+      const uy =
+        dy / len;
+
+      const px =
+        -uy;
+
+      const py =
+        ux;
+
+      const wobble =
+        Math.sin(
+          k * Math.PI
+        ) * 0.35;
+
+      const midX =
+        (x1 + x2) / 2 +
+        px * wobble;
+
+      const midY =
+        (y1 + y2) / 2 +
+        py * wobble;
+
+      const tailR =
+        0.45 * k;
+
+      const headR =
+        0.06;
+
+      this.renderer.capsule(
+        x1,
+        y1,
+        tailR,
+        midX,
+        midY,
+        (tailR + headR) / 2
+      );
+
+      this.renderer.capsule(
+        midX,
+        midY,
+        (tailR + headR) / 2,
+        x2,
+        y2,
+        headR
+      );
+    }
+
+    update(time, targetX, targetY) {
+      
+      const dt =
+        this.lastTime > 0
+          ? Math.min(
+              0.05,
+              Math.max(
+                0.001,
+                time -
+                this.lastTime
+              )
+            )
+          : 1 / 60;
+
+      this.lastTime =
+        time;
+
+      if (
+        this.spawnTime === null
+      ) {
+        this.spawnTime =
+          time;
+      }
+
+      const spawnAge =
+        time -
+        this.spawnTime;
+
+      this.spawnRamp =
+        spawnAge <= SPAWN_GRACE
+          ? 0
+          : Math.min(
+              1,
+              (
+                spawnAge -
+                SPAWN_GRACE
+              ) /
+              SPAWN_RAMP
+            );
+
+      if (
+        typeof window !==
+        "undefined"
+      ) {
+        if (!window.__bobUI) {
+          window.__bobUI = {
+            reports: new Map()
+          };
+        }
+
+        window.__bobUI.reports.set(
+          this.owner,
+          {
+            intensity:
+              this.spawnRamp,
+            time: time
+          }
+        );
+      }
+
+      this.teleportCooldown =
+        Math.max(
+          0,
+          this.teleportCooldown -
+          dt
+        );
+
+      this.breathPhase +=
+        dt *
+        BREATH_SPEED;
+
+      const d =
+        dist(
+          this.rootX,
+          this.rootY,
+          targetX + 0.5,
+          targetY + 0.5
+        );
+
+      if (
+        d > TELEPORT_DIST &&
+        this.teleportCooldown <= 0 &&
+        !this.smear &&
+        this.spawnRamp > 0 &&
+        Math.random() <
+        this.spawnRamp
+      ) {
+        this.teleportTo(
+          targetX,
+          targetY,
+          time
+        );
+      }
+
+      this.renderer.clear();
+
+      if (this.smear) {
+        const age =
+          time -
+          this.smear.born;
+
+        if (
+          age <
+          SMEAR_LIFETIME
+        ) {
+          this.drawSmear(
+            1 -
+            age /
+            SMEAR_LIFETIME
+          );
+
+          this.glitchNearby(
+            time,
+            dt
+          );
+
+          return;
+        }
+
+        this.smear =
+          null;
+      }
+
+      const breath =
+        Math.sin(
+          this.breathPhase
+        ) *
+        BREATH_AMOUNT;
+
+      this.drawBody(
+        breath
+      );
+
+      this.glitchNearby(
+        time,
+        dt
+      );
+
+      this.moveElementWithBody();
+    }
+  }
+
+ 
+
+return new Element(
+  "bob",
+  "#ffffff",
+  "System",
+  {
+    noVaritation: true
+  },
+  (grid, x, y) => {
+
+    let cell =
+      grid.get(
+        x,
+        y
+      );
+
+    if (!cell) {
+      return;
+    }
+
+    if (bobWarningCancelled) {
+      return;
+    }
+
+    if(!bobWarningShown){
+      bobWarningShown = true;
+      mouse.down = false;
+
+      const confirmed =
+        window.confirm(
+          "Warning: this WILL break the game!"
+        );
+
+      if (!confirmed) {
+
+        bobWarningCancelled = true;
+
+        if (cell.bob?.respawnWatcher) {
+          clearInterval(
+            cell.bob.respawnWatcher
+          );
+
+          cell.bob.respawnWatcher = null;
+        }
+
+        cell.bob = null;
+
+        grid.set(
+          x,
+          y,
+          ELEMENTS.empty
+        );
+
+        return;
+      }
+    
+    }
+    if (
+      !cell.subGrid ||
+      cell.subGrid.length !== 4
+    ) {
+      cell.subGrid =
+        Array.from(
+          {
+            length: 4
+          },
+          () =>
+            Array(4).fill(1)
+        );
+    }
+
+    if (!cell.bob) {
+      cell.bob =
+        new Bob(
+          grid,
+          x,
+          y
+        );
+
+      cell.bob.respawnWatcher =
+        setInterval(
+          () => {
+
+            if (bobWarningCancelled) {
+              clearInterval(
+                cell.bob?.respawnWatcher
+              );
+
+              if (cell.bob) {
+                cell.bob.respawnWatcher = null;
+              }
+
+              return;
+            }
+
+            const bob =
+              cell.bob;
+
+            if (!bob) {
+              return;
+            }
+
+            const current =
+              grid.get(
+                bob.cellX,
+                bob.cellY
+              );
+
+            if (
+              current &&
+              current.element ===
+              ELEMENTS.bob &&
+              current.bob === bob
+            ) {
+              return;
+            }
+
+            const oldX =
+              bob.cellX;
+
+            const oldY =
+              bob.cellY;
+
+            if (
+              oldX < 0 ||
+              oldY < 0 ||
+              oldX >= grid.cols ||
+              oldY >= grid.rows
+            ) {
+              return;
+            }
+
+            const target =
+              grid.get(
+                oldX,
+                oldY
+              );
+
+            if (target) {
+              bob.glitchNearby(
+                performance.now() * 0.001,
+                1 / 60,
+                true
+              );
+
+              grid.set(
+                oldX,
+                oldY,
+                ELEMENTS.bob
+              );
+
+              const restored =
+                grid.get(
+                  oldX,
+                  oldY
+                );
+
+              if (restored) {
+                restored.bob =
+                  bob;
+              }
+
+              bob.rootX =
+                oldX + 0.5;
+
+              bob.rootY =
+                oldY + 0.5;
+
+              bob.cellX =
+                oldX;
+
+              bob.cellY =
+                oldY;
+
+              bob.spawnTime =
+                null;
+
+              bob.spawnRamp =
+                0;
+
+              bob.lastTime =
+                0;
+            }
+          },
+          10
+        );
+    }
+
+    const time =
+      performance.now() *
+      0.001;
+
+    cell.bob.update(
+      time,
+      Math.floor(
+        Math.random() *
+        grid.cols
+      ),
+      Math.floor(
+        Math.random() *
+        grid.rows
+      )
+    );
+  },
+  (grid,x,y) => {
+    bobWarningShown = false;
+ bobWarningCancelled = false;
+  }
+  
+);
+})(),
+
+bob_body: new Element(
+  "bob_body",
+  "#ffffff",
+  "hidden",
+  { noVaritation: true },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell.subGrid || cell.subGrid.length !== 4) {
+      cell.subGrid = Array.from({ length: 4 }, () => Array(4).fill(1));
+    }
+  }
+),
+bacteria: new Element(
+  "bacteria",
+  "#448513",
+  "Life",
+  {flammable: true, conductivity: 1,
+    variants: {
+      burnt: {
+        color: "#0e1c04",
+        hidden: true
+      }
+    }
+  },
+  (grid, x, y) => {
+
+    const cell = grid.get(x, y);
+
+    if (!cell) {
+      return;
+    }
+
+    firePhysics(grid,x,y, {minTemp: 40, putOutTemp: 30, fireChance: 0.1});
+
+    cell.energy =
+      cell.energy ??
+      50;
+
+    cell.age =
+      cell.age ??
+      0;
+
+    cell.moveCooldown =
+      cell.moveCooldown ??
+      0;
+
+    cell.thinkCooldown =
+      cell.thinkCooldown ??
+      0;
+
+    cell.stuck =
+      cell.stuck ??
+      0;
+
+    cell.lastMoveX =
+      cell.lastMoveX ??
+      0;
+
+    cell.lastMoveY =
+      cell.lastMoveY ??
+      0;
+
+    cell.foodMemoryX =
+      cell.foodMemoryX ??
+      0;
+
+    cell.foodMemoryY =
+      cell.foodMemoryY ??
+      0;
+
+    cell.foodMemory =
+      cell.foodMemory ??
+      0;
+
+    cell.surfaceX =
+      cell.surfaceX ??
+      0;
+
+    cell.surfaceY =
+      cell.surfaceY ??
+      1;
+
+    cell.genome =
+      cell.genome ??
+      {
+        foodPref: 1,
+        heatAvoid: 0.5,
+        randomness: 0.35,
+        social: 0.8,
+        building: 0.6,
+        exploration: 0.5,
+        patience: 0.7,
+        memory: 0.8
+      };
+
+    cell.signal =
+      cell.signal ??
+      {
+        x: 0,
+        y: 0,
+        strength: 0,
+        age: 999
+      };
+
+    cell.age++;
+
+  
+  
+    const getCell = (
+      px,
+      py
+    ) => {
+
+      if (
+        !grid.isInside(
+          px,
+          py
+        )
+      ) {
+
+        return null;
+      }
+
+      return grid.get(
+        px,
+        py
+      );
+    };
+
+    const isEmpty = (
+      px,
+      py
+    ) => {
+
+      const target =
+        getCell(
+          px,
+          py
+        );
+
+      return !!(
+        target &&
+        target.element.name ===
+        "empty"
+      );
+    };
+
+    const isBacteria = (
+      px,
+      py
+    ) => {
+
+      const target =
+        getCell(
+          px,
+          py
+        );
+
+      return !!(
+        target &&
+        target.element.name ===
+        "bacteria"
+      );
+    };
+
+    const isSupport = (
+      px,
+      py
+    ) => {
+
+      const target =
+        getCell(
+          px,
+          py
+        );
+
+      if (!target) {
+        return true;
+      }
+
+      return (
+        target.element.name !==
+        "empty"
+      );
+    };
+
+    const isFood = (
+      px,
+      py
+    ) => {
+
+      const target =
+        getCell(
+          px,
+          py
+        );
+
+      if (!target) {
+        return false;
+      }
+
+      const element =
+        target.element;
+
+      return (
+        (
+          (element.category ===
+          "Life" ||   element.category ===
+          "Food") &&
+          element.name !==
+          "bacteria"
+        ) ||
+        element.name ===
+        "water"
+      );
+    };
+
+    const supportDown =
+      isSupport(
+        x,
+        y + 1
+      );
+
+    const supportUp =
+      isSupport(
+        x,
+        y - 1
+      );
+
+    const supportLeft =
+      isSupport(
+        x - 1,
+        y
+      );
+
+    const supportRight =
+      isSupport(
+        x + 1,
+        y
+      );
+
+
+    let surfaceX =
+      cell.surfaceX;
+
+    let surfaceY =
+      cell.surfaceY;
+
+    const previousStillValid =
+      (
+        surfaceX === 0 &&
+        surfaceY === 1 &&
+        supportDown
+      ) ||
+      (
+        surfaceX === 0 &&
+        surfaceY === -1 &&
+        supportUp
+      ) ||
+      (
+        surfaceX === 1 &&
+        surfaceY === 0 &&
+        supportRight
+      ) ||
+      (
+        surfaceX === -1 &&
+        surfaceY === 0 &&
+        supportLeft
+      );
+
+    if (
+      !previousStillValid
+    ) {
+
+      if (supportDown) {
+
+        surfaceX = 0;
+        surfaceY = 1;
+
+      } else if (supportUp) {
+
+        surfaceX = 0;
+        surfaceY = -1;
+
+      } else if (supportLeft) {
+
+        surfaceX = -1;
+        surfaceY = 0;
+
+      } else if (supportRight) {
+
+        surfaceX = 1;
+        surfaceY = 0;
+
+      } else {
+        surfaceX = 0;
+        surfaceY = 1;
+      }
+    }
+
+    cell.surfaceX =
+      surfaceX;
+
+    cell.surfaceY =
+      surfaceY;
+
+    const attached =
+      (
+        surfaceX === 0 &&
+        surfaceY === 1 &&
+        supportDown
+      ) ||
+      (
+        surfaceX === 0 &&
+        surfaceY === -1 &&
+        supportUp
+      ) ||
+      (
+        surfaceX === -1 &&
+        surfaceY === 0 &&
+        supportLeft
+      ) ||
+      (
+        surfaceX === 1 &&
+        surfaceY === 0 &&
+        supportRight
+      );
+
+    if (
+      !attached
+    ) {
+
+      if (
+        isEmpty(
+          x,
+          y + 1
+        )
+      ) {
+
+        cell.lastMoveX =
+          0;
+
+        cell.lastMoveY =
+          1;
+
+        cell.surfaceX =
+          0;
+
+        cell.surfaceY =
+          1;
+
+        cell.moveCooldown =
+          2;
+
+        grid.swap(
+          x,
+          y,
+          x,
+          y + 1
+        );
+
+        return;
+      }
+    }
+
+    /*
+     * =========================
+     * FIND COLONY
+     * =========================
+     */
+
+    const nearbyBacteria = [];
+
+    let colonyX = 0;
+    let colonyY = 0;
+
+    let colonySignalX = 0;
+    let colonySignalY = 0;
+
+    let colonySignalStrength = 0;
+
+    for (
+      let dy = -6;
+      dy <= 6;
+      dy++
+    ) {
+
+      for (
+        let dx = -6;
+        dx <= 6;
+        dx++
+      ) {
+
+        if (
+          dx === 0 &&
+          dy === 0
+        ) {
+          continue;
+        }
+
+        const other =
+          getCell(
+            x + dx,
+            y + dy
+          );
+
+        if (
+          !other ||
+          other.element.name !==
+          "bacteria"
+        ) {
+
+          continue;
+        }
+
+        nearbyBacteria.push(
+          other
+        );
+
+        colonyX +=
+          x + dx;
+
+        colonyY +=
+          y + dy;
+
+        if (
+          other.signal &&
+          other.signal.strength >
+          0
+        ) {
+
+          /*
+           * Older signals become weaker.
+           */
+
+          const signalAge =
+            other.signal.age ??
+            0;
+
+          const signalStrength =
+            other.signal.strength *
+            Math.max(
+              0,
+              1 -
+              signalAge / 80
+            );
+
+          colonySignalX +=
+            other.signal.x *
+            signalStrength;
+
+          colonySignalY +=
+            other.signal.y *
+            signalStrength;
+
+          colonySignalStrength +=
+            signalStrength;
+        }
+      }
+    }
+
+    if (
+      nearbyBacteria.length >
+      0
+    ) {
+
+      colonyX /=
+        nearbyBacteria.length;
+
+      colonyY /=
+        nearbyBacteria.length;
+    }
+
+    if (
+      colonySignalStrength >
+      0
+    ) {
+
+      colonySignalX /=
+        colonySignalStrength;
+
+      colonySignalY /=
+        colonySignalStrength;
+    }
+
+    /*
+     * =========================
+     * SLOW FOOD SCANNING
+     * =========================
+     *
+     * They don't immediately react.
+     * They gradually learn where food is.
+     */
+
+    cell.thinkCooldown--;
+
+    if (
+      cell.thinkCooldown <= 0
+    ) {
+
+      cell.thinkCooldown =
+        3 +
+        Math.floor(
+          Math.random() * 5
+        );
+
+      let foodX = 0;
+      let foodY = 0;
+      let foodStrength = 0;
+
+      for (
+        let dy = -10;
+        dy <= 10;
+        dy++
+      ) {
+
+        for (
+          let dx = -10;
+          dx <= 10;
+          dx++
+        ) {
+
+          if (
+            dx === 0 &&
+            dy === 0
+          ) {
+            continue;
+          }
+
+          if (
+            !isFood(
+              x + dx,
+              y + dy
+            )
+          ) {
+            continue;
+          }
+
+          const distance =
+            Math.sqrt(
+              dx * dx +
+              dy * dy
+            );
+
+          const strength =
+            1 /
+            Math.max(
+              1,
+              distance
+            );
+
+          foodX +=
+            dx *
+            strength;
+
+          foodY +=
+            dy *
+            strength;
+
+          foodStrength +=
+            strength;
+        }
+      }
+
+      if (
+        foodStrength >
+        0
+      ) {
+
+        const length =
+          Math.sqrt(
+            foodX * foodX +
+            foodY * foodY
+          );
+
+        if (
+          length > 0
+        ) {
+
+          foodX /=
+            length;
+
+          foodY /=
+            length;
+        }
+
+        /*
+         * Slowly update memory instead
+         * of instantly turning toward food.
+         */
+
+        const memory =
+          cell.genome.memory *
+          0.15;
+
+        cell.foodMemoryX =
+          cell.foodMemoryX *
+          (1 - memory) +
+          foodX *
+          memory;
+
+        cell.foodMemoryY =
+          cell.foodMemoryY *
+          (1 - memory) +
+          foodY *
+          memory;
+
+        cell.foodMemory =
+          Math.min(
+            1,
+            cell.foodMemory +
+            foodStrength *
+            0.05
+          );
+
+        /*
+         * Broadcast only part of the
+         * information to the colony.
+         */
+
+        cell.signal.x =
+          foodX;
+
+        cell.signal.y =
+          foodY;
+
+        cell.signal.strength =
+          Math.min(
+            1,
+            foodStrength *
+            0.5
+          );
+
+        cell.signal.age =
+          0;
+      } else {
+
+        cell.foodMemory *=
+          0.995;
+      }
+    }
+
+    /*
+     * Signals naturally decay.
+     */
+
+    cell.signal.age =
+      (cell.signal.age || 0) +
+      1;
+
+    cell.signal.strength *=
+      0.985;
+
+    /*
+     * =========================
+     * EAT NEARBY FOOD
+     * =========================
+     */
+
+    const eatDirections = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1]
+    ];
+
+    for (
+      const [dx, dy]
+      of eatDirections
+    ) {
+
+      if (
+        !isFood(
+          x + dx,
+          y + dy
+        )
+      ) {
+        continue;
+      }
+
+      cell.energy =
+        Math.min(
+          100,
+          cell.energy + 25
+        );
+
+      /*
+       * Eating creates a strong
+       * but slowly spreading signal.
+       */
+
+      cell.signal.x =
+        dx;
+
+      cell.signal.y =
+        dy;
+
+      cell.signal.strength =
+        1;
+
+      cell.signal.age =
+        0;
+
+      grid.set(
+        x + dx,
+        y + dy,
+        ELEMENTS.empty
+      );
+
+      /*
+       * Don't instantly move toward
+       * another piece of food.
+       */
+
+      break;
+    }
+
+    /*
+     * =========================
+     * MOVEMENT COOLDOWN
+     * =========================
+     */
+
+    cell.moveCooldown--;
+
+    if (
+      cell.moveCooldown > 0
+    ) {
+
+      return;
+    }
+
+    /*
+     * Different bacteria move at
+     * different speeds.
+     */
+
+    cell.moveCooldown =
+      2 +
+      Math.floor(
+        Math.random() * 5
+      );
+
+    /*
+     * =========================
+     * SURFACE TANGENT
+     * =========================
+     *
+     * Given a surface normal:
+     *
+     * floor  -> horizontal
+     * ceiling -> horizontal
+     * wall -> vertical
+     */
+
+    let tangentA;
+    let tangentB;
+
+    if (
+      surfaceY !== 0
+    ) {
+
+      tangentA = {
+        x: -1,
+        y: 0
+      };
+
+      tangentB = {
+        x: 1,
+        y: 0
+      };
+
+    } else {
+
+      tangentA = {
+        x: 0,
+        y: -1
+      };
+
+      tangentB = {
+        x: 0,
+        y: 1
+      };
+    }
+
+    /*
+     * =========================
+     * POSSIBLE MOVES
+     * =========================
+     */
+
+    const moves = [];
+
+    const addMove = (
+      px,
+      py,
+      type,
+      newSurfaceX,
+      newSurfaceY
+    ) => {
+
+      if (
+        !isEmpty(
+          px,
+          py
+        )
+      ) {
+
+        return;
+      }
+
+      moves.push({
+        x: px,
+        y: py,
+        type: type,
+        surfaceX:
+          newSurfaceX,
+        surfaceY:
+          newSurfaceY
+      });
+    };
+
+    /*
+     * NORMAL SURFACE CRAWLING
+     */
+
+    addMove(
+      x + tangentA.x,
+      y + tangentA.y,
+      "crawl",
+      surfaceX,
+      surfaceY
+    );
+
+    addMove(
+      x + tangentB.x,
+      y + tangentB.y,
+      "crawl",
+      surfaceX,
+      surfaceY
+    );
+
+    /*
+     * =========================
+     * SURFACE TRANSITIONS
+     * =========================
+     *
+     * These allow:
+     *
+     * floor -> wall
+     * wall -> ceiling
+     * ceiling -> wall
+     * etc.
+     */
+
+    if (
+      surfaceY === 1
+    ) {
+
+      /*
+       * Floor -> left wall.
+       */
+
+      if (
+        isSupport(
+          x - 1,
+          y
+        ) &&
+        isEmpty(
+          x - 1,
+          y - 1
+        )
+      ) {
+
+        addMove(
+          x - 1,
+          y - 1,
+          "corner",
+          -1,
+          0
+        );
+      }
+
+      /*
+       * Floor -> right wall.
+       */
+
+      if (
+        isSupport(
+          x + 1,
+          y
+        ) &&
+        isEmpty(
+          x + 1,
+          y - 1
+        )
+      ) {
+
+        addMove(
+          x + 1,
+          y - 1,
+          "corner",
+          1,
+          0
+        );
+      }
+    }
+
+    if (
+      surfaceY === -1
+    ) {
+
+      /*
+       * Ceiling -> left wall.
+       */
+
+      if (
+        isSupport(
+          x - 1,
+          y
+        ) &&
+        isEmpty(
+          x - 1,
+          y + 1
+        )
+      ) {
+
+        addMove(
+          x - 1,
+          y + 1,
+          "corner",
+          -1,
+          0
+        );
+      }
+
+      /*
+       * Ceiling -> right wall.
+       */
+
+      if (
+        isSupport(
+          x + 1,
+          y
+        ) &&
+        isEmpty(
+          x + 1,
+          y + 1
+        )
+      ) {
+
+        addMove(
+          x + 1,
+          y + 1,
+          "corner",
+          1,
+          0
+        );
+      }
+    }
+
+    if (
+      surfaceX === -1
+    ) {
+
+      /*
+       * Left wall -> ceiling.
+       */
+
+      if (
+        isSupport(
+          x,
+          y - 1
+        ) &&
+        isEmpty(
+          x + 1,
+          y - 1
+        )
+      ) {
+
+        addMove(
+          x + 1,
+          y - 1,
+          "corner",
+          0,
+          -1
+        );
+      }
+
+      /*
+       * Left wall -> floor.
+       */
+
+      if (
+        isSupport(
+          x,
+          y + 1
+        ) &&
+        isEmpty(
+          x + 1,
+          y + 1
+        )
+      ) {
+
+        addMove(
+          x + 1,
+          y + 1,
+          "corner",
+          0,
+          1
+        );
+      }
+    }
+
+    if (
+      surfaceX === 1
+    ) {
+
+      /*
+       * Right wall -> ceiling.
+       */
+
+      if (
+        isSupport(
+          x,
+          y - 1
+        ) &&
+        isEmpty(
+          x - 1,
+          y - 1
+        )
+      ) {
+
+        addMove(
+          x - 1,
+          y - 1,
+          "corner",
+          0,
+          -1
+        );
+      }
+
+      /*
+       * Right wall -> floor.
+       */
+
+      if (
+        isSupport(
+          x,
+          y + 1
+        ) &&
+        isEmpty(
+          x - 1,
+          y + 1
+        )
+      ) {
+
+        addMove(
+          x - 1,
+          y + 1,
+          "corner",
+          0,
+          1
+        );
+      }
+    }
+
+    /*
+     * =========================
+     * CLIMB OVER BACTERIA
+     * =========================
+     */
+
+    if (
+      isBacteria(
+        x - 1,
+        y
+      )
+    ) {
+
+      addMove(
+        x,
+        y - 1,
+        "over",
+        0,
+        1
+      );
+    }
+
+    if (
+      isBacteria(
+        x + 1,
+        y
+      )
+    ) {
+
+      addMove(
+        x,
+        y - 1,
+        "over",
+        0,
+        1
+      );
+    }
+
+    /*
+     * =========================
+     * SCORE MOVES
+     * =========================
+     */
+
+    let bestMove =
+      null;
+
+    let highestScore =
+      -Infinity;
+
+    for (
+      const move of moves
+    ) {
+
+      const dx =
+        move.x - x;
+
+      const dy =
+        move.y - y;
+
+      let score = 0;
+
+      /*
+       * =========================
+       * FOOD MEMORY
+       * =========================
+       *
+       * This is intentionally weak.
+       * They don't instantly sprint at food.
+       */
+
+      score +=
+        (
+          dx *
+          cell.foodMemoryX +
+          dy *
+          cell.foodMemoryY
+        ) *
+        cell.foodMemory *
+        cell.genome.foodPref *
+        7;
+
+      /*
+       * =========================
+       * COLONY SIGNAL
+       * =========================
+       */
+
+      score +=
+        (
+          dx *
+          colonySignalX +
+          dy *
+          colonySignalY
+        ) *
+        cell.genome.social *
+        4;
+
+      /*
+       * =========================
+       * EXPLORATION
+       * =========================
+       */
+
+      score +=
+        Math.random() *
+        cell.genome.exploration *
+        8;
+
+      /*
+       * =========================
+       * DON'T REPEAT FOREVER
+       * =========================
+       */
+
+      if (
+        dx ===
+        cell.lastMoveX &&
+        dy ===
+        cell.lastMoveY
+      ) {
+
+        score -=
+          2;
+      }
+
+      /*
+       * Turning occasionally is useful.
+       */
+
+      if (
+        dx ===
+        -cell.lastMoveX &&
+        dy ===
+        -cell.lastMoveY
+      ) {
+
+        score +=
+          0.75;
+      }
+
+      /*
+       * =========================
+       * COLONY COHESION
+       * =========================
+       */
+
+      if (
+        nearbyBacteria.length >
+        0
+      ) {
+
+        const distanceBefore =
+          Math.abs(
+            x - colonyX
+          ) +
+          Math.abs(
+            y - colonyY
+          );
+
+        const distanceAfter =
+          Math.abs(
+            move.x -
+            colonyX
+          ) +
+          Math.abs(
+            move.y -
+            colonyY
+          );
+
+        if (
+          distanceAfter <
+          distanceBefore
+        ) {
+
+          score +=
+            cell.genome.social *
+            2;
+        }
+
+        if (
+          distanceAfter >
+          distanceBefore + 4
+        ) {
+
+          score -=
+            cell.genome.social *
+            2;
+        }
+      }
+
+      /*
+       * =========================
+       * CORNER MOVEMENT
+       * =========================
+       *
+       * Transitions are slightly
+       * preferred because they allow
+       * exploration of new surfaces.
+       */
+
+      if (
+        move.type ===
+        "corner"
+      ) {
+
+        score +=
+          1.5 *
+          cell.genome.exploration;
+      }
+
+      /*
+       * =========================
+       * BUILDING INCENTIVE
+       * =========================
+       *
+       * If the bacterium is near a
+       * colony edge, positions that
+       * extend the colony become useful.
+       */
+
+      if (
+        move.type ===
+        "crawl"
+      ) {
+
+        let supportCount = 0;
+
+        if (
+          isBacteria(
+            move.x - 1,
+            move.y
+          )
+        ) {
+          supportCount++;
+        }
+
+        if (
+          isBacteria(
+            move.x + 1,
+            move.y
+          )
+        ) {
+          supportCount++;
+        }
+
+        if (
+          isBacteria(
+            move.x,
+            move.y - 1
+          )
+        ) {
+          supportCount++;
+        }
+
+        if (
+          isBacteria(
+            move.x,
+            move.y + 1
+          )
+        ) {
+          supportCount++;
+        }
+
+        if (
+          supportCount > 0
+        ) {
+
+          score +=
+            cell.genome.building *
+            supportCount *
+            0.5;
+        }
+      }
+
+      /*
+       * =========================
+       * HEAT
+       * =========================
+       */
+
+      const target =
+        getCell(
+          move.x,
+          move.y
+        );
+
+      if (target) {
+
+        score -=
+          cell.genome.heatAvoid *
+          (
+            (target.temperature || 0) /
+            100
+          );
+      }
+
+      /*
+       * =========================
+       * RANDOM BIOLOGICAL NOISE
+       * =========================
+       */
+
+      score +=
+        (
+          Math.random() -
+          0.5
+        ) *
+        2;
+
+      if (
+        score >
+        highestScore
+      ) {
+
+        highestScore =
+          score;
+
+        bestMove =
+          move;
+      }
+    }
+
+    /*
+     * =========================
+     * MOVE
+     * =========================
+     */
+
+    if (
+      bestMove
+    ) {
+
+      cell.lastMoveX =
+        bestMove.x - x;
+
+      cell.lastMoveY =
+        bestMove.y - y;
+
+      cell.surfaceX =
+        bestMove.surfaceX;
+
+      cell.surfaceY =
+        bestMove.surfaceY;
+
+      cell.stuck = 0;
+
+      grid.swap(
+        x,
+        y,
+        bestMove.x,
+        bestMove.y
+      );
+
+      const moved =
+        grid.get(
+          bestMove.x,
+          bestMove.y
+        );
+
+      if (moved) {
+
+        moved.energy =
+          cell.energy;
+
+        moved.age =
+          cell.age;
+
+        moved.genome =
+          cell.genome;
+
+        moved.signal =
+          cell.signal;
+
+        moved.foodMemoryX =
+          cell.foodMemoryX;
+
+        moved.foodMemoryY =
+          cell.foodMemoryY;
+
+        moved.foodMemory =
+          cell.foodMemory;
+
+        moved.surfaceX =
+          cell.surfaceX;
+
+        moved.surfaceY =
+          cell.surfaceY;
+
+        moved.lastMoveX =
+          cell.lastMoveX;
+
+        moved.lastMoveY =
+          cell.lastMoveY;
+
+        moved.moveCooldown =
+          cell.moveCooldown;
+
+        moved.thinkCooldown =
+          cell.thinkCooldown;
+
+        moved.stuck =
+          cell.stuck;
+      }
+
+    } else {
+
+      cell.stuck++;
+    }
+
+    /*
+     * =========================
+     * REPRODUCTION / BUILDING
+     * =========================
+     *
+     * A well-fed bacterium can place
+     * offspring in strategically useful
+     * locations.
+     */
+
+    if (
+      cell.energy >= 90 &&
+      nearbyBacteria.length > 0 &&
+      Math.random() <
+      0.02 *
+      cell.genome.building
+    ) {
+
+      const buildSpots = [];
+
+      /*
+       * Horizontal extension.
+       */
+
+      if (
+        isEmpty(
+          x - 1,
+          y
+        ) &&
+        (
+          isBacteria(
+            x - 2,
+            y
+          ) ||
+          isSupport(
+            x - 1,
+            y + 1
+          )
+        )
+      ) {
+
+        buildSpots.push({
+          x: x - 1,
+          y: y,
+          score: 2
+        });
+      }
+
+      if (
+        isEmpty(
+          x + 1,
+          y
+        ) &&
+        (
+          isBacteria(
+            x + 2,
+            y
+          ) ||
+          isSupport(
+            x + 1,
+            y + 1
+          )
+        )
+      ) {
+
+        buildSpots.push({
+          x: x + 1,
+          y: y,
+          score: 2
+        });
+      }
+
+      /*
+       * Vertical extension.
+       */
+
+      if (
+        isEmpty(
+          x,
+          y - 1
+        ) &&
+        (
+          isBacteria(
+            x,
+            y + 1
+          ) ||
+          isSupport(
+            x,
+            y + 1
+          )
+        )
+      ) {
+
+        buildSpots.push({
+          x: x,
+          y: y - 1,
+          score: 2.5
+        });
+      }
+
+      /*
+       * Build toward remembered food.
+       */
+
+      for (
+        const spot
+        of buildSpots
+      ) {
+
+        const dx =
+          spot.x - x;
+
+        const dy =
+          spot.y - y;
+
+        spot.score +=
+          (
+            dx *
+            cell.foodMemoryX +
+            dy *
+            cell.foodMemoryY
+          ) *
+          cell.foodMemory *
+          4;
+      }
+
+      if (
+        buildSpots.length >
+        0
+      ) {
+
+        buildSpots.sort(
+          (
+            a,
+            b
+          ) =>
+            b.score -
+            a.score
+        );
+
+        const build =
+          buildSpots[0];
+
+        cell.energy /=
+          2;
+
+        grid.set(
+          build.x,
+          build.y,
+          ELEMENTS.bacteria
+        );
+
+        const child =
+          grid.get(
+            build.x,
+            build.y
+          );
+
+        if (child) {
+
+          child.energy =
+            cell.energy;
+
+          child.age =
+            0;
+
+          child.genome = {
+            foodPref:
+              Math.max(
+                0.1,
+                cell.genome.foodPref +
+                (
+                  Math.random() -
+                  0.5
+                ) *
+                0.1
+              ),
+
+            heatAvoid:
+              Math.max(
+                0,
+                cell.genome.heatAvoid +
+                (
+                  Math.random() -
+                  0.5
+                ) *
+                0.1
+              ),
+
+            randomness:
+              Math.max(
+                0.05,
+                cell.genome.randomness +
+                (
+                  Math.random() -
+                  0.5
+                ) *
+                0.08
+              ),
+
+            social:
+              Math.max(
+                0,
+                Math.min(
+                  1,
+                  cell.genome.social +
+                  (
+                    Math.random() -
+                    0.5
+                  ) *
+                  0.1
+                )
+              ),
+
+            building:
+              Math.max(
+                0,
+                Math.min(
+                  1,
+                  cell.genome.building +
+                  (
+                    Math.random() -
+                    0.5
+                  ) *
+                  0.1
+                )
+              ),
+
+            exploration:
+              Math.max(
+                0,
+                Math.min(
+                  1,
+                  cell.genome.exploration +
+                  (
+                    Math.random() -
+                    0.5
+                  ) *
+                  0.1
+                )
+              ),
+
+            patience:
+              Math.max(
+                0.1,
+                Math.min(
+                  1,
+                  cell.genome.patience +
+                  (
+                    Math.random() -
+                    0.5
+                  ) *
+                  0.1
+                )
+              ),
+
+            memory:
+              Math.max(
+                0.1,
+                Math.min(
+                  1,
+                  cell.genome.memory +
+                  (
+                    Math.random() -
+                    0.5
+                  ) *
+                  0.1
+                )
+              )
+          };
+
+          child.signal = {
+            x:
+              cell.signal.x,
+
+            y:
+              cell.signal.y,
+
+            strength:
+              cell.signal.strength *
+              0.5,
+
+            age: 0
+          };
+
+          child.foodMemoryX =
+            cell.foodMemoryX;
+
+          child.foodMemoryY =
+            cell.foodMemoryY;
+
+          child.foodMemory =
+            cell.foodMemory *
+            0.5;
+
+          child.surfaceX =
+            0;
+
+          child.surfaceY =
+            1;
+
+          child.lastMoveX =
+            0;
+
+          child.lastMoveY =
+            0;
+
+          child.moveCooldown =
+            2 +
+            Math.floor(
+              Math.random() * 4
+            );
+        }
+      }
+    }
+  }
+),
+hydrogen_peroxide: new Element(
+  "hydrogen_peroxide",
+  "#638d96",
+  "Liquids",
+  { noVariation: true, temperature: 18 },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell) return;
+
+    cell.age ??= 0;
+
+    const dirs = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [1, 1], [-1, 1], [1, -1], [-1, -1]
+    ];
+
+    let permanganateCount = 0;
+    const permanganateNeighbors = [];
+
+    // Check neighboring cells for catalyst
+    for (const [dx, dy] of dirs) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const neighbor = grid.get(nx, ny);
+
+      if (neighbor?.element === ELEMENTS.potassium_permanganate) {
+        permanganateCount++;
+        permanganateNeighbors.push([nx, ny]);
+      }
+    }
+
+    // Reaction Trigger: Hydrogen Peroxide + Potassium Permanganate
+    if (permanganateCount > 0) {
+      const reactionChance = Math.min(1, permanganateCount * 0.4);
+
+      if (Math.random() < reactionChance) {
+        // Exothermic reaction - heat up local cell
+        cell.temperature = (cell.temperature || 18) + 40;
+
+        // Convert H2O2 into rapidly expanding foam
+        grid.set(x, y, ELEMENTS.elephant_toothpaste);
+        const foam = grid.get(x, y);
+        if (foam) {
+          foam.expandAmount = 2 + permanganateCount * 2;
+          foam.temperature = cell.temperature;
+        }
+
+        // Partially consume catalyst & produce heat/gas
+        for (const [nx, ny] of permanganateNeighbors) {
+          if (Math.random() < 0.4) {
+            grid.set(nx, ny, Math.random() < 0.7 ? ELEMENTS.water : ELEMENTS.o2);
+          }
+        }
+        return;
+      }
+    }
+
+    // Thermal Decomposition (Decomposes into Water + Oxygen when hot)
+    if (cell.temperature >= 20) {
+      if (cell.temperature > 30 || Math.random() < 0.05) {
+        grid.set(x, y, Math.random() < 0.6 ? ELEMENTS.water : ELEMENTS.o2);
+        return;
+      }
+      cell.age++;
+    } else {
+      cell.age = 0;
+    }
+
+    liquidPhysics(grid, x, y);
+  }
+),
+
+potassium_permanganate: new Element(
+  "potassium_permanganate",
+  "#292130",
+  "Powders",
+  {},
+  (grid, x, y) => {
+    powderPhysics(grid, x, y);
+  }
+),
+
+elephant_toothpaste: new Element(
+  "elephant_toothpaste",
+  "#ededed",
+  "Liquids",
+  {hidden: true},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell) return;
+
+    cell.age = (cell.age || 0) + 1;
+
+    // Foam Expansion Logic
+    if (cell.expandAmount > 0) {
+      const dirs = [
+        [0, -1], [1, 0], [-1, 0], [0, 1] // Prioritize upward expansion
+      ];
+
+      let expanded = false;
+
+      const pushCell = (px, py, dx, dy) => {
+        const targetX = px + dx;
+        const targetY = py + dy;
+        const target = grid.get(targetX, targetY);
+
+        if (!target) return false;
+        if (target.element === ELEMENTS.empty) return true;
+
+        const isDisplacable =
+          target.element?.category === "Liquids" ||
+          target.element?.category === "Powders";
+
+        if (!isDisplacable) return false;
+
+        return pushCell(targetX, targetY, dx, dy);
+      };
+
+      for (const [dx, dy] of dirs) {
+        const cx = x + dx;
+        const cy = y + dy;
+        const target = grid.get(cx, cy);
+
+        if (!target) continue;
+
+        const isEmpty = target.element === ELEMENTS.empty;
+        const isDisplacable =
+          target.element?.category === "Liquids" ||
+          target.element?.category === "Powders";
+
+        if (!isEmpty && !isDisplacable) continue;
+
+        // Push existing particles to make room for expanding foam
+        if (!isEmpty) {
+          if (!pushCell(cx, cy, dx, dy)) continue;
+
+          const pushX = cx + dx;
+          const pushY = cy + dy;
+          const pushedCell = grid.get(cx, cy);
+
+          if (pushedCell) {
+            grid.set(pushX, pushY, pushedCell.element);
+            const moved = grid.get(pushX, pushY);
+            if (moved) Object.assign(moved, pushedCell);
+          }
+        }
+
+        // Spawn new foam particle
+        grid.set(cx, cy, ELEMENTS.elephant_toothpaste);
+        const newFoam = grid.get(cx, cy);
+        if (newFoam) {
+          newFoam.expandAmount = cell.expandAmount - 1;
+          newFoam.temperature = cell.temperature;
+        }
+
+        expanded = true;
+        break; // Expand one step per frame for smooth growth
+      }
+
+      if (expanded) {
+        cell.expandAmount--;
+      }
+    }
+
+    // Foam Decay: Gradually pops into water and oxygen gas over time
+    if (cell.age > 150 + Math.random() * 150) {
+      grid.set(x, y, Math.random() < 0.25 ? ELEMENTS.water : ELEMENTS.o2);
+      return;
+    }
+
+    liquidPhysics(grid, x, y, {
+      spreadChance: 0.5,
+      spreadDist: 2,
+      diagonalChance: 0.6,
+      sinkPowders: false,
+      sinkGases: true,
+      densitySwapChance: 0.02,
+      flowChance: 0.5,
+      airDriftChance: 0.05
+    });
+  },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (cell) {
+      cell.expandAmount = 6;
+      cell.age = 0;
+    }
+  }
+)
 
 
 
     };
+    let bobWarningShown = false;
+let bobWarningCancelled = false;
       function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
 }
@@ -38490,7 +42222,8 @@ set(x, y, element, overrides = {}) {
     for (const key in overrides) {
         cell[key] = overrides[key];
     }
-}diffuseLight() {
+}
+diffuseLight() {
 
   const { rows, cols } = this;
 
@@ -40492,6 +44225,8 @@ function tick() {
       if ((!paused && timeScale > 0) || stepOnce) {
 
         spiderPresent = false;
+        if(epilepsyMode) ELEMENTS.bob.category === "hidden";
+        if(epilepsyMode && selectedElement === ELEMENTS.bob) selectedElement = null;
         grid.update();
          for (let p of particles) {
     p.update(grid);
@@ -40931,5 +44666,228 @@ requestAnimationFrame(tick);
 
 
   </script>
+<script>
+(function () {
+
+  let smoothIntensity = 0;
+  let lastVertexUpdate = 0;
+  let lastSwapTime = 0;
+  let lastNameChange = 0;
+
+  function currentBobIntensity(now) {
+    const bobUI = window.__bobUI;
+
+    if (!bobUI || !bobUI.reports || bobUI.reports.size === 0) {
+      return 0;
+    }
+
+    let max = 0;
+
+    for (const [key, report] of bobUI.reports) {
+      if (now - report.time > 0.5) {
+        bobUI.reports.delete(key);
+        continue;
+      }
+
+      if (report.intensity > max) {
+        max = report.intensity;
+      }
+    }
+
+    return max;
+  }
+
+  function jitterButton(btn, amount) {
+    const shake = 4 * amount;
+    const dx = (Math.random() * 2 - 1) * shake;
+    const dy = (Math.random() * 2 - 1) * shake;
+    const skew = (Math.random() * 2 - 1) * 6 * amount;
+    const hue = Math.floor(Math.random() * amount * 80);
+
+    btn.style.setProperty("--bob-glitch-x", dx.toFixed(2) + "px");
+    btn.style.setProperty("--bob-glitch-y", dy.toFixed(2) + "px");
+    btn.style.setProperty("--bob-glitch-skew", skew.toFixed(2) + "deg");
+    btn.style.setProperty("--bob-glitch-hue", hue + "deg");
+
+    if (amount > 0.15) {
+      const maxJitter = 9 * amount;
+      const j = () => (Math.random() * 2 - 1) * maxJitter;
+
+      btn.style.clipPath =
+        "polygon(" +
+        (0 + j()) + "% " + (0 + j()) + "%, " +
+        (100 + j()) + "% " + (0 + j()) + "%, " +
+        (100 + j()) + "% " + (100 + j()) + "%, " +
+        (0 + j()) + "% " + (100 + j()) + "%)";
+    } else {
+      btn.style.clipPath = "";
+    }
+  }
+
+  function resetButton(btn) {
+    btn.style.removeProperty("--bob-glitch-x");
+    btn.style.removeProperty("--bob-glitch-y");
+    btn.style.removeProperty("--bob-glitch-skew");
+    btn.style.removeProperty("--bob-glitch-hue");
+    btn.style.clipPath = "";
+  }
+
+  function swapRandomButtons(container, selector) {
+    const btns = container.querySelectorAll(selector);
+
+    if (btns.length < 2) return;
+
+    const i = Math.floor(Math.random() * btns.length);
+    let j = Math.floor(Math.random() * btns.length);
+
+    if (j === i) {
+      j = (j + 1) % btns.length;
+    }
+
+    const a = btns[i];
+    const b = btns[j];
+    const aNext = a.nextSibling;
+
+    container.insertBefore(a, b);
+    container.insertBefore(b, aNext === b ? a : aNext);
+  }
+
+  function randomBobNameChange(elementsDiv, intensity) {
+    const btns = Array.from(
+      elementsDiv.querySelectorAll(".elem-btn")
+    );
+
+    if (btns.length === 0) return;
+
+    const btn = btns[
+      Math.floor(Math.random() * btns.length)
+    ];
+
+    if (!btn.dataset.bobOriginalName) {
+      btn.dataset.bobOriginalName = btn.textContent;
+    }
+
+    // Randomly corrupt the name.
+    const action = Math.random();
+
+    if (action < 0.75) {
+      btn.textContent = "bob";
+    } else if (action < 0.9) {
+      btn.textContent = "BOB";
+    } else if (action < 0.96) {
+      btn.textContent = "Bob";
+    } else {
+      btn.textContent = btn.dataset.bobOriginalName;
+    }
+
+    // Occasionally mess with the name even more.
+    if (Math.random() < intensity * 0.25) {
+      const names = [
+        "bob",
+        "BOB",
+        "Bob",
+        "bOb",
+        "boB",
+        "BOb",
+        "bOB",
+        "bob?",
+        "bob!",
+        "bob..."
+      ];
+
+      btn.textContent =
+        names[Math.floor(Math.random() * names.length)];
+    }
+  }
+
+  function tick(nowMs) {
+    const now = nowMs / 1000;
+    const target = currentBobIntensity(now);
+
+    smoothIntensity += (target - smoothIntensity) * 0.1;
+
+    if (smoothIntensity < 0.003) {
+      smoothIntensity = 0;
+    }
+
+    const elementsDiv = document.getElementById("elements");
+    const categoriesDiv = document.getElementById("categories");
+
+    if (smoothIntensity > 0) {
+      const vertexInterval =
+        0.55 - 0.45 * smoothIntensity;
+
+      if (now - lastVertexUpdate > vertexInterval) {
+        lastVertexUpdate = now;
+
+        if (elementsDiv) {
+          elementsDiv.querySelectorAll(".elem-btn").forEach((btn) => {
+            jitterButton(btn, smoothIntensity);
+          });
+        }
+
+        if (categoriesDiv) {
+          categoriesDiv.querySelectorAll(".cat-btn").forEach((btn) => {
+            jitterButton(
+              btn,
+              smoothIntensity * 0.6
+            );
+          });
+        }
+      }
+
+      // Randomly rename random element buttons.
+      const nameInterval = Math.max(
+        0.025,
+        0.3 - 0.27 * smoothIntensity
+      );
+
+      if (
+        elementsDiv &&
+        now - lastNameChange > nameInterval
+      ) {
+        lastNameChange = now;
+
+        randomBobNameChange(
+          elementsDiv,
+          smoothIntensity
+        );
+      }
+
+      const swapInterval =
+        1.4 - 1.1 * smoothIntensity;
+
+      if (
+        now - lastSwapTime >
+          Math.max(0.12, swapInterval) &&
+        Math.random() < smoothIntensity
+      ) {
+        lastSwapTime = now;
+
+        if (elementsDiv) {
+          swapRandomButtons(
+            elementsDiv,
+            ".elem-btn"
+          );
+        }
+
+        if (
+          Math.random() < 0.3 &&
+          categoriesDiv
+        ) {
+          swapRandomButtons(
+            categoriesDiv,
+            ".cat-btn"
+          );
+        }
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+})();
+</script>
 </body>
 </html>
