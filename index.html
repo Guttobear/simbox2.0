@@ -3,6 +3,10 @@
 <head>
   <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Guttobear/simbox2.0/main/Simbox%20Logo%20New%204.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-icons-font@v16/font/simple-icons.min.css">
+
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SimBox</title>
@@ -656,11 +660,17 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
   cursor: pointer;
 }
 
-.toolbar-button svg {
+.toolbar-button .settingstoolbar {
   transition: transform 0.2s ease;
 }
-
-.toolbar-button:hover svg {
+.toolbar-button .venmo-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  fill: currentColor;
+  
+}
+.toolbar-button:hover .settingstoolbar {
   transform: rotate(25deg) scale(1.1);
 }
 
@@ -1016,7 +1026,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
  
   <button class="toolbar-button" onclick="window.open('https://github.com/Guttobear/simbox2.0/wiki')">Wiki</button>
  
- <a href="https://mail.google.com/mail/?view=cm&fs=1&to=barrett.gamer.1@gmail.com&su=Feedback" target="_blank" class="toolbar-button">Feedback</a>
+ 
   <a href="https://discord.gg/vXd2Jvrb2G" target="_blank" class="toolbar-button">
     <i class="fa-brands fa-discord"></i>
 </a>
@@ -1029,6 +1039,9 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
 <a href="https://github.com/Guttobear/simbox2.0" target="_blank" class="toolbar-button">
     <i class="fa-brands fa-github"></i>
 </a>
+<a href="https://account.venmo.com/u/Barr-46" target="_blank" class="toolbar-button">
+  Donate
+</a>
  
  
 
@@ -1040,7 +1053,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
     </div>
   </details>
    <button style="position: absolute; right: 10px;" class="toolbar-button" onclick="openWindow('settings')" aria-label="Settings">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <svg class="settingstoolbar" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M19.14 12.94a7.97 7.97 0 0 0 .06-.94 7.97 7.97 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.28 7.28 0 0 0-1.63-.94L14.4 2.81a.5.5 0 0 0-.49-.41h-3.82a.5.5 0 0 0-.49.41L9.25 5.32c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.97 7.97 0 0 0-.06.94c0 .32.02.63.06.94L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.4 1.05.71 1.63.94l.35 2.51a.5.5 0 0 0 .49.41h3.82a.5.5 0 0 0 .49-.41l.35-2.51c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
     </svg>
 </button>
@@ -1218,6 +1231,12 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
       <line x1="3" y1="14" x2="4" y2="15"/>
     </svg>
 </button>
+<button class="art-tool-btn" title="Zoom" onclick="setArtTool('zoom', this)">
+ <svg xmlns="http://www.w3.org/2000/svg" width="18mm" height="18mm" viewBox="0 0 18 18">
+  <ellipse cx="12.35329" cy="6.0355272" rx="4.6333666" ry="4.741919" fill="none" stroke="#fff" stroke-width="1.347"/>
+  <rect x="-13.61107" y="-1.5510114" width="1.007822" height="8.5005531" transform="matrix(-0.58075233,-0.8140803,-0.75294854,0.6580794,0,0)" fill="none" stroke="#fff" stroke-width="1.22433"/>
+</svg>
+</button>
   <div class="tool-divider"></div>
 
   <label>Size<input id="brushSize" type="range" min="0" max="30" value="0"></label>
@@ -1235,6 +1254,7 @@ body.loaded #ui        { opacity: 1; transform: translateX(0); transition-delay:
     <option value="measure">Measure</option>
     <option value="transform">Transform</option>
     <option value="inspect">Inspect</option>
+    <option value="zoom">Zoom</option>
 
 
 
@@ -1330,10 +1350,17 @@ updateElementRows();
         y: (e.clientY - rect.top) * sy
       };
     }
-    function getCanvasCell(e) {
-      const { x, y } = getCanvasXY(e);
-      return { x: Math.floor(x / voxelsize), y: Math.floor(y / voxelsize) };
-    }
+   function getCanvasCell(e) {
+  const { x, y } = getCanvasXY(e);
+
+  const worldX = (x - camera.x) / camera.zoom;
+  const worldY = (y - camera.y) / camera.zoom;
+
+  return {
+    x: Math.floor(worldX / voxelsize),
+    y: Math.floor(worldY / voxelsize)
+  };
+}
     let epilepsyMode = false;
     // element/brush stuff
     let selectedElement = null;
@@ -1352,7 +1379,11 @@ const TOOL_CURSORS = {
  
   spray: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="8" width="6" height="7" rx="1.5"/><line x1="9" y1="10" x2="13" y2="8"/><line x1="13" y1="8" x2="13" y2="5"/><circle cx="11" cy="4.5" r="0.8" fill="white" stroke="none"/><circle cx="14.5" cy="12" r="0.8" fill="white" stroke="none"/><circle cx="15.5" cy="9" r="0.8" fill="white" stroke="none"/><circle cx="16" cy="6" r="0.8" fill="white" stroke="none"/></svg>`,
   measure:`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 18 18" fill="none" stroke="white" stroke-width="1"><g transform="translate(9,9) rotate(-45) translate(-9,-9)"><rect x="1" y="6" width="16" height="6" rx="0.5"/><line x1="5" y1="6" x2="5" y2="8.5"/><line x1="9" y1="6" x2="9" y2="9"/><line x1="13" y1="6" x2="13" y2="8.5"/><line x1="17" y1="6" x2="17" y2="8.5"/></g></svg>`,
-  inspect: `<svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14L5 13L13.5 4.5a1.2 1.2 0 00-1.7-1.7L3.5 11.5z"/><line x1="3" y1="14" x2="4" y2="15"/></svg>`
+  inspect: `<svg viewBox="0 0 18 18" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14L5 13L13.5 4.5a1.2 1.2 0 00-1.7-1.7L3.5 11.5z"/><line x1="3" y1="14" x2="4" y2="15"/></svg>`,
+  zoom: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+  <ellipse cx="12.35329" cy="6.0355272" rx="4.6333666" ry="4.741919" fill="none" stroke="#fff" stroke-width="1.347"/>
+  <rect x="-13.61107" y="-1.5510114" width="1.007822" height="8.5005531" transform="matrix(-0.58075233,-0.8140803,-0.75294854,0.6580794,0,0)" fill="none" stroke="#fff" stroke-width="1.22433"/>
+</svg>`
 };
 function svgToCursor(svgStr, size = 32) {
   const encoded = 'data:image/svg+xml;base64,' + btoa(svgStr);
@@ -1421,6 +1452,177 @@ function setArtTool(method, btn) {
   replaceTarget: "stone",
 
 };
+const camera = {
+  x: 0,
+  y: 0,
+  zoom: 1
+};
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
+let pinchWorldX = 0;
+let pinchWorldY = 0;
+
+function getTouchDistance(e) {
+  const a = e.touches[0];
+  const b = e.touches[1];
+
+  return Math.hypot(
+    b.clientX - a.clientX,
+    b.clientY - a.clientY
+  );
+}
+
+function getTouchCenter(e) {
+  const a = e.touches[0];
+  const b = e.touches[1];
+
+  return {
+    x: (a.clientX + b.clientX) / 2,
+    y: (a.clientY + b.clientY) / 2
+  };
+}
+
+function clampCamera() {
+  const worldWidth = grid.cols * grid.voxelsize * camera.zoom;
+  const worldHeight = grid.rows * grid.voxelsize * camera.zoom;
+
+  if (worldWidth <= canvas.width) {
+    camera.x = 0;
+  } else {
+    const minCameraX = canvas.width - worldWidth;
+
+    camera.x = Math.max(
+      minCameraX,
+      Math.min(0, camera.x)
+    );
+  }
+
+  if (worldHeight <= canvas.height) {
+    camera.y = 0;
+  } else {
+    const minCameraY = canvas.height - worldHeight;
+
+    camera.y = Math.max(
+      minCameraY,
+      Math.min(0, camera.y)
+    );
+  }
+
+  if (camera.zoom === 1) {
+    camera.x = 0;
+    camera.y = 0;
+  }
+}
+
+
+// =========================================================
+// PC MOUSE WHEEL ZOOM
+// =========================================================
+
+canvas.addEventListener("wheel", e => {
+  if (Brush.method !== "zoom") return;
+
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  const oldZoom = camera.zoom;
+
+  const zoomSpeed = 0.1;
+
+  let newZoom = oldZoom;
+
+  if (e.deltaY < 0) {
+    newZoom += zoomSpeed;
+  } else {
+    newZoom -= zoomSpeed;
+  }
+
+  newZoom = Math.max(1, Math.min(10, newZoom));
+
+  if (newZoom === oldZoom) return;
+
+  // Get the world position underneath the mouse
+  const worldX = (mouseX - camera.x) / oldZoom;
+  const worldY = (mouseY - camera.y) / oldZoom;
+
+  camera.zoom = newZoom;
+
+  // Keep that exact world position underneath the mouse
+  camera.x = mouseX - worldX * newZoom;
+  camera.y = mouseY - worldY * newZoom;
+
+  clampCamera();
+}, { passive: false });
+
+
+// =========================================================
+// MOBILE PINCH ZOOM
+// =========================================================
+
+canvas.addEventListener("touchstart", e => {
+  if (Brush.method !== "zoom") return;
+  if (e.touches.length !== 2) return;
+
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+
+  const center = getTouchCenter(e);
+
+  const mouseX = center.x - rect.left;
+  const mouseY = center.y - rect.top;
+
+  pinchStartDistance = getTouchDistance(e);
+  pinchStartZoom = camera.zoom;
+
+  pinchWorldX = (mouseX - camera.x) / camera.zoom;
+  pinchWorldY = (mouseY - camera.y) / camera.zoom;
+}, { passive: false });
+
+
+canvas.addEventListener("touchmove", e => {
+  if (Brush.method !== "zoom") return;
+  if (e.touches.length !== 2) return;
+
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+
+  const center = getTouchCenter(e);
+
+  const mouseX = center.x - rect.left;
+  const mouseY = center.y - rect.top;
+
+  const distance = getTouchDistance(e);
+
+  if (!pinchStartDistance) return;
+
+  const scale = distance / pinchStartDistance;
+
+  const newZoom = Math.max(
+    1,
+    Math.min(10, pinchStartZoom * scale)
+  );
+
+  camera.zoom = newZoom;
+
+  // Keep the pinch center locked to the same world position
+  camera.x = mouseX - pinchWorldX * newZoom;
+  camera.y = mouseY - pinchWorldY * newZoom;
+
+  clampCamera();
+}, { passive: false });
+
+
+canvas.addEventListener("touchend", e => {
+  if (e.touches.length < 2) {
+    pinchStartDistance = 0;
+  }
+});
 let lastPaintCell = null;
 
 
@@ -1766,6 +1968,7 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
   const tag = el.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
 }
+let lastTool = null;
     window.addEventListener("keydown", (e) => {
       
       // block hotkeys when keybinds mode is active (terminal open, etc.)
@@ -1776,8 +1979,11 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
       }
       if(keybinds) return;
      if (isTypingInField()) return;
-    
       
+      if(e.key === "z"){
+        lastTool ??= Brush.method;
+        setArtTool("zoom");
+      }
       if (e.key === "e"){
         Brush.method = "erase";
       }
@@ -1833,7 +2039,12 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
           shiftClearTimer = null;
         }, 3000);
       }
-
+      if(e.key === "z"){
+        if(Brush.method === "zoom"){
+        setArtTool(lastTool);
+        lastTool = null;
+        }
+      }
       if(e.key === "e"){
         if(Brush.method === "erase"){
           Brush.method = "Paint";
@@ -1855,67 +2066,119 @@ if (e.ctrlKey && e.key.toLowerCase() === "y") {
 
       openOptionMenu(cell, e.clientX, e.clientY, grid, x, y);
     });
+// --- MOUSE TRACKING ---
+let panAnchorX = 0;
+let panAnchorY = 0;
+let panStartCameraX = 0;
+let panStartCameraY = 0;
 
+canvas.addEventListener("pointermove", (e) => {
 
-    // --- MOUSE TRACKING ---
-    canvas.addEventListener("pointermove", (e) => {
-      const _c = getCanvasCell(e);
-      mouse.x = _c.x;
-      mouse.y = _c.y;
-    
+  const _c = getCanvasCell(e);
+  mouse.x = _c.x;
+  mouse.y = _c.y;
 
-      // Place while dragging left button (but not for click-to-click tools)
-      const nodrag = ["line","rect","circle","fill"];
-      if (mouse.down && !nodrag.includes(Brush.method)) placeAtMouse(e);
-    });
-    canvas.addEventListener("pointerleave", () => {
-    lastPaintCell = null;
-});
-    
+  if (Brush.method === "zoom" && mouse.down) {
+    const rect = canvas.getBoundingClientRect();
 
-    canvas.addEventListener("pointerdown", (e) => {
-      if (Brush.method === "measure" || Brush.method === "select" || Brush.method === "transform") return;
-      if (e.button === 0) { // left click
-      mouse.down = true;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-beginUndo();
+    const dx = mouseX - panAnchorX;
+    const dy = mouseY - panAnchorY;
 
-placeAtMouse(e);
-        
-      }
-    });
-    
-window.addEventListener("pointerup", (e) => {
-    if (e.button === 0) {
-        // finalize select drag
-        if (Brush.method === "select" && selectStart) {
-            const { x, y } = getCanvasCell(e);
+    camera.x = panStartCameraX + dx;
+    camera.y = panStartCameraY + dy;
 
-            const minX = Math.min(selectStart.x, x);
-            const maxX = Math.max(selectStart.x, x);
-            const minY = Math.min(selectStart.y, y);
-            const maxY = Math.max(selectStart.y, y);
+    const worldWidth = grid.cols * grid.voxelsize * camera.zoom;
+    const worldHeight = grid.rows * grid.voxelsize * camera.zoom;
 
-            selectedCells.clear();
-
-            for (let cy = minY; cy <= maxY; cy++) {
-                for (let cx = minX; cx <= maxX; cx++) {
-                    if (grid.isInside(cx, cy) && grid.get(cx, cy).element.name !== "empty") {
-                        selectedCells.add(cx + "," + cy);
-                    }
-                }
-            }
-        }
-
-        selectStart = null;
-        mouse.down = false;
-        lastPaintCell = null;
-
-        endUndo();
-        Brush.replaceTarget = null;
+    if (worldWidth <= canvas.width) {
+      camera.x = 0;
+    } else {
+      const minCameraX = canvas.width - worldWidth;
+      camera.x = Math.max(minCameraX, Math.min(0, camera.x));
     }
+
+    if (worldHeight <= canvas.height) {
+      camera.y = 0;
+    } else {
+      const minCameraY = canvas.height - worldHeight;
+      camera.y = Math.max(minCameraY, Math.min(0, camera.y));
+    }
+
+    return;
+  }
+
+  // Place while dragging left button (but not for click-to-click tools)
+  const nodrag = ["line","rect","circle","fill"];
+
+  if (mouse.down && !nodrag.includes(Brush.method)) placeAtMouse(e);
 });
-    
+
+canvas.addEventListener("pointerleave", () => {
+  lastPaintCell = null;
+});
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (Brush.method === "measure" || Brush.method === "select" || Brush.method === "transform") return;
+
+  if (e.button === 0) {
+    mouse.down = true;
+
+    if (Brush.method === "zoom") {
+      const rect = canvas.getBoundingClientRect();
+
+      panAnchorX = e.clientX - rect.left;
+      panAnchorY = e.clientY - rect.top;
+
+      panStartCameraX = camera.x;
+      panStartCameraY = camera.y;
+
+      return;
+    }
+
+    beginUndo();
+    placeAtMouse(e);
+  }
+});
+
+window.addEventListener("pointerup", (e) => {
+  if (e.button === 0) {
+
+    // finalize select drag
+    if (Brush.method === "select" && selectStart) {
+      const { x, y } = getCanvasCell(e);
+
+      const minX = Math.min(selectStart.x, x);
+      const maxX = Math.max(selectStart.x, x);
+      const minY = Math.min(selectStart.y, y);
+      const maxY = Math.max(selectStart.y, y);
+
+      selectedCells.clear();
+
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+          if (grid.isInside(cx, cy) && grid.get(cx, cy).element.name !== "empty") {
+            selectedCells.add(cx + "," + cy);
+          }
+        }
+      }
+    }
+
+    selectStart = null;
+    mouse.down = false;
+    lastPaintCell = null;
+
+    panAnchorX = 0;
+    panAnchorY = 0;
+    panStartCameraX = camera.x;
+    panStartCameraY = camera.y;
+
+    endUndo();
+    Brush.replaceTarget = null;
+  }
+});
     // select tool – drag to select
     canvas.addEventListener("pointerdown", (e) => {
   if (Brush.method !== "select") return;
@@ -2825,6 +3088,304 @@ function firePhysics(grid,x,y,opts = {}){
     }
   }
 }
+function velocityPhysics(grid, x, y, opts = {}) {
+  const cell = grid.get(x, y);
+
+  if (!cell) return;
+
+  cell.vx ??= 0;
+  cell.vy ??= 0;
+  cell.subX ??= x + 0.5;
+  cell.subY ??= y + 0.5;
+
+  const gravity = opts.gravity ?? 0;
+  const restitution = opts.restitution ?? 0.8;
+  const friction = opts.friction ?? 0.02;
+  const airDrag = opts.airDrag ?? 0;
+  const maxSpeed = opts.maxSpeed ?? 20;
+  const steps = Math.max(1, opts.steps ?? 8);
+
+  cell.vy += gravity;
+
+  cell.vx *= 1 - airDrag;
+  cell.vy *= 1 - airDrag;
+
+  const speed = Math.hypot(cell.vx, cell.vy);
+
+  if (speed > maxSpeed) {
+    const scale = maxSpeed / speed;
+
+    cell.vx *= scale;
+    cell.vy *= scale;
+  }
+
+  const canMove = (tx, ty) => {
+    const target = grid.get(tx, ty);
+
+    if (!grid.isInside(tx, ty)) {
+      return false;
+    }
+
+    if (opts.collisionChecks) {
+      return opts.collisionChecks(target, cell, tx, ty);
+    }
+
+    return target?.element === ELEMENTS.empty;
+  };
+
+  const moveAxis = (axis, amount) => {
+    if (amount === 0) return;
+
+    const direction = Math.sign(amount);
+    let remaining = Math.abs(amount);
+
+    while (remaining > 0) {
+      const currentX = Math.floor(cell.subX);
+      const currentY = Math.floor(cell.subY);
+
+      const testX = axis === "x"
+        ? currentX + direction
+        : currentX;
+
+      const testY = axis === "y"
+        ? currentY + direction
+        : currentY;
+
+      if (canMove(testX, testY)) {
+        const moveAmount = Math.min(remaining, 1);
+
+        if (axis === "x") {
+          cell.subX += moveAmount * direction;
+        } else {
+          cell.subY += moveAmount * direction;
+        }
+
+        const newX = Math.floor(cell.subX);
+        const newY = Math.floor(cell.subY);
+
+        if (newX !== currentX || newY !== currentY) {
+          grid.swap(currentX, currentY, newX, newY);
+        }
+
+        remaining -= moveAmount;
+        continue;
+      }
+
+      const target = grid.get(testX, testY);
+
+      const normalX = axis === "x" ? -direction : 0;
+      const normalY = axis === "y" ? -direction : 0;
+
+      const collision = {
+        normalX,
+        normalY,
+        hitX: axis === "x",
+        hitY: axis === "y"
+      };
+
+      const normalVelocity =
+        cell.vx * normalX +
+        cell.vy * normalY;
+
+      if (normalVelocity < 0) {
+        cell.vx -= normalVelocity * normalX * (1 + restitution);
+        cell.vy -= normalVelocity * normalY * (1 + restitution);
+      }
+
+      const tangentX =
+        cell.vx -
+        (cell.vx * normalX + cell.vy * normalY) * normalX;
+
+      const tangentY =
+        cell.vy -
+        (cell.vx * normalX + cell.vy * normalY) * normalY;
+
+      cell.vx -= tangentX * friction;
+      cell.vy -= tangentY * friction;
+
+      if (axis === "x") {
+        cell.subX = direction > 0
+          ? Math.floor(cell.subX) + 0.999
+          : Math.floor(cell.subX) + 0.001;
+
+        cell.vx = Math.abs(cell.vx) < 0.01 ? 0 : cell.vx;
+      }
+
+      if (axis === "y") {
+        cell.subY = direction > 0
+          ? Math.floor(cell.subY) + 0.999
+          : Math.floor(cell.subY) + 0.001;
+
+        cell.vy = Math.abs(cell.vy) < 0.01 ? 0 : cell.vy;
+      }
+
+      if (opts.ifCollision) {
+        opts.ifCollision(
+          cell,
+          target,
+          testX,
+          testY,
+          collision
+        );
+      }
+
+      break;
+    }
+  };
+
+  const dx = cell.vx / steps;
+  const dy = cell.vy / steps;
+
+  for (let i = 0; i < steps; i++) {
+    moveAxis("x", dx);
+    moveAxis("y", dy);
+  }
+}
+function copyCell(cell) {
+  return Object.assign(Object.create(Object.getPrototypeOf(cell)), cell);
+}
+
+function corpsePhysics(grid, x, y, cell) {
+  cell.dead ??= 1;
+  cell.corpseState ??= "standing";
+  cell.corpseDirection ??= Math.random() < 0.5 ? -1 : 1;
+
+  const dir = cell.corpseDirection;
+
+  if (cell.corpseState === "standing") {
+    const head = grid.get(x, y - 1);
+
+    if (
+      head?.element === ELEMENTS.humantop &&
+      head.humanId === cell.humanId
+    ) {
+      const sideX = x + dir;
+      const side = grid.get(sideX, y);
+
+      if (grid.isInside(sideX, y) && side?.element === ELEMENTS.empty) {
+        const bodyCopy = copyCell(cell);
+        const headCopy = copyCell(head);
+
+        bodyCopy.dead = 1;
+        headCopy.dead = 1;
+
+        bodyCopy.corpseState = "horizontal";
+        headCopy.corpseState = "horizontal";
+
+        bodyCopy.corpseDirection = dir;
+        headCopy.corpseDirection = dir;
+
+        grid.set(x, y, bodyCopy);
+        grid.set(x, y - 1, ELEMENTS.empty);
+
+        grid.set(sideX, y, headCopy);
+
+        return;
+      }
+    }
+
+    cell.corpseDirection *= -1;
+
+    return;
+  }
+
+  if (cell.corpseState === "horizontal") {
+    const headX = x + dir;
+    const head = grid.get(headX, y);
+
+    if (
+      !head ||
+      head.element !== ELEMENTS.humantop ||
+      head.humanId !== cell.humanId
+    ) {
+      return;
+    }
+
+    const belowBody = grid.get(x, y + 1);
+    const belowHead = grid.get(headX, y + 1);
+
+    const bodyCanFall =
+      grid.isInside(x, y + 1) &&
+      belowBody?.element === ELEMENTS.empty;
+
+    const headCanFall =
+      grid.isInside(headX, y + 1) &&
+      belowHead?.element === ELEMENTS.empty;
+
+    if (bodyCanFall && headCanFall) {
+      const bodyCopy = copyCell(cell);
+      const headCopy = copyCell(head);
+
+      bodyCopy.corpseState = "horizontal";
+      headCopy.corpseState = "horizontal";
+
+      bodyCopy.corpseDirection = dir;
+      headCopy.corpseDirection = dir;
+
+      grid.set(x, y + 1, bodyCopy);
+      grid.set(headX, y + 1, headCopy);
+
+      grid.set(x, y, ELEMENTS.empty);
+      grid.set(headX, y, ELEMENTS.empty);
+
+      return;
+    }
+
+    cell.corpseState = "settled";
+    head.corpseState = "settled";
+
+    cell.corpseTimer = 0;
+    head.corpseTimer = 0;
+
+    return;
+  }
+
+  if (cell.corpseState === "settled") {
+    cell.corpseTimer ??= 0;
+    cell.corpseTimer++;
+
+    if (cell.corpseTimer > 300 && Math.random() < 0.002) {
+      const blood = copyCell(cell);
+      blood.element = ELEMENTS.blood;
+
+      grid.set(x, y, blood);
+
+      const headX = x + dir;
+      const head = grid.get(headX, y);
+
+      if (
+        head?.element === ELEMENTS.humantop &&
+        head.humanId === cell.humanId
+      ) {
+        const headBlood = copyCell(head);
+        headBlood.element = ELEMENTS.blood;
+
+        grid.set(headX, y, headBlood);
+      }
+    }
+  }
+}
+
+function corpseHeadPhysics(grid, x, y, cell) {
+  cell.dead ??= 1;
+
+  if (cell.corpseState === "horizontal") {
+    return;
+  }
+
+  if (cell.corpseState === "settled") {
+    return;
+  }
+
+  const below = grid.get(x, y + 1);
+
+  if (
+    below?.element === ELEMENTS.human &&
+    below.humanId === cell.humanId
+  ) {
+    return;
+  }
+}
 function liquidPhysics(grid, x, y, opts = {}) {
   const {
     spreadChance = 0.72,
@@ -2840,51 +3401,63 @@ function liquidPhysics(grid, x, y, opts = {}) {
     airDriftStrength = 1,
     extraCanEnter = null,
 
-    // --- convection ---
     enableConvection = true,
-    // how strongly temperature affects "effective" density.
-    // higher = hot rises / cold sinks more aggressively
     thermalExpansion = 0.6,
-    // base chance to actually attempt a convective swap when eligible
     convectionChance = 0.5,
   } = opts;
 
   const cell = grid.get(x, y);
   if (!cell) return false;
 
-  const myDensity = Number.isFinite(cell.element.properties.density)
-    ? cell.element.properties.density
+  const myProperties = cell.element?.properties || {};
+
+  const myDensity = Number.isFinite(myProperties.density)
+    ? myProperties.density
     : 1;
 
-  const myTemp = Number.isFinite(cell.temperature) ? cell.temperature : 0;
+  const myTemp = Number.isFinite(cell.temperature)
+    ? cell.temperature
+    : 0;
+
+  function getProperties(target) {
+    return target?.element?.properties || {};
+  }
 
   function getDensity(target) {
-    const density = target?.element?.properties?.density;
+    const properties = getProperties(target);
+    const density = properties.density;
+
     return Number.isFinite(density) ? density : 1;
   }
 
   function getTemp(target) {
-    return Number.isFinite(target?.temperature) ? target.temperature : 0;
+    return Number.isFinite(target?.temperature)
+      ? target.temperature
+      : 0;
+  }
+
+  function isLiquidLike(target) {
+    return target?.element?.category === "Liquids" ||
+      getProperties(target).liquid === true;
   }
 
   function isSameElement(target) {
     return target?.element?.name === cell.element.name;
   }
 
-  // "effective" density = base density, nudged by temperature.
-  // hot -> lighter (subtract), cold -> heavier (add), relative to baseline 0.
-  // Only meaningful (and only used) when comparing two cells of the SAME
-  // element — convection is a same-substance phenomenon here, so callers
-  // must not use this to compare different elements.
   function getEffectiveDensity(target) {
     const base = getDensity(target);
+
     if (!enableConvection) return base;
+
     return base - thermalExpansion * getTemp(target);
   }
 
   const myEffectiveDensity = getEffectiveDensity(cell);
 
   function densityChance(target) {
+    if (!target?.element) return 0;
+
     const targetDensity = getDensity(target);
 
     if (target.element.name === "empty") return 1;
@@ -2893,49 +3466,62 @@ function liquidPhysics(grid, x, y, opts = {}) {
       return sinkGases ? 1 : 0;
     }
 
-    if (target.element.category === "Powders") {
+    if (target.element.category === "Powders" && !isLiquidLike(target)) {
       if (!sinkPowders || targetDensity >= myDensity) return 0;
-      return Math.min(1, 0.35 + (myDensity - targetDensity) / densityScale);
+
+      return Math.min(
+        1,
+        0.35 + (myDensity - targetDensity) / densityScale
+      );
     }
 
-    if (target.element.category !== "Liquids") return 0;
+    if (!isLiquidLike(target)) {
+      if (extraCanEnter && extraCanEnter(target)) return 1;
+
+      return 0;
+    }
 
     const sameElement = isSameElement(target);
 
     if (sameElement) {
-      // pure convection: identical liquid, only temperature differs.
       if (!enableConvection) return 0;
 
       const targetEffective = getEffectiveDensity(target);
       const diff = myEffectiveDensity - targetEffective;
+
       if (diff <= 0) return 0;
 
-      // scale swap odds by how big the thermal gap is, capped by convectionChance
-      const magnitude = Math.min(1, diff / (densityScale * 0.5));
+      const magnitude = Math.min(
+        1,
+        diff / (densityScale * 0.5)
+      );
+
       return convectionChance * magnitude;
     }
 
-    // different liquids: existing density-swap behavior, using RAW density
-    // only — temperature/convection never influences cross-element swaps.
     if (targetDensity >= myDensity) return 0;
 
     const difference = myDensity - targetDensity;
     const ratio = difference / Math.max(myDensity, 1);
 
-    return Math.min(0.85, densitySwapChance + ratio * 0.45);
+    return Math.min(
+      0.85,
+      densitySwapChance + ratio * 0.45
+    );
   }
 
   function canEnter(target, horizontal = false) {
     if (!target) return false;
 
     if (target.element.name === "empty") return true;
+
     if (target.element.name === "fire") return true;
 
     if (extraCanEnter && extraCanEnter(target)) return true;
 
     let chance = densityChance(target);
 
-    if (horizontal && target.element.category === "Liquids") {
+    if (horizontal && isLiquidLike(target)) {
       chance *= 0.45;
     }
 
@@ -2946,17 +3532,20 @@ function liquidPhysics(grid, x, y, opts = {}) {
     if (!grid.isInside(nx, ny)) return false;
 
     const target = grid.get(nx, ny);
+
     if (!target) return false;
 
     if (!canEnter(target, horizontal)) return false;
 
     grid.swap(x, y, nx, ny);
+
     return true;
   }
 
   function canDiagonal(dir) {
     const sideX = x + dir;
     const sideY = y;
+
     const diagonalX = x + dir;
     const diagonalY = y + 1;
 
@@ -2969,22 +3558,37 @@ function liquidPhysics(grid, x, y, opts = {}) {
     if (!side || !diagonal) return false;
 
     if (side.element.name !== "empty") {
-      if (side.element.category !== "Liquids") return false;
+      if (!isLiquidLike(side)) return false;
+
       const sideSame = isSameElement(side);
+
       if (sideSame) {
-        if (!enableConvection || getEffectiveDensity(side) >= myEffectiveDensity) return false;
+        if (
+          !enableConvection ||
+          getEffectiveDensity(side) >= myEffectiveDensity
+        ) {
+          return false;
+        }
       } else if (getDensity(side) >= myDensity) {
         return false;
       }
     }
 
     if (diagonal.element.name !== "empty") {
-      if (diagonal.element.category !== "Liquids") {
-        if (!extraCanEnter || !extraCanEnter(diagonal)) return false;
+      if (!isLiquidLike(diagonal)) {
+        if (!extraCanEnter || !extraCanEnter(diagonal)) {
+          return false;
+        }
       } else {
         const diagSame = isSameElement(diagonal);
+
         if (diagSame) {
-          if (!enableConvection || getEffectiveDensity(diagonal) >= myEffectiveDensity) return false;
+          if (
+            !enableConvection ||
+            getEffectiveDensity(diagonal) >= myEffectiveDensity
+          ) {
+            return false;
+          }
         } else if (getDensity(diagonal) >= myDensity) {
           return false;
         }
@@ -3003,6 +3607,7 @@ function liquidPhysics(grid, x, y, opts = {}) {
       if (!grid.isInside(nx, y)) break;
 
       const target = grid.get(nx, y);
+
       if (!target) break;
 
       if (target.element.name === "empty") {
@@ -3010,7 +3615,10 @@ function liquidPhysics(grid, x, y, opts = {}) {
         continue;
       }
 
-      if (target.element.category === "Liquids" && getDensity(target) < myDensity) {
+      if (
+        isLiquidLike(target) &&
+        getDensity(target) < myDensity
+      ) {
         distance++;
         continue;
       }
@@ -3022,32 +3630,52 @@ function liquidPhysics(grid, x, y, opts = {}) {
   }
 
   function getFlowChance(distance, openDistance) {
-    const distanceFactor = 1 - Math.max(0, distance - 1) / Math.max(openDistance, 1);
-    const randomness = 1 - flowRandomness + Math.random() * flowRandomness;
+    const distanceFactor =
+      1 - Math.max(0, distance - 1) / Math.max(openDistance, 1);
 
-    return flowChance * Math.max(0.15, distanceFactor) * randomness;
+    const randomness =
+      1 - flowRandomness +
+      Math.random() * flowRandomness;
+
+    return flowChance *
+      Math.max(0.15, distanceFactor) *
+      randomness;
   }
 
   const firstDir = Math.random() < 0.5 ? -1 : 1;
   const secondDir = -firstDir;
 
-  // Air drift while falling (like powders)
-  const below = grid.isInside(x, y + 1) ? grid.get(x, y + 1) : null;
+  const below = grid.isInside(x, y + 1)
+    ? grid.get(x, y + 1)
+    : null;
 
   if (
     below &&
-    (below.element.name === "empty" ||
+    (
+      below.element.name === "empty" ||
       below.element.category === "Gas" ||
       (sinkPowders && below.element.category === "Powders") ||
-      (below.element.category === "Liquids" && getDensity(below) < myDensity))
+      (
+        isLiquidLike(below) &&
+        getDensity(below) < myDensity
+      )
+    )
   ) {
     if (Math.random() < airDriftChance) {
-      const driftCount = Math.max(1, Math.floor(airDriftStrength));
+      const driftCount = Math.max(
+        1,
+        Math.floor(airDriftStrength)
+      );
 
       for (let i = 0; i < driftCount; i++) {
-        const dir = Math.random() < 0.5 ? firstDir : secondDir;
+        const dir =
+          Math.random() < 0.5
+            ? firstDir
+            : secondDir;
 
-        if (tryMove(x + dir, y, true)) return true;
+        if (tryMove(x + dir, y, true)) {
+          return true;
+        }
       }
     }
   }
@@ -3057,6 +3685,7 @@ function liquidPhysics(grid, x, y, opts = {}) {
   if (Math.random() < diagonalChance) {
     const leftOpen = getOpenDistance(-1);
     const rightOpen = getOpenDistance(1);
+
     const openTotal = leftOpen + rightOpen;
 
     let diagFirst = firstDir;
@@ -3074,11 +3703,15 @@ function liquidPhysics(grid, x, y, opts = {}) {
     const diagSecond = -diagFirst;
 
     if (canDiagonal(diagFirst)) {
-      if (tryMove(x + diagFirst, y + 1)) return true;
+      if (tryMove(x + diagFirst, y + 1)) {
+        return true;
+      }
     }
 
     if (canDiagonal(diagSecond)) {
-      if (tryMove(x + diagSecond, y + 1)) return true;
+      if (tryMove(x + diagSecond, y + 1)) {
+        return true;
+      }
     }
   }
 
@@ -3089,22 +3722,46 @@ function liquidPhysics(grid, x, y, opts = {}) {
     let spreadFirst = firstDir;
 
     if (leftOpen > rightOpen) {
-      if (Math.random() < 0.65) spreadFirst = -1;
+      if (Math.random() < 0.65) {
+        spreadFirst = -1;
+      }
     } else if (rightOpen > leftOpen) {
-      if (Math.random() < 0.65) spreadFirst = 1;
+      if (Math.random() < 0.65) {
+        spreadFirst = 1;
+      }
     }
 
     const spreadSecond = -spreadFirst;
 
     for (const dir of [spreadFirst, spreadSecond]) {
-      const openDistance = dir === -1 ? leftOpen : rightOpen;
+      const openDistance =
+        dir === -1
+          ? leftOpen
+          : rightOpen;
 
       if (openDistance <= 0) continue;
 
-      for (let distance = 1; distance <= Math.min(spreadDist, openDistance); distance++) {
-        if (Math.random() > getFlowChance(distance, openDistance)) continue;
+      for (
+        let distance = 1;
+        distance <= Math.min(spreadDist, openDistance);
+        distance++
+      ) {
+        if (
+          Math.random() >
+          getFlowChance(distance, openDistance)
+        ) {
+          continue;
+        }
 
-        if (tryMove(x + dir * distance, y, true)) return true;
+        if (
+          tryMove(
+            x + dir * distance,
+            y,
+            true
+          )
+        ) {
+          return true;
+        }
 
         if (distance > 1) break;
       }
@@ -3577,8 +4234,8 @@ const RECIPES = [
   (grid, x, y) => {
     const cell = grid.get(x, y);
       // color
-    // normalize temperature 0–1200°C
-    const t = Math.min(Math.max(cell.temperature / 700, 0), 1);
+    // normalize temperature 20–1200°C
+    const t = Math.min(Math.max((cell.temperature - 20) / 700, 0), 1);
 
     // smoothly blend from gray -> red -> orange -> yellow-white
     let r, g, b;
@@ -4735,7 +5392,8 @@ if (cell.temperature > 1538) {
         element.category !== "Explosive" &&
         element !== ELEMENTS.thunderstorm &&
         element !== ELEMENTS.neutron_star &&
-        element !== ELEMENTS.blackhole
+        element !== ELEMENTS.blackhole &&
+        element !== ELEMENTS.bob
       ) {
         elements.push(element);
 
@@ -5806,480 +6464,1123 @@ humantop: new Element(
   "humantop",
   "#E1E8A9",
   "hidden",
-  {conductivity: 1, flammable: true},
+  {
+    conductivity: 1,
+    flammable: true
+  },
   (grid, x, y) => {
     const cell = grid.get(x, y);
- if(cell.chopped){
-    grid.set(x,y,ELEMENTS.empty);
-  }
-    if (cell.temperature > 43 && Math.random() < 0.1) {
-      grid.set(x, y + 1, ELEMENTS.fire);
+
+    if (!cell) return;
+
+    // ============================================================
+    // DEAD HEAD
+    // ============================================================
+
+    if (cell.dead === 1) {
+      corpseHeadPhysics(grid, x, y, cell);
+      return;
     }
-     if(cell.subGrid && cell.subGrid.some(row => row.includes(1))){
-    grid.set(x,y, ELEMENTS.blood);
-  }
-    if (!grid.isInside(x, y + 1)) return grid.set(x, y, ELEMENTS.empty);
+
+    // ============================================================
+    // NORMAL HEAD
+    // ============================================================
+
+    if (cell.chopped) {
+      grid.set(x, y, ELEMENTS.empty);
+      return;
+    }
+
+    if (cell.temperature > 43 && Math.random() < 0.1) {
+      grid.set(x, y, ELEMENTS.fire);
+      return;
+    }
+
+    if (cell.subGrid && cell.subGrid.some(row => row.includes(1))) {
+      grid.set(x, y, ELEMENTS.blood);
+      return;
+    }
+
+    if (!grid.isInside(x, y + 1)) {
+      grid.set(x, y, ELEMENTS.empty);
+      return;
+    }
 
     const below = grid.get(x, y + 1);
 
     if (below.element !== ELEMENTS.human) {
-      // Only bleed if this head wasn't cleared by the human itself
       if (!cell.selfCleared) {
-      
         grid.set(x, y, ELEMENTS.blood);
-       if(cell.get(x,y+1)?.ELEMENTS===ELEMENTS.empty) grid.set(x, y + 1, ELEMENTS.blood);
+
+        if (grid.get(x, y + 1)?.element === ELEMENTS.empty) {
+          grid.set(x, y + 1, ELEMENTS.blood);
+        }
       } else {
         grid.set(x, y, ELEMENTS.empty);
-        
       }
+
       return;
     }
 
     cell.ownedByHuman = true;
+    cell.humanId = below.humanId;
+  },
+  (grid, x, y) => {
+    if (grid.isInside(x, y - 1)) {
+      grid.set(x, y - 1, ELEMENTS.humantop);
+
+      const feet = grid.get(x, y);
+      const head = grid.get(x, y - 1);
+
+      if (feet.humanId) {
+        head.humanId = feet.humanId;
+      }
+    }
   }
 ),
-human: new Element("human", "#0042F7", "Life", {conductivity: 1, flammable: true}, (grid, x, y) => {
-  const cell = grid.get(x, y);
-  if(grid.touching(x, y, "chlorine")){
-    if(Math.random() < 0.01){
-      grid.set(x,y, ELEMENTS.blood);
+human: new Element(
+  "human",
+  "#0042F7",
+  "Life",
+  {
+    conductivity: 1,
+    flammable: true
+  },
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (!cell) return;
+
+    // ============================================================
+    // DEAD HUMAN
+    // ============================================================
+    cell.dead ??=0;
+    if (cell.dead >= 1) {
+      corpsePhysics(grid, x, y, cell);
+      return;
     }
-  }
-  if(cell.subGrid && cell.subGrid.some(row => row.includes(1))){
-    grid.set(x,y, ELEMENTS.blood);
-    return;
-  }
-  // ── Debug toggle ────────────────────────────────────────────────────────
-  const SHOW_PATH = false; // set to false to hide path visualization
 
-  function getRandomSkinColor() {
-    const hue = 25 + Math.random() * 20;
-    const saturation = 40 + Math.random() * 30;
-    const lightness = 30 + Math.random() * 30;
-    return hslToHex(hue, saturation, lightness);
-  }
+    // ============================================================
+    // NORMAL HUMAN
+    // ============================================================
 
-  function hslToHex(h, s, l) {
-    s /= 100;
-    l /= 100;
-    const c = (1 - Math.abs(2*l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = l - c/2;
-    let r = 0, g = 0, b = 0;
+    if (grid.touching(x, y, "chlorine")) {
+      if (Math.random() < 0.01) {
+      cell.dead = 1;
+        return;
+      }
+    }
 
-    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
-    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
-    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
-    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
-    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
-    else { r = c; g = 0; b = x; }
+    if (cell.subGrid && cell.subGrid.some(row => row.includes(1))) {
+      grid.set(x, y, ELEMENTS.blood);
+      return;
+    }
 
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
+    const SHOW_PATH = false;
 
-    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
-  }
+    cell.consumed ??= {
+      coffee: 0,
+      energy_drink: 0
+    };
 
-  function getRandomShirtColor() {
-    const hue = Math.random() * 360;
-    const saturation = 50 + Math.random() * 50;
-    const lightness = 30 + Math.random() * 40;
-    return hslToHex(hue, saturation, lightness);
-  }
+    if (!cell.behavior) {
+      cell.behavior = {
+        moveSpeed: 1,
+        directionChangeSpeed: 1,
+        fleeSpeed: 1,
+        jumpSpeed: 1,
+        targetChangeSpeed: 1,
+        reactionSpeed: 1,
+        pathfindingSpeed: 1,
+        acceleration: 1,
+        deceleration: 1,
+        gravitySpeed: 1,
+        turnChance: 1
+      };
+    }
 
-  cell.shirtcolor ??= getRandomShirtColor();
-  cell.color = cell.shirtcolor;
+    for (const consumable of Object.keys(cell.consumed)) {
+      const coords = grid.touching(x, y, consumable, true);
 
-  if (!cell.humanId) cell.humanId = Math.random().toString(36).slice(2);
-  if (grid.isInside(x, y - 1)) {
-    const head = grid.get(x, y - 1);
-    if (!head.color) head.color = getRandomSkinColor();
-    if (head.element === ELEMENTS.humantop) head.humanId = cell.humanId;
-  }
+      if (coords?.length && Math.random() < 0.05) {
+        const [cx, cy] = coords[Math.floor(Math.random() * coords.length)];
 
-  function clearHead() {
+        grid.set(cx, cy, ELEMENTS.empty);
+
+        cell.consumed[consumable] += 1;
+      }
+    }
+
+    if (cell.consumed.coffee > 0) {
+      cell.consumed.coffee -= 0.001;
+
+      cell.behavior.moveSpeed = 1.5;
+      cell.behavior.directionChangeSpeed = 3;
+      cell.behavior.jumpSpeed = 3;
+      cell.behavior.targetChangeSpeed = 3;
+      cell.behavior.reactionSpeed = 3;
+      cell.behavior.turnChance = 3;
+    } else if (cell.consumed.energy_drink > 0) {
+      cell.consumed.energy_drink -= 0.005;
+      cell.dead+=0.01 * cell.consumed.energy_drink;
+      cell.behavior.moveSpeed = 1.5;
+      cell.behavior.directionChangeSpeed = 3;
+      cell.behavior.jumpSpeed = 3;
+      cell.behavior.targetChangeSpeed = 3;
+      cell.behavior.reactionSpeed = 10;
+      cell.behavior.turnChance = 10;
+    }else {
+      cell.behavior = {
+        moveSpeed: 1,
+        directionChangeSpeed: 1,
+        fleeSpeed: 1,
+        jumpSpeed: 1,
+        targetChangeSpeed: 1,
+        reactionSpeed: 1,
+        pathfindingSpeed: 1,
+        acceleration: 1,
+        deceleration: 1,
+        gravitySpeed: 1,
+        turnChance: 1
+      };
+    }
+    
+    const behavior = cell.behavior;
+
+    behavior.moveSpeed = Math.max(0.01, behavior.moveSpeed ?? 1);
+    behavior.directionChangeSpeed = Math.max(0.01, behavior.directionChangeSpeed ?? 1);
+    behavior.fleeSpeed = Math.max(0.01, behavior.fleeSpeed ?? 1);
+    behavior.jumpSpeed = Math.max(0.01, behavior.jumpSpeed ?? 1);
+    behavior.targetChangeSpeed = Math.max(0.01, behavior.targetChangeSpeed ?? 1);
+    behavior.reactionSpeed = Math.max(0.01, behavior.reactionSpeed ?? 1);
+    behavior.pathfindingSpeed = Math.max(0.01, behavior.pathfindingSpeed ?? 1);
+    behavior.acceleration = Math.max(0.01, behavior.acceleration ?? 1);
+    behavior.deceleration = Math.max(0.01, behavior.deceleration ?? 1);
+    behavior.gravitySpeed = Math.max(0.01, behavior.gravitySpeed ?? 1);
+    behavior.turnChance = Math.max(0, behavior.turnChance ?? 1);
+
+    function hslToHex(h, s, l) {
+      s /= 100;
+      l /= 100;
+
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const xx = c * (1 - Math.abs((h / 60) % 2 - 1));
+      const m = l - c / 2;
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+
+      if (h >= 0 && h < 60) {
+        r = c;
+        g = xx;
+      } else if (h >= 60 && h < 120) {
+        r = xx;
+        g = c;
+      } else if (h >= 120 && h < 180) {
+        g = c;
+        b = xx;
+      } else if (h >= 180 && h < 240) {
+        g = xx;
+        b = c;
+      } else if (h >= 240 && h < 300) {
+        r = xx;
+        b = c;
+      } else {
+        r = c;
+        b = xx;
+      }
+
+      r = Math.round((r + m) * 255);
+      g = Math.round((g + m) * 255);
+      b = Math.round((b + m) * 255);
+
+      return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+    }
+
+    function getRandomSkinColor() {
+      const hue = 25 + Math.random() * 20;
+      const saturation = 40 + Math.random() * 30;
+      const lightness = 30 + Math.random() * 30;
+
+      return hslToHex(hue, saturation, lightness);
+    }
+
+    function getRandomShirtColor() {
+      const hue = Math.random() * 360;
+      const saturation = 50 + Math.random() * 50;
+      const lightness = 30 + Math.random() * 40;
+
+      return hslToHex(hue, saturation, lightness);
+    }
+
+    cell.shirtcolor ??= getRandomShirtColor();
+    cell.color = cell.shirtcolor;
+
+    if (!cell.humanId) {
+      cell.humanId = Math.random().toString(36).slice(2);
+    }
+    
+
     if (grid.isInside(x, y - 1)) {
       const head = grid.get(x, y - 1);
-      if (head.element === ELEMENTS.humantop) head.selfCleared = true;
+
+      if (!head.color) {
+        head.color = getRandomSkinColor();
+      }
+
+      if (head.element === ELEMENTS.humantop) {
+        head.humanId = cell.humanId;
+      }
     }
-  }
+    
+    function clearHead() {
+      if (!grid.isInside(x, y - 1)) return;
 
-  // === Death / transformation ===
-  if (cell.chopped) { clearHead(); grid.set(x, y, ELEMENTS.empty); return; }
-  if (cell.temperature > 43 && Math.random() < 0.1) { clearHead(); return grid.set(x, y, ELEMENTS.fire); }
-  if (cell.temperature < -10 && Math.random() < 0.2) {
-    clearHead();
-    grid.set(x, y, ELEMENTS.ice);
-    if (grid.isInside(x, y - 1)) grid.set(x, y - 1, ELEMENTS.ice);
-    return;
-  }
-  if (grid.get(x, y - 1).element !== ELEMENTS.humantop) {
-    grid.set(x, y, ELEMENTS.blood);
-  }
+      const head = grid.get(x, y - 1);
 
-  // === Init ===
-  if (!cell.settings) cell.settings = { jumpHeight: 2 };
-  if (!cell.state) cell.state = {
-    target: { x: null, y: null },
-    task: null,
-    emotion: "neutral",
-    inventory: [null, null, null, null, null, null, null, null, null],
-  };
- if (!cell.pfState) cell.pfState = {
-    path: null,
-    prevPath: null,
-    pathStep: 0,
-    retargetCooldown: 0,
-    jumpCooldown: 0,
-    moveTick: 0,
-    fleeing: false,
-  };
-  const pf = cell.pfState;
+      if (head.element === ELEMENTS.humantop) {
+        head.selfCleared = true;
+      }
+    }
 
-  // ── move ──────────────────────────────────────────────────────────────────
-  function move(tx, ty) {
-    if (!grid.isInside(tx, ty) || grid.get(tx, ty).element !== ELEMENTS.empty) return false;
-    if (!grid.isInside(tx, ty - 1)) return false;
-    const headDest = grid.get(tx, ty - 1);
-    const headOk = headDest.element === ELEMENTS.empty ||
-                   (headDest.element === ELEMENTS.human && headDest.humanId === cell.humanId);
-    if (!headOk) return false;
-    grid.swap(x, y,     tx, ty);
-    grid.swap(x, y - 1, tx, ty - 1);
-    return true;
-  }
+    if (cell.chopped) {
+      clearHead();
+      grid.set(x, y, ELEMENTS.empty);
+      return;
+    }
 
-  // ── helpers ───────────────────────────────────────────────────────────────
-  function isGround(tx, ty) {
-    if (!grid.isInside(tx, ty + 1)) return true;
-    const e = grid.get(tx, ty + 1).element;
-    return e !== ELEMENTS.empty && e !== ELEMENTS.human && e !== ELEMENTS.humantop;
-  }
+    if (cell.temperature > 43 && Math.random() < 0.1) {
+      clearHead();
+      grid.set(x, y, ELEMENTS.fire);
+      return;
+    }
 
-  function isClearFeet(tx, ty) {
-    if (!grid.isInside(tx, ty)) return false;
-    return grid.get(tx, ty).element === ELEMENTS.empty;
-  }
+    if (cell.temperature < -10 && Math.random() < 0.2) {
+      clearHead();
 
-  function isClearHead(tx, ty) {
-    if (!grid.isInside(tx, ty - 1)) return false;
-    const c = grid.get(tx, ty - 1);
-    return c.element === ELEMENTS.empty ||
-           (c.element === ELEMENTS.human && c.humanId === cell.humanId);
-  }
+      grid.set(x, y, ELEMENTS.ice);
 
-  function isDangerous(tx, ty) {
-    if (!grid.isInside(tx, ty)) return false;
-    const c = grid.get(tx, ty);
-    if (c.temperature > 38 || c.temperature < -5) return true;
-    if (c.element && c.element.properties && c.element.properties.harmful === true) return true;
-    return false;
-  }
+      if (grid.isInside(x, y - 1)) {
+        grid.set(x, y - 1, ELEMENTS.ice);
+      }
 
-  function findNearestDanger(radius) {
-    let best = null, bestDist = Infinity;
-    for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) {
-        if (dx === 0 && dy === 0) continue;
-        const tx = x + dx, ty = y + dy;
-        if (!grid.isInside(tx, ty)) continue;
-        if (isDangerous(tx, ty)) {
-          const dist = Math.abs(dx) + Math.abs(dy);
-          if (dist < bestDist) { bestDist = dist; best = { x: tx, y: ty, dist }; }
+      return;
+    }
+
+    if (
+      !grid.isInside(x, y - 1) ||
+      grid.get(x, y - 1).element !== ELEMENTS.humantop
+    ) {
+      grid.set(x, y, ELEMENTS.blood);
+      return;
+    }
+
+    if (!cell.settings) {
+      cell.settings = {
+        jumpHeight: 2
+      };
+    }
+
+    if (!cell.state) {
+      cell.state = {
+        target: {
+          x: null,
+          y: null
+        },
+        task: null,
+        emotion: "neutral",
+        inventory: [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      };
+    }
+
+    if (!cell.pfState) {
+      cell.pfState = {
+        path: null,
+        prevPath: null,
+        pathStep: 0,
+        retargetCooldown: 0,
+        jumpCooldown: 0,
+        moveTick: 0,
+        fleeing: false,
+        tick: 0
+      };
+    }
+
+    const pf = cell.pfState;
+
+    function move(tx, ty) {
+      if (!grid.isInside(tx, ty)) return false;
+
+      if (grid.get(tx, ty).element !== ELEMENTS.empty) {
+        return false;
+      }
+
+      if (!grid.isInside(tx, ty - 1)) {
+        return false;
+      }
+
+      const headDest = grid.get(tx, ty - 1);
+
+      const headOk =
+        headDest.element === ELEMENTS.empty ||
+        (
+          headDest.element === ELEMENTS.human &&
+          headDest.humanId === cell.humanId
+        );
+
+      if (!headOk) return false;
+
+      grid.swap(x, y, tx, ty);
+      grid.swap(x, y - 1, tx, ty - 1);
+
+      return true;
+    }
+
+    function isGround(tx, ty) {
+      if (!grid.isInside(tx, ty + 1)) {
+        return true;
+      }
+
+      const e = grid.get(tx, ty + 1).element;
+
+      return (
+        e !== ELEMENTS.empty &&
+        e !== ELEMENTS.human &&
+        e !== ELEMENTS.humantop
+      );
+    }
+
+    function isClearFeet(tx, ty) {
+      if (!grid.isInside(tx, ty)) {
+        return false;
+      }
+
+      return grid.get(tx, ty).element === ELEMENTS.empty;
+    }
+
+    function isClearHead(tx, ty) {
+      if (!grid.isInside(tx, ty - 1)) {
+        return false;
+      }
+
+      const c = grid.get(tx, ty - 1);
+
+      return (
+        c.element === ELEMENTS.empty ||
+        (
+          c.element === ELEMENTS.human &&
+          c.humanId === cell.humanId
+        )
+      );
+    }
+
+    function isDangerous(tx, ty) {
+      if (!grid.isInside(tx, ty)) {
+        return false;
+      }
+
+      const c = grid.get(tx, ty);
+
+      if (c.temperature > 38 || c.temperature < -5) {
+        return true;
+      }
+
+      if (
+        c.element &&
+        c.element.properties &&
+        c.element.properties.harmful === true
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    function findNearestDanger(radius) {
+      let best = null;
+      let bestDist = Infinity;
+
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (dx === 0 && dy === 0) continue;
+
+          const tx = x + dx;
+          const ty = y + dy;
+
+          if (!grid.isInside(tx, ty)) continue;
+
+          if (isDangerous(tx, ty)) {
+            const dist = Math.abs(dx) + Math.abs(dy);
+
+            if (dist < bestDist) {
+              bestDist = dist;
+
+              best = {
+                x: tx,
+                y: ty,
+                dist
+              };
+            }
+          }
         }
       }
+
+      return best;
     }
-    return best;
-  }
 
-  function pickFleeTarget(danger) {
-    const awayX = x - danger.x;
-    const awayY = y - danger.y;
-    const len = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
-    const nx = awayX / len;
-    const ny = awayY / len;
+    function pickFleeTarget(danger) {
+      const awayX = x - danger.x;
+      const awayY = y - danger.y;
 
-    const range = 25;
-    let best = null, bestScore = -Infinity;
+      const len =
+        Math.sqrt(awayX * awayX + awayY * awayY) || 1;
 
-    for (let dy = -range; dy <= range; dy++) {
-      for (let dx = -range; dx <= range; dx++) {
-        const tx = x + dx, ty = y + dy;
-        if (tx === x && ty === y) continue;
-        if (!isClearFeet(tx, ty) || !isClearHead(tx, ty)) continue;
-        if (!isGround(tx, ty)) continue;
-        if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) continue;
-        const ddx = tx - x, ddy = ty - y;
-        const score = ddx * nx + ddy * ny;
-        if (score > bestScore) { bestScore = score; best = { x: tx, y: ty }; }
-      }
-    }
-    return best;
-  }
+      const nx = awayX / len;
+      const ny = awayY / len;
 
-  // ── A* ────────────────────────────────────────────────────────────────────
-  function nodeKey(nx, ny) { return nx + "," + ny; }
-  function heuristic(ax, ay, bx, by) { return Math.abs(ax - bx) + Math.abs(ay - by); }
+      const range = 25;
 
-  function tileCost(tx, ty) {
-    if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) return 200;
-    return 1;
-  }
+      let best = null;
+      let bestScore = -Infinity;
 
-  function getNeighbors(cx, cy, jumpHeight, nodeGrounded) {
-    const result = [];
-    if (nodeGrounded) {
-      for (const dx of [-1, 1]) {
-        if (isClearFeet(cx + dx, cy) && isClearHead(cx + dx, cy))
-          result.push({ x: cx + dx, y: cy });
-        if (isClearFeet(cx + dx, cy + 1) && isClearHead(cx + dx, cy + 1))
-          result.push({ x: cx + dx, y: cy + 1 });
-      }
-      for (let rise = 1; rise <= jumpHeight; rise++) {
-        const jy = cy - rise;
-        if (!grid.isInside(cx, jy) || !isClearFeet(cx, jy) || !isClearHead(cx, jy)) break;
-        for (const dx of [-1, 0, 1]) {
-          const jx = cx + dx;
-          if (!grid.isInside(jx, jy)) continue;
-          if (isClearFeet(jx, jy) && isClearHead(jx, jy))
-            result.push({ x: jx, y: jy });
+      for (let dy = -range; dy <= range; dy++) {
+        for (let dx = -range; dx <= range; dx++) {
+          const tx = x + dx;
+          const ty = y + dy;
+
+          if (tx === x && ty === y) continue;
+          if (!isClearFeet(tx, ty)) continue;
+          if (!isClearHead(tx, ty)) continue;
+          if (!isGround(tx, ty)) continue;
+          if (isDangerous(tx, ty)) continue;
+          if (isDangerous(tx, ty - 1)) continue;
+
+          const ddx = tx - x;
+          const ddy = ty - y;
+
+          let score = ddx * nx + ddy * ny;
+
+          score *= behavior.fleeSpeed;
+
+          if (score > bestScore) {
+            bestScore = score;
+
+            best = {
+              x: tx,
+              y: ty
+            };
+          }
         }
       }
+
+      return best;
     }
-    if (isClearFeet(cx, cy + 1) && isClearHead(cx, cy + 1))
-      result.push({ x: cx, y: cy + 1 });
-    return result;
-  }
 
-  function reconstructPath(cameFrom, startKey, endKey) {
-    const path = [];
-    let cur = endKey;
-    while (cur && cur !== startKey) {
-      const [px, py] = cur.split(",").map(Number);
-      path.unshift({ x: px, y: py });
-      cur = cameFrom.get(cur);
+    function nodeKey(nx, ny) {
+      return nx + "," + ny;
     }
-    return path;
-  }
 
-  function findPath(sx, sy, gx, gy, jumpHeight, maxNodes = 500) {
-    const startKey = nodeKey(sx, sy);
-    const goalKey  = nodeKey(gx, gy);
-    const openMap  = new Map();
-    const gScore   = new Map();
-    const fScore   = new Map();
-    const cameFrom = new Map();
-    const closed   = new Set();
+    function heuristic(ax, ay, bx, by) {
+      return Math.abs(ax - bx) + Math.abs(ay - by);
+    }
 
-    gScore.set(startKey, 0);
-    fScore.set(startKey, heuristic(sx, sy, gx, gy));
-    openMap.set(startKey, { x: sx, y: sy });
-
-    let iters = 0;
-    while (openMap.size > 0 && iters++ < maxNodes) {
-      let curKey = null, curF = Infinity;
-      for (const [k] of openMap) {
-        const f = fScore.get(k) ?? Infinity;
-        if (f < curF) { curF = f; curKey = k; }
+    function tileCost(tx, ty) {
+      if (
+        isDangerous(tx, ty) ||
+        isDangerous(tx, ty - 1)
+      ) {
+        return 200;
       }
-      if (!curKey) break;
-      if (curKey === goalKey) return reconstructPath(cameFrom, startKey, goalKey);
 
-      const cur = openMap.get(curKey);
-      openMap.delete(curKey);
-      closed.add(curKey);
+      return 1;
+    }
 
-      const nodeGrounded = isGround(cur.x, cur.y);
-      for (const nb of getNeighbors(cur.x, cur.y, jumpHeight, nodeGrounded)) {
-        const nbKey = nodeKey(nb.x, nb.y);
-        if (closed.has(nbKey)) continue;
-        const tentG = (gScore.get(curKey) ?? Infinity) + tileCost(nb.x, nb.y);
-        if (tentG < (gScore.get(nbKey) ?? Infinity)) {
-          cameFrom.set(nbKey, curKey);
-          gScore.set(nbKey, tentG);
-          fScore.set(nbKey, tentG + heuristic(nb.x, nb.y, gx, gy));
-          openMap.set(nbKey, nb);
+    function getNeighbors(cx, cy, jumpHeight, nodeGrounded) {
+      const result = [];
+
+      if (nodeGrounded) {
+        for (const dx of [-1, 1]) {
+          if (
+            isClearFeet(cx + dx, cy) &&
+            isClearHead(cx + dx, cy)
+          ) {
+            result.push({
+              x: cx + dx,
+              y: cy
+            });
+          }
+
+          if (
+            isClearFeet(cx + dx, cy + 1) &&
+            isClearHead(cx + dx, cy + 1)
+          ) {
+            result.push({
+              x: cx + dx,
+              y: cy + 1
+            });
+          }
+        }
+
+        for (let rise = 1; rise <= jumpHeight; rise++) {
+          const jy = cy - rise;
+
+          if (!grid.isInside(cx, jy)) {
+            break;
+          }
+
+          if (!isClearFeet(cx, jy)) {
+            break;
+          }
+
+          if (!isClearHead(cx, jy)) {
+            break;
+          }
+
+          for (const dx of [-1, 0, 1]) {
+            const jx = cx + dx;
+
+            if (!grid.isInside(jx, jy)) {
+              continue;
+            }
+
+            if (
+              isClearFeet(jx, jy) &&
+              isClearHead(jx, jy)
+            ) {
+              result.push({
+                x: jx,
+                y: jy
+              });
+            }
+          }
         }
       }
-    }
-    return null;
-  }
 
-  // ── Target picking ────────────────────────────────────────────────────────
-  function pickNewTarget() {
-    const range = 20;
-    const candidates = [];
-    for (let dy = -range; dy <= range; dy++) {
-      for (let dx = -range; dx <= range; dx++) {
-        const tx = x + dx, ty = y + dy;
-        if (tx === x && ty === y) continue;
-        if (!isClearFeet(tx, ty) || !isClearHead(tx, ty)) continue;
-        if (!isGround(tx, ty)) continue;
-        if (isDangerous(tx, ty) || isDangerous(tx, ty - 1)) continue;
-        candidates.push({ x: tx, y: ty });
+      if (
+        isClearFeet(cx, cy + 1) &&
+        isClearHead(cx, cy + 1)
+      ) {
+        result.push({
+          x: cx,
+          y: cy + 1
+        });
       }
+
+      return result;
     }
-    if (!candidates.length) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }
 
-  // ── AI tick ───────────────────────────────────────────────────────────────
-  const jumpHeight = cell.settings.jumpHeight;
-  const grounded   = isGround(x, y);
+    function reconstructPath(cameFrom, startKey, endKey) {
+      const path = [];
 
-  if (pf.retargetCooldown > 0) pf.retargetCooldown--;
-  if (pf.jumpCooldown    > 0) pf.jumpCooldown--;
+      let cur = endKey;
 
-  const tgt = cell.state.target;
+      while (cur && cur !== startKey) {
+        const [px, py] = cur.split(",").map(Number);
 
-  // ── Danger check ──────────────────────────────────────────────────────────
-  const danger = findNearestDanger(5);
+        path.unshift({
+          x: px,
+          y: py
+        });
 
-  if (danger) {
-    if (!pf.fleeing || tgt.x === null) {
-      const fleeTgt = pickFleeTarget(danger);
-      if (fleeTgt) {
-        pf.path = findPath(x, y, fleeTgt.x, fleeTgt.y, jumpHeight);
-        pf.pathStep = 0;
-        if (pf.path) {
-          cell.state.target = fleeTgt;
-          tgt.x = fleeTgt.x; tgt.y = fleeTgt.y;
-          pf.fleeing = true;
-          pf.retargetCooldown = 30;
+        cur = cameFrom.get(cur);
+      }
+
+      return path;
+    }
+
+    function findPath(sx, sy, gx, gy, jumpHeight, maxNodes = 500) {
+      const startKey = nodeKey(sx, sy);
+      const goalKey = nodeKey(gx, gy);
+
+      const openMap = new Map();
+      const gScore = new Map();
+      const fScore = new Map();
+      const cameFrom = new Map();
+      const closed = new Set();
+
+      gScore.set(startKey, 0);
+
+      fScore.set(
+        startKey,
+        heuristic(sx, sy, gx, gy)
+      );
+
+      openMap.set(
+        startKey,
+        {
+          x: sx,
+          y: sy
+        }
+      );
+
+      let iters = 0;
+
+      while (
+        openMap.size > 0 &&
+        iters++ < maxNodes * behavior.pathfindingSpeed
+      ) {
+        let curKey = null;
+        let curF = Infinity;
+
+        for (const [k] of openMap) {
+          const f = fScore.get(k) ?? Infinity;
+
+          if (f < curF) {
+            curF = f;
+            curKey = k;
+          }
+        }
+
+        if (!curKey) {
+          break;
+        }
+
+        if (curKey === goalKey) {
+          return reconstructPath(
+            cameFrom,
+            startKey,
+            goalKey
+          );
+        }
+
+        const cur = openMap.get(curKey);
+
+        openMap.delete(curKey);
+        closed.add(curKey);
+
+        const nodeGrounded = isGround(
+          cur.x,
+          cur.y
+        );
+
+        for (
+          const nb of getNeighbors(
+            cur.x,
+            cur.y,
+            jumpHeight,
+            nodeGrounded
+          )
+        ) {
+          const nbKey = nodeKey(nb.x, nb.y);
+
+          if (closed.has(nbKey)) {
+            continue;
+          }
+
+          const tentG =
+            (gScore.get(curKey) ?? Infinity) +
+            tileCost(nb.x, nb.y);
+
+          if (
+            tentG <
+            (gScore.get(nbKey) ?? Infinity)
+          ) {
+            cameFrom.set(nbKey, curKey);
+
+            gScore.set(nbKey, tentG);
+
+            fScore.set(
+              nbKey,
+              tentG +
+              heuristic(
+                nb.x,
+                nb.y,
+                gx,
+                gy
+              )
+            );
+
+            openMap.set(nbKey, nb);
+          }
         }
       }
-    }
-  } else {
-    if (pf.fleeing) {
-      pf.fleeing = false;
-      cell.state.target = { x: null, y: null };
-      tgt.x = null; tgt.y = null;
-      pf.path = null; pf.pathStep = 0;
-      pf.retargetCooldown = 0;
-    }
-  }
 
-  // ── Normal wander ─────────────────────────────────────────────────────────
-  if (!pf.fleeing) {
-    if (tgt.x !== null && x === tgt.x && y === tgt.y) {
-      pf.path = null; pf.pathStep = 0;
-      cell.state.target = { x: null, y: null };
-      tgt.x = null; tgt.y = null;
-      pf.retargetCooldown = 20;
+      return null;
     }
 
-    if (tgt.x === null || pf.retargetCooldown === 0) {
-      pf.path = null; pf.pathStep = 0;
-      const newTgt = pickNewTarget();
-      if (newTgt) { cell.state.target = newTgt; tgt.x = newTgt.x; tgt.y = newTgt.y; }
-      pf.retargetCooldown = 60 + Math.floor(Math.random() * 60);
-    }
+    function pickNewTarget() {
+      const range = 20;
 
-    if (tgt.x !== null && (!pf.path || pf.pathStep >= pf.path.length)) {
-      pf.path = findPath(x, y, tgt.x, tgt.y, jumpHeight);
-      pf.pathStep = 0;
-      if (!pf.path) {
-        cell.state.target = { x: null, y: null };
-        tgt.x = null; tgt.y = null;
-        pf.retargetCooldown = 15;
+      const candidates = [];
+
+      for (let dy = -range; dy <= range; dy++) {
+        for (let dx = -range; dx <= range; dx++) {
+          const tx = x + dx;
+          const ty = y + dy;
+
+          if (tx === x && ty === y) {
+            continue;
+          }
+
+          if (!isClearFeet(tx, ty)) {
+            continue;
+          }
+
+          if (!isClearHead(tx, ty)) {
+            continue;
+          }
+
+          if (!isGround(tx, ty)) {
+            continue;
+          }
+
+          if (isDangerous(tx, ty)) {
+            continue;
+          }
+
+          if (isDangerous(tx, ty - 1)) {
+            continue;
+          }
+
+          candidates.push({
+            x: tx,
+            y: ty
+          });
+        }
       }
-    }
-  }
 
-  // ── Execute next path step ────────────────────────────────────────────────
-  pf.moveTick++;
-  if (pf.moveTick % 2 === 0 && pf.path && pf.pathStep < pf.path.length) {
-    const next = pf.path[pf.pathStep];
-    const nx = next.x, ny = next.y;
-
-    if (isDangerous(nx, ny) || isDangerous(nx, ny - 1)) {
-      pf.path = null;
-      cell.state.target = { x: null, y: null };
-      tgt.x = null; tgt.y = null;
-      pf.fleeing = false;
-      pf.retargetCooldown = 0;
-    } else if (ny < y) {
-      if (grounded && pf.jumpCooldown === 0) {
-        if (move(nx, ny)) { pf.pathStep++; pf.jumpCooldown = 4; }
+      if (!candidates.length) {
+        return null;
       }
-    } else if (nx !== x) {
-      if (grounded) {
-        if (move(nx, ny)) { pf.pathStep++; }
-        else { pf.path = null; pf.pathStep = 0; }
+
+      return candidates[
+        Math.floor(
+          Math.random() * candidates.length
+        )
+      ];
+    }
+
+    const jumpHeight = cell.settings.jumpHeight;
+    const grounded = isGround(x, y);
+
+    if (pf.retargetCooldown > 0) {
+      pf.retargetCooldown -= behavior.directionChangeSpeed;
+    }
+
+    if (pf.jumpCooldown > 0) {
+      pf.jumpCooldown -= behavior.jumpSpeed;
+    }
+
+    const tgt = cell.state.target;
+
+    let danger = null;
+
+    if (
+      Math.random() <
+      Math.min(1, 0.2 * behavior.reactionSpeed)
+    ) {
+      danger = findNearestDanger(5);
+    }
+
+    if (danger) {
+      if (!pf.fleeing || tgt.x === null) {
+        const fleeTgt = pickFleeTarget(danger);
+
+        if (fleeTgt) {
+          pf.path = findPath(
+            x,
+            y,
+            fleeTgt.x,
+            fleeTgt.y,
+            jumpHeight
+          );
+
+          pf.pathStep = 0;
+
+          if (pf.path) {
+            cell.state.target = fleeTgt;
+
+            tgt.x = fleeTgt.x;
+            tgt.y = fleeTgt.y;
+
+            pf.fleeing = true;
+
+            pf.retargetCooldown =
+              Math.max(
+                1,
+                30 / behavior.fleeSpeed
+              );
+          }
+        }
       }
     } else {
-      if (move(nx, ny)) { pf.pathStep++; }
-      else { pf.path = null; pf.pathStep = 0; }
+      if (pf.fleeing) {
+        pf.fleeing = false;
+
+        cell.state.target = {
+          x: null,
+          y: null
+        };
+
+        tgt.x = null;
+        tgt.y = null;
+
+        pf.path = null;
+        pf.pathStep = 0;
+
+        pf.retargetCooldown = 0;
+      }
     }
-  }
 
-  // ── Path visualization ────────────────────────────────────────────────────
- // ── Path visualization ────────────────────────────────────────────────────
-  const PATH_FADE_TICKS = 2; // how many ticks before a stamped cell clears
-  if (!cell.pfState.tick) cell.pfState.tick = 0;
-  cell.pfState.tick++;
-  const nowTick = cell.pfState.tick;
+    if (!pf.fleeing) {
+      if (
+        tgt.x !== null &&
+        x === tgt.x &&
+        y === tgt.y
+      ) {
+        pf.path = null;
+        pf.pathStep = 0;
 
-  if (SHOW_PATH) {
-    // Stamp remaining path cells with current tick
-    if (pf.path) {
-      for (let i = pf.pathStep; i < pf.path.length; i++) {
-        const step = pf.path[i];
-        if (!grid.isInside(step.x, step.y)) continue;
-        const pathCell = grid.get(step.x, step.y);
-        if (pathCell.element === ELEMENTS.empty) {
-          const t = pf.path.length <= 1 ? 0 : (i - pf.pathStep) / (pf.path.length - 1 - pf.pathStep);
-          const r = Math.round(t * 255).toString(16).padStart(2, '0');
-          const g = Math.round((1 - t) * 255).toString(16).padStart(2, '0');
-          pathCell.color = `#${r}${g}00`;
-          pathCell.pathTick = nowTick; // stamp with current tick
+        cell.state.target = {
+          x: null,
+          y: null
+        };
+
+        tgt.x = null;
+        tgt.y = null;
+
+        pf.retargetCooldown =
+          20 / behavior.directionChangeSpeed;
+      }
+
+      if (
+        tgt.x === null ||
+        pf.retargetCooldown <= 0
+      ) {
+        pf.path = null;
+        pf.pathStep = 0;
+
+        const newTgt = pickNewTarget();
+
+        if (newTgt) {
+          cell.state.target = newTgt;
+
+          tgt.x = newTgt.x;
+          tgt.y = newTgt.y;
+        }
+
+        pf.retargetCooldown =
+          (
+            60 +
+            Math.floor(Math.random() * 60)
+          ) /
+          behavior.targetChangeSpeed;
+      }
+
+      if (
+        tgt.x !== null &&
+        (
+          !pf.path ||
+          pf.pathStep >= pf.path.length
+        )
+      ) {
+        pf.path = findPath(
+          x,
+          y,
+          tgt.x,
+          tgt.y,
+          jumpHeight
+        );
+
+        pf.pathStep = 0;
+
+        if (!pf.path) {
+          cell.state.target = {
+            x: null,
+            y: null
+          };
+
+          tgt.x = null;
+          tgt.y = null;
+
+          pf.retargetCooldown =
+            15 /
+            behavior.directionChangeSpeed;
         }
       }
     }
 
-    // Scan nearby area and clear any stale path cells
-    const scanRadius = 80;
-    for (let dy = -scanRadius; dy <= scanRadius; dy++) {
-      for (let dx = -scanRadius; dx <= scanRadius; dx++) {
-        const tx = x + dx, ty = y + dy;
-        if (!grid.isInside(tx, ty)) continue;
-        const c = grid.get(tx, ty);
-        if (c.element === ELEMENTS.empty && c.pathTick !== undefined) {
-          if (nowTick - c.pathTick >= PATH_FADE_TICKS) {
-            c.color = null;
-            c.pathTick = undefined;
+    pf.moveTick += behavior.moveSpeed;
+
+    const moveInterval =
+      Math.max(
+        0.1,
+        2 / behavior.moveSpeed
+      );
+
+    if (
+      pf.moveTick >= moveInterval &&
+      pf.path &&
+      pf.pathStep < pf.path.length
+    ) {
+      pf.moveTick = 0;
+
+      const next = pf.path[pf.pathStep];
+
+      const nx = next.x;
+      const ny = next.y;
+
+      if (
+        isDangerous(nx, ny) ||
+        isDangerous(nx, ny - 1)
+      ) {
+        pf.path = null;
+
+        cell.state.target = {
+          x: null,
+          y: null
+        };
+
+        tgt.x = null;
+        tgt.y = null;
+
+        pf.fleeing = false;
+        pf.retargetCooldown = 0;
+      } else if (ny < y) {
+        if (
+          grounded &&
+          pf.jumpCooldown <= 0
+        ) {
+          if (move(nx, ny)) {
+            pf.pathStep++;
+
+            pf.jumpCooldown =
+              Math.max(
+                1,
+                4 / behavior.jumpSpeed
+              );
+          }
+        }
+      } else if (nx !== x) {
+        if (grounded) {
+          if (move(nx, ny)) {
+            pf.pathStep++;
+          } else {
+            pf.path = null;
+            pf.pathStep = 0;
+          }
+        }
+      } else {
+        if (move(nx, ny)) {
+          pf.pathStep++;
+        } else {
+          pf.path = null;
+          pf.pathStep = 0;
+        }
+      }
+    }
+
+    const PATH_FADE_TICKS = 2;
+
+    pf.tick++;
+
+    const nowTick = pf.tick;
+
+    if (SHOW_PATH) {
+      if (pf.path) {
+        for (
+          let i = pf.pathStep;
+          i < pf.path.length;
+          i++
+        ) {
+          const step = pf.path[i];
+
+          if (
+            !grid.isInside(
+              step.x,
+              step.y
+            )
+          ) {
+            continue;
+          }
+
+          const pathCell = grid.get(
+            step.x,
+            step.y
+          );
+
+          if (
+            pathCell.element ===
+            ELEMENTS.empty
+          ) {
+            const remaining =
+              pf.path.length -
+              1 -
+              pf.pathStep;
+
+            const t =
+              remaining <= 0
+                ? 0
+                : (
+                  i -
+                  pf.pathStep
+                ) / remaining;
+
+            const r = Math.round(
+              t * 255
+            )
+              .toString(16)
+              .padStart(2, "0");
+
+            const g = Math.round(
+              (1 - t) * 255
+            )
+              .toString(16)
+              .padStart(2, "0");
+
+            pathCell.color =
+              `#${r}${g}00`;
+
+            pathCell.pathTick =
+              nowTick;
           }
         }
       }
     }
-  } else {
-    // SHOW_PATH turned off — clear everything stamped
-    const scanRadius = 80;
-    for (let dy = -scanRadius; dy <= scanRadius; dy++) {
-      for (let dx = -scanRadius; dx <= scanRadius; dx++) {
-        const tx = x + dx, ty = y + dy;
-        if (!grid.isInside(tx, ty)) continue;
-        const c = grid.get(tx, ty);
-        if (c.element === ELEMENTS.empty && c.pathTick !== undefined) {
-          c.color = null;
-          c.pathTick = undefined;
-        }
+
+    if (!grounded) {
+      const gravityChance =
+        Math.min(
+          1,
+          behavior.gravitySpeed
+        );
+
+      if (
+        Math.random() <
+        gravityChance
+      ) {
+        move(x, y + 1);
+      }
+    }
+  },
+  (grid, x, y) => {
+    if (grid.isInside(x, y - 1)) {
+      grid.set(
+        x,
+        y - 1,
+        ELEMENTS.humantop
+      );
+
+      const feet = grid.get(x, y);
+      const head = grid.get(x, y - 1);
+
+      if (feet.humanId) {
+        head.humanId = feet.humanId;
       }
     }
   }
-  // Gravity
-  if (!grounded) move(x, y + 1);
-
-},
-(grid, x, y) => {
-  if (grid.isInside(x, y - 1)) {
-    grid.set(x, y - 1, ELEMENTS.humantop);
-    const feet = grid.get(x, y);
-    const head = grid.get(x, y - 1);
-    if (feet.humanId) head.humanId = feet.humanId;
-  }
-}),
+),
 
 blackhole: new Element(
   "blackhole",
@@ -22665,7 +23966,7 @@ clay: new Element(
     variants: {
       fired: {
         color: "#E8D67D",
-        hidden: true,
+        hidden: false,
         behavior: (grid,x,y) => {
           const cell = grid.get(x,y);
         }
@@ -39047,9 +40348,1057 @@ elephant_toothpaste: new Element(
       cell.age = 0;
     }
   }
+),
+bouncy_ball: new Element(
+  "bouncy_ball",
+  "#d61111",
+  "System",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    cell.color ??= rgbToHex(Math.random() * 255, Math.random() * 255, Math.random() * 255);
+    if (!cell) return;
+
+     cell.vx ??= UiManager.refs.velocityMenu.vx ?? 1;
+    cell.vy ??= UiManager.refs.velocityMenu.vy ?? 0;
+
+    velocityPhysics(grid, x, y, {
+      gravity: 0.1,
+      restitution: 0.85,
+      friction: 0.03,
+      airDrag: 0.001,
+      maxSpeed: 12,
+      steps: 8,
+
+      collisionChecks: target => {
+        return target?.element === ELEMENTS.empty;
+      },
+
+      ifCollision: (cell, target, collisionX, collisionY, collision) => {
+        if (collision.hitY) {
+          cell.vx *= 0.98;
+        }
+      }
+    });
+  }
+),
+energy_drink: new Element(
+  "energy_drink",
+  "#528f38",
+  "Food",
+  {noVaritation: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    cell.lightColor = "#528f38";
+    cell.lightLevel = 4;
+    liquidPhysics(grid,x,y);
+  }
+),
+worm: new Element(
+  "worm",
+  "#421a09",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+
+    if (!cell) return;
+    if (!cell.main) return;
+
+    cell.wormId ??= `${x}:${y}:${Math.random()}`;
+    cell.dir ??= Math.random() < 0.5 ? -1 : 1;
+    cell.wormState ??= null;
+
+    const wormId = cell.wormId;
+
+    if (!cell.wormState) {
+      const segments = [];
+      const count = 14;
+
+      for (let i = 0; i < count; i++) {
+        const px = x - i * 0.48 * cell.dir;
+
+        segments.push({
+          x: px,
+          y,
+          vx: 0,
+          vy: 0,
+          ox: px,
+          oy: y,
+          grounded: false,
+          grip: 0,
+          contraction: 0
+        });
+      }
+
+      cell.wormState = {
+        segments,
+        time: Math.random() * 100,
+        think: 0,
+        dir: cell.dir,
+        phase: Math.random() * Math.PI * 2,
+        climbing: false,
+        crawl: Math.random() * Math.PI * 2
+      };
+    }
+
+    const state = cell.wormState;
+    const segments = state.segments;
+    const head = segments[0];
+
+    state.time += 0.18;
+    state.crawl += 0.18;
+    state.think--;
+
+    function isEmpty(px, py) {
+      const c = grid.get(
+        Math.floor(px),
+        Math.floor(py)
+      );
+
+      if (!c) return false;
+
+      if (c.element === ELEMENTS.empty) return true;
+
+      if (
+        c.element === ELEMENTS.worm &&
+        c.wormId === wormId
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    function isSolid(px, py) {
+      return !isEmpty(px, py);
+    }
+
+    /*
+     * =========================================================
+     * HEAD / SURFACE DETECTION
+     * =========================================================
+     */
+
+    const belowFree = isEmpty(
+      head.x,
+      head.y + 0.55
+    );
+
+    const frontFree = isEmpty(
+      head.x + state.dir * 0.7,
+      head.y
+    );
+
+    const frontBelowSolid = isSolid(
+      head.x + state.dir * 0.7,
+      head.y + 0.65
+    );
+
+    const frontAboveFree = isEmpty(
+      head.x + state.dir * 0.7,
+      head.y - 0.7
+    );
+
+    const grounded =
+      !belowFree ||
+      frontBelowSolid;
+
+    /*
+     * =========================================================
+     * AI
+     * =========================================================
+     */
+
+    if (state.think <= 0) {
+      state.think =
+        8 +
+        Math.random() * 18;
+
+      if (!frontFree) {
+        if (frontAboveFree) {
+          state.climbing = true;
+        } else {
+          state.dir *= -1;
+          state.climbing = false;
+        }
+      }
+
+      if (
+        belowFree &&
+        !frontBelowSolid
+      ) {
+        state.climbing = false;
+      }
+
+      if (
+        grounded &&
+        Math.random() < 0.04
+      ) {
+        state.dir *= -1;
+      }
+    }
+
+    /*
+     * =========================================================
+     * CONTRACTION WAVE
+     * =========================================================
+     *
+     * The wave travels from the head toward the tail.
+     *
+     * High contraction = segment bunches up.
+     * Low contraction = segment stretches out.
+     */
+
+    for (
+      let i = 0;
+      i < segments.length;
+      i++
+    ) {
+      const seg = segments[i];
+
+      const phase =
+        state.crawl -
+        i * 0.68 +
+        state.phase;
+
+      const contraction =
+        0.5 +
+        0.5 *
+        Math.sin(phase);
+
+      seg.contraction =
+        contraction;
+
+      const touchingGround =
+        !isEmpty(
+          seg.x,
+          seg.y + 0.5
+        );
+
+      /*
+       * Contracted segments grip the ground.
+       */
+
+      if (touchingGround) {
+        seg.grip =
+          contraction *
+          contraction;
+      } else {
+        seg.grip = 0;
+      }
+    }
+
+    /*
+     * =========================================================
+     * PROPULSION
+     * =========================================================
+     *
+     * The worm moves because different sections contract
+     * against sections that are gripping the ground.
+     */
+
+    for (
+      let i = 1;
+      i < segments.length;
+      i++
+    ) {
+      const seg = segments[i];
+      const prev = segments[i - 1];
+
+      const phase =
+        state.crawl -
+        i * 0.68 +
+        state.phase;
+
+      const contraction =
+        0.5 +
+        0.5 *
+        Math.sin(phase);
+
+      const previousPhase =
+        state.crawl -
+        (i - 1) * 0.68 +
+        state.phase;
+
+      const previousContraction =
+        0.5 +
+        0.5 *
+        Math.sin(previousPhase);
+
+      const contractionDifference =
+        contraction -
+        previousContraction;
+
+      /*
+       * A contracting segment pushes the segment in front
+       * of it when it has traction.
+       */
+
+      if (seg.grip > 0.15) {
+        prev.vx +=
+          state.dir *
+          contractionDifference *
+          0.065 *
+          seg.grip;
+      }
+
+      /*
+       * Extra push during strong contraction.
+       */
+
+      if (
+        contraction > 0.7 &&
+        seg.grip > 0.35
+      ) {
+        prev.vx +=
+          state.dir *
+          contraction *
+          0.025;
+      }
+    }
+
+    /*
+     * =========================================================
+     * HEAD MOVEMENT
+     * =========================================================
+     *
+     * Direct movement is intentionally low.
+     * The body contraction supplies most of the locomotion.
+     */
+
+    const desiredSpeed =
+      grounded
+        ? 0.055
+        : 0.012;
+
+    const desiredVelocity =
+      state.dir *
+      desiredSpeed;
+
+    if (grounded) {
+      head.vx +=
+        (desiredVelocity - head.vx) *
+        0.025;
+    } else {
+      head.vx *= 0.94;
+    }
+
+    /*
+     * Gravity.
+     */
+
+    head.vy += 0.025;
+
+    /*
+     * Climbing.
+     */
+
+    if (state.climbing) {
+      if (frontAboveFree) {
+        head.vy -= 0.05;
+      } else {
+        state.climbing = false;
+      }
+    }
+
+    /*
+     * =========================================================
+     * BODY FRICTION
+     * =========================================================
+     */
+
+    for (
+      let i = 0;
+      i < segments.length;
+      i++
+    ) {
+      const seg = segments[i];
+
+      if (seg.grip > 0.35) {
+        /*
+         * Strong traction while contracted.
+         */
+
+        seg.vx *= 0.68;
+      } else {
+        /*
+         * Release and allow the body to slide forward.
+         */
+
+        seg.vx *= 0.94;
+      }
+
+      seg.vy *= 0.96;
+
+      const phase =
+        state.crawl -
+        i * 0.68 +
+        state.phase;
+
+      /*
+       * Small sideways wave.
+       */
+
+      const bend =
+        Math.sin(phase) *
+        0.018 *
+        (1 - i / segments.length);
+
+      if (
+        grounded ||
+        state.climbing
+      ) {
+        seg.vy += bend;
+      }
+    }
+
+    /*
+     * =========================================================
+     * BODY GRAVITY
+     * =========================================================
+     */
+
+    for (
+      let i = 1;
+      i < segments.length;
+      i++
+    ) {
+      const seg = segments[i];
+
+      seg.vy += 0.02;
+
+      if (
+        !isEmpty(
+          seg.x,
+          seg.y + 0.5
+        )
+      ) {
+        seg.vy *= 0.25;
+      }
+    }
+
+    /*
+     * =========================================================
+     * HEAD SPEED LIMIT
+     * =========================================================
+     */
+
+    head.vx = Math.max(
+      -0.13,
+      Math.min(
+        0.13,
+        head.vx
+      )
+    );
+
+    head.vy = Math.max(
+      -0.12,
+      Math.min(
+        0.18,
+        head.vy
+      )
+    );
+
+    /*
+     * =========================================================
+     * MOVE HEAD
+     * =========================================================
+     */
+
+    const oldHeadX = head.x;
+    const oldHeadY = head.y;
+
+    head.x += head.vx;
+    head.y += head.vy;
+
+    /*
+     * =========================================================
+     * HEAD COLLISION
+     * =========================================================
+     */
+
+    if (!isEmpty(head.x, head.y)) {
+      head.x = oldHeadX;
+      head.y = oldHeadY;
+
+      head.vx *= 0.05;
+      head.vy *= 0.05;
+
+      if (
+        isEmpty(
+          head.x + state.dir,
+          head.y - 1
+        )
+      ) {
+        state.climbing = true;
+      } else {
+        state.dir *= -1;
+        state.climbing = false;
+      }
+    }
+
+    /*
+     * Ground collision.
+     */
+
+    if (
+      !isEmpty(
+        head.x,
+        head.y + 0.45
+      ) &&
+      head.vy > 0
+    ) {
+      head.y =
+        Math.floor(head.y) +
+        0.35;
+
+      head.vy = 0;
+    }
+
+    /*
+     * =========================================================
+     * RAGDOLL BODY
+     * =========================================================
+     *
+     * The spacing changes with the contraction wave.
+     * This is what makes the body physically shorten/lengthen.
+     */
+
+    const baseSpacing = 0.48;
+
+    for (
+      let iteration = 0;
+      iteration < 8;
+      iteration++
+    ) {
+      for (
+        let i = 1;
+        i < segments.length;
+        i++
+      ) {
+        const prev =
+          segments[i - 1];
+
+        const seg =
+          segments[i];
+
+        let dx =
+          seg.x -
+          prev.x;
+
+        let dy =
+          seg.y -
+          prev.y;
+
+        let distance =
+          Math.sqrt(
+            dx * dx +
+            dy * dy
+          );
+
+        if (distance < 0.0001) {
+          dx = -state.dir;
+          dy = 0;
+          distance = 1;
+        }
+
+        const phase =
+          state.crawl -
+          i * 0.68 +
+          state.phase;
+
+        const contraction =
+          0.5 +
+          0.5 *
+          Math.sin(phase);
+
+        /*
+         * Large difference between compressed and extended
+         * spacing so the movement is clearly visible.
+         */
+
+        const desiredSpacing =
+          baseSpacing *
+          (
+            1.15 -
+            contraction *
+            0.62
+          );
+
+        const difference =
+          (distance - desiredSpacing) /
+          distance;
+
+        /*
+         * Contracted sections pull together harder.
+         */
+
+        if (contraction > 0.5) {
+          seg.x -=
+            dx *
+            difference *
+            0.92;
+
+          seg.y -=
+            dy *
+            difference *
+            0.92;
+        } else {
+          /*
+           * Extended sections are looser.
+           */
+
+          seg.x -=
+            dx *
+            difference *
+            0.72;
+
+          seg.y -=
+            dy *
+            difference *
+            0.72;
+        }
+
+        /*
+         * The contraction physically pushes the section
+         * ahead of it.
+         */
+
+        if (
+          contraction > 0.65 &&
+          i > 1
+        ) {
+          prev.x +=
+            state.dir *
+            contraction *
+            0.015;
+
+          prev.y +=
+            Math.sin(phase) *
+            0.009;
+        }
+      }
+    }
+
+    /*
+     * =========================================================
+     * EXTRA BODY WAVE
+     * =========================================================
+     *
+     * Makes the worm bend instead of remaining a straight
+     * compressed chain.
+     */
+
+    for (
+      let i = 1;
+      i < segments.length;
+      i++
+    ) {
+      const seg =
+        segments[i];
+
+      const phase =
+        state.crawl -
+        i * 0.68 +
+        state.phase;
+
+      const bend =
+        Math.sin(phase) *
+        0.035 *
+        (1 - i / segments.length);
+
+      seg.y += bend;
+    }
+
+    /*
+     * =========================================================
+     * BODY COLLISION
+     * =========================================================
+     */
+
+    for (
+      let i = 1;
+      i < segments.length;
+      i++
+    ) {
+      const seg =
+        segments[i];
+
+      const gx =
+        Math.floor(seg.x);
+
+      const gy =
+        Math.floor(seg.y);
+
+      const c =
+        grid.get(gx, gy);
+
+      if (!c) {
+        seg.x = seg.ox;
+        seg.y = seg.oy;
+
+        seg.vx *= 0.05;
+        seg.vy *= 0.05;
+
+        continue;
+      }
+
+      if (
+        c.element !== ELEMENTS.empty &&
+        !(
+          c.element === ELEMENTS.worm &&
+          c.wormId === wormId
+        )
+      ) {
+        seg.x = seg.ox;
+        seg.y = seg.oy;
+
+        seg.vx *= 0.05;
+        seg.vy *= 0.05;
+      }
+
+      /*
+       * Ground contact.
+       */
+
+      if (
+        !isEmpty(
+          seg.x,
+          seg.y + 0.48
+        )
+      ) {
+        seg.vy = 0;
+
+        if (seg.grip > 0.25) {
+          seg.vx *= 0.3;
+        } else {
+          seg.vx *= 0.8;
+        }
+      }
+    }
+
+    /*
+     * =========================================================
+     * BUILD USED CELLS
+     * =========================================================
+     */
+
+    const used = new Map();
+
+    function addSegment(seg, index) {
+      const gx =
+        Math.floor(seg.x);
+
+      const gy =
+        Math.floor(seg.y);
+
+      const key =
+        `${gx},${gy}`;
+
+      if (!used.has(key)) {
+        used.set(key, {
+          x: gx,
+          y: gy,
+          parts: []
+        });
+      }
+
+      used.get(key).parts.push({
+        x: seg.x - gx,
+        y: seg.y - gy,
+        index
+      });
+    }
+
+    for (
+      let i = 0;
+      i < segments.length;
+      i++
+    ) {
+      addSegment(
+        segments[i],
+        i
+      );
+    }
+
+    /*
+     * =========================================================
+     * CLEAN OLD WORM CELLS
+     * =========================================================
+     */
+
+    const headGX =
+      Math.floor(head.x);
+
+    const headGY =
+      Math.floor(head.y);
+
+    for (
+      let gx = headGX - 12;
+      gx <= headGX + 12;
+      gx++
+    ) {
+      for (
+        let gy = headGY - 8;
+        gy <= headGY + 8;
+        gy++
+      ) {
+        const old =
+          grid.get(gx, gy);
+
+        if (
+          old &&
+          old.element === ELEMENTS.worm &&
+          old.wormId === wormId
+        ) {
+          grid.set(
+            gx,
+            gy,
+            ELEMENTS.empty
+          );
+        }
+      }
+    }
+
+    /*
+     * =========================================================
+     * SUBGRID
+     * =========================================================
+     *
+     * Keep the body thin while allowing multiple segments
+     * inside the same grid cell.
+     */
+
+    function makeSubGrid(parts) {
+      const subGrid = [
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1]
+      ];
+
+      for (
+        const part of parts
+      ) {
+        const px =
+          part.x * 4;
+
+        const py =
+          part.y * 4;
+
+        const radius =
+          0.24;
+
+        for (
+          let sx = 0;
+          sx < 4;
+          sx++
+        ) {
+          for (
+            let sy = 0;
+            sy < 4;
+            sy++
+          ) {
+            const cx =
+              sx + 0.5;
+
+            const cy =
+              sy + 0.5;
+
+            const dx =
+              (cx - px) / 4;
+
+            const dy =
+              (cy - py) / 4;
+
+            if (
+              dx * dx +
+              dy * dy <=
+              radius * radius
+            ) {
+              subGrid[sx][sy] = 0;
+            }
+          }
+        }
+      }
+
+      return subGrid;
+    }
+
+    /*
+     * =========================================================
+     * WRITE BODY CELLS
+     * =========================================================
+     */
+
+    for (
+      const entry of used.values()
+    ) {
+      const gx = entry.x;
+      const gy = entry.y;
+
+      let target =
+        grid.get(gx, gy);
+
+      if (!target) continue;
+
+      if (
+        target.element !== ELEMENTS.empty &&
+        !(
+          target.element === ELEMENTS.worm &&
+          target.wormId === wormId
+        )
+      ) {
+        continue;
+      }
+
+      if (
+        target.element ===
+        ELEMENTS.empty
+      ) {
+        grid.set(
+          gx,
+          gy,
+          ELEMENTS.worm
+        );
+      }
+
+      target =
+        grid.get(gx, gy);
+
+      if (!target) continue;
+
+      target.element =
+        ELEMENTS.worm;
+
+      target.wormId =
+        wormId;
+
+      target.main = false;
+      target.dir =
+        state.dir;
+
+      target.subGrid =
+        makeSubGrid(
+          entry.parts
+        );
+    }
+
+    /*
+     * =========================================================
+     * HEAD CELL
+     * =========================================================
+     */
+
+    const newHeadX =
+      Math.floor(head.x);
+
+    const newHeadY =
+      Math.floor(head.y);
+
+    const newHead =
+      grid.get(
+        newHeadX,
+        newHeadY
+      );
+
+    if (
+      newHead &&
+      newHead.element === ELEMENTS.worm &&
+      newHead.wormId === wormId
+    ) {
+      newHead.main = true;
+      newHead.wormState =
+        state;
+
+      newHead.dir =
+        state.dir;
+
+      newHead.subX =
+        head.x;
+    }
+
+    /*
+     * Store previous positions.
+     */
+
+    for (
+      const seg of segments
+    ) {
+      seg.ox = seg.x;
+      seg.oy = seg.y;
+    }
+  },
+  (grid, x, y) => {
+    const cell =
+      grid.get(x, y);
+
+    if (!cell) return;
+
+    cell.main = true;
+
+    cell.dir ??=
+      Math.random() < 0.5
+        ? -1
+        : 1;
+
+    cell.wormId ??=
+      `${x}:${y}:${Math.random()}`;
+
+    const segments = [];
+
+    for (
+      let i = 0;
+      i < 14;
+      i++
+    ) {
+      const px =
+        x -
+        i *
+        0.48 *
+        cell.dir;
+
+      segments.push({
+        x: px,
+        y,
+        vx: 0,
+        vy: 0,
+        ox: px,
+        oy: y,
+        grounded: false,
+        grip: 0,
+        contraction: 0
+      });
+    }
+
+    cell.wormState = {
+      segments,
+      time:
+        Math.random() * 100,
+
+      think:
+        8 +
+        Math.random() * 18,
+
+      dir:
+        cell.dir,
+
+      phase:
+        Math.random() *
+        Math.PI *
+        2,
+
+      climbing: false,
+
+      crawl:
+        Math.random() *
+        Math.PI *
+        2
+    };
+  }
 )
-
-
 
     };
     let bobWarningShown = false;
@@ -41209,6 +43558,57 @@ temperatureBrushMenu: {
     
 
   }
+},
+velocityMenu: {
+  tag: "label",
+
+  style: {
+    position: "absolute",
+    right: "20px",
+    bottom: "20px",
+    display: "none"
+  },
+
+  text: "VX: ",
+
+  init(el, refs) {
+    const vxInput = document.createElement("input");
+    vxInput.type = "number";
+    vxInput.value = 1;
+    vxInput.step = "0.1";
+    vxInput.style.width = "45px";
+
+    const vyText = document.createElement("span");
+    vyText.textContent = " VY: ";
+
+    const vyInput = document.createElement("input");
+    vyInput.type = "number";
+    vyInput.value = 0;
+    vyInput.step = "0.1";
+    vyInput.style.width = "45px";
+
+    function upd() {
+      el.vx = Number(vxInput.value);
+      el.vy = Number(vyInput.value);
+
+      if (selectedElement === ELEMENTS.bouncy_ball) {
+        el.style.display = "block";
+      } else {
+        el.style.display = "none";
+      }
+    }
+
+    vxInput.addEventListener("input", upd);
+    vyInput.addEventListener("input", upd);
+
+    el.appendChild(vxInput);
+    el.appendChild(vyText);
+    el.appendChild(vyInput);
+
+    upd();
+
+    return upd;
+  }
 }
  
 
@@ -42119,7 +44519,7 @@ diffuseHeat(dt = 0.1) {
       // =========================
       const rad = (T - ambient) * 0.001 * dt;
       T -= rad;
-
+      if (T <= -273.15) T = -273.15;
       // =========================
       // 3. STORE
       // =========================
@@ -42652,91 +45052,93 @@ draw(ctx) {
     }
   }
 
-  // =========================================================
-  // DRAW EVERYTHING AT ONCE
-  // =========================================================
-  this._offCtx.putImageData(img, 0, 0);
+ // =========================================================
+// DRAW EVERYTHING AT ONCE
+// =========================================================
+this._offCtx.putImageData(img, 0, 0);
 
-  ctx.imageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = false;
 
-  ctx.drawImage(
-    this._offCanvas,
-    0,
-    0,
-    cols * voxelsize,
-    rows * voxelsize
-  );
+ctx.drawImage(
+  this._offCanvas,
+  camera.x,
+  camera.y,
+  cols * voxelsize * camera.zoom,
+  rows * voxelsize * camera.zoom
+);
 
-  // =========================================================
-  // GLUED OVERLAY
-  // =========================================================
-  if (this.showGrid === "normal" && (selectedElement === ELEMENTS.glue || selectedElement === ELEMENTS.unglue)) {
-    ctx.save();
+// =========================================================
+// WORLD-SPACE OVERLAYS
+// =========================================================
+ctx.save();
 
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 1;
+ctx.translate(camera.x, camera.y);
+ctx.scale(camera.zoom, camera.zoom);
 
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const cell = this.grid[y][x];
+// =========================================================
+// GLUED OVERLAY
+// =========================================================
+if (this.showGrid === "normal" && (selectedElement === ELEMENTS.glue || selectedElement === ELEMENTS.unglue)) {
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  ctx.lineWidth = 1 / camera.zoom;
 
-        if (!cell.glued) continue;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cell = this.grid[y][x];
 
-        const px = x * voxelsize;
-        const py = y * voxelsize;
+      if (!cell.glued) continue;
 
-        ctx.beginPath();
+      const px = x * voxelsize;
+      const py = y * voxelsize;
 
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + voxelsize, py + voxelsize);
+      ctx.beginPath();
 
-        ctx.moveTo(px + voxelsize, py);
-        ctx.lineTo(px, py + voxelsize);
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + voxelsize, py + voxelsize);
 
-        ctx.stroke();
+      ctx.moveTo(px + voxelsize, py);
+      ctx.lineTo(px, py + voxelsize);
 
-        ctx.fillStyle = "rgba(255,255,255,0.15)";
+      ctx.stroke();
 
-        ctx.fillRect(
-          px,
-          py,
-          voxelsize / 2,
-          voxelsize / 2
-        );
-      }
+      ctx.fillStyle = "rgba(255,255,255,0.15)";
+
+      ctx.fillRect(
+        px,
+        py,
+        voxelsize / 2,
+        voxelsize / 2
+      );
     }
-
-    ctx.restore();
   }
+}
 
-  // =========================================================
-  // LIGHT OVERLAY
-  // =========================================================
-  if (this.lightGrid) {
-    ctx.save();
+// =========================================================
+// LIGHT OVERLAY
+// =========================================================
+if (this.lightGrid) {
+  ctx.globalCompositeOperation = "lighter";
 
-    ctx.globalCompositeOperation = "lighter";
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const light = this.lightGrid[y][x];
 
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const light = this.lightGrid[y][x];
+      if (!light) continue;
 
-        if (!light) continue;
+      ctx.globalAlpha = light.level / 16;
+      ctx.fillStyle = light.color;
 
-        ctx.globalAlpha = light.level / 16;
-        ctx.fillStyle = light.color;
-
-        ctx.fillRect(
-          x * voxelsize,
-          y * voxelsize,
-          voxelsize,
-          voxelsize
-        );
-      }
+      ctx.fillRect(
+        x * voxelsize,
+        y * voxelsize,
+        voxelsize,
+        voxelsize
+      );
     }
-
-    ctx.restore();
   }
+}
+
+ctx.restore();
 }
 }
 
@@ -42972,6 +45374,7 @@ document.getElementById("brushMethod").onchange = e =>
     updateElementButtons();
     
 canvas.addEventListener("wheel", (e) => {
+  if(Brush.method === "zoom") return;
   e.preventDefault(); // stop page scroll
 
   Brush.size += e.deltaY < 0 ? 1 : -1; // scroll up = bigger, down = smaller
@@ -43693,6 +46096,7 @@ function placeAtMouse(e) {
 
         return;
     }
+    if(method === "zoom") return;
     if(method === "inspect"){
          if (!grid.get(x,y).element.optionMenu) return;
 
@@ -44262,17 +46666,22 @@ function tick() {
   }
 try {
   if (!selectedElement) throw "no element";
+  if (Brush.method === "zoom") throw "zoom tool";
 
   const mask = new Map();
 
   const mark = (x, y) => {
-    
     if (!grid.isInside(x, y)) return;
     mask.set(x + "," + y, true);
   };
- if (mobile && mouse.down === false) {
+
+  if (mobile && mouse.down === false) {
     throw "mobile-idle";
-}
+  }
+
+  ctx.save();
+  ctx.translate(camera.x, camera.y);
+  ctx.scale(camera.zoom, camera.zoom);
 
   const addBrush = (cx, cy) => {
     for (let dy = -Brush.size; dy <= Brush.size; dy++) {
@@ -44282,15 +46691,16 @@ try {
     }
   };
 
-  // -------- FIRST POINT INDICATOR (line/rect/circle) --------
+  // -------- FIRST POINT INDICATOR --------
   if (firstPoint && (Brush.method === "line" || Brush.method === "rect" || Brush.method === "circle" || shiftDown)) {
     const fpx = firstPoint.x * voxelsize + voxelsize / 2;
     const fpy = firstPoint.y * voxelsize + voxelsize / 2;
+
     ctx.save();
     ctx.fillStyle = "#ffff00";
     ctx.globalAlpha = 0.85;
     ctx.beginPath();
-    ctx.arc(fpx, fpy, 4, 0, Math.PI * 2);
+    ctx.arc(fpx, fpy, 4 / camera.zoom, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.restore();
@@ -44312,11 +46722,20 @@ try {
 
     while (true) {
       addBrush(x0, y0);
+
       if (x0 === x1 && y0 === y1) break;
 
       let e2 = 2 * err;
-      if (e2 > -dy) { err -= dy; x0 += sx; }
-      if (e2 < dx)  { err += dx; y0 += sy; }
+
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
+      }
     }
 
     const dxCells = mouse.x - firstPoint.x;
@@ -44330,20 +46749,22 @@ try {
       angleDeg <= 175 &&
       dxCells !== 0 &&
       dyCells !== 0;
-const fadeInSpeed  = 0.01;  // smooth appear
-const fadeOutSpeed = 0.1;  // fast disappear
 
-if (shouldShow) {
-  slopeFade += fadeInSpeed;
-} else {
-  slopeFade -= fadeOutSpeed;
-}
+    const fadeInSpeed = 0.01;
+    const fadeOutSpeed = 0.1;
 
-slopeFade = Math.max(0, Math.min(1, slopeFade));
+    if (shouldShow) {
+      slopeFade += fadeInSpeed;
+    } else {
+      slopeFade -= fadeOutSpeed;
+    }
+
+    slopeFade = Math.max(0, Math.min(1, slopeFade));
+
     const size = Brush.size;
     const half = size * voxelsize;
 
-    // --- CENTER points ---
+    // -------- CENTER POINTS --------
     const cfx = firstPoint.x * voxelsize + voxelsize / 2;
     const cfy = firstPoint.y * voxelsize + voxelsize / 2;
     const cmx = mouse.x * voxelsize + voxelsize / 2;
@@ -44352,7 +46773,7 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
     const cCornerX = cmx;
     const cCornerY = cfy;
 
-    // --- OUTER points ---
+    // -------- OUTER POINTS --------
     const dirX = Math.sign(cmx - cfx) || 1;
     const dirY = Math.sign(cmy - cfy) || 1;
 
@@ -44364,10 +46785,10 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
     const oCornerX = omx;
     const oCornerY = ofy;
 
-    const width  = Math.abs(dxCells) + 1;
+    const width = Math.abs(dxCells) + 1;
     const height = Math.abs(dyCells) + 1;
 
-    const outerWidth  = width  + size * 2;
+    const outerWidth = width + size * 2;
     const outerHeight = height + size * 2;
 
     const distance = Math.sqrt(dxCells * dxCells + dyCells * dyCells).toFixed(2);
@@ -44377,19 +46798,17 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
 
       ctx.save();
 
-      // ===== OUTER (DASHED, NO DIAGONAL) =====
+      // Outer
       ctx.globalAlpha = slopeFade * 0.35;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 2 / camera.zoom;
+      ctx.setLineDash([6 / camera.zoom, 4 / camera.zoom]);
 
-      // Horizontal leg
       ctx.strokeStyle = "#00ffff";
       ctx.beginPath();
       ctx.moveTo(ofx, ofy);
       ctx.lineTo(oCornerX, oCornerY);
       ctx.stroke();
 
-      // Vertical leg
       ctx.strokeStyle = "#ff66ff";
       ctx.beginPath();
       ctx.moveTo(oCornerX, oCornerY);
@@ -44398,9 +46817,9 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
 
       ctx.setLineDash([]);
 
-      // ===== INNER =====
+      // Inner
       ctx.globalAlpha = slopeFade;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / camera.zoom;
 
       ctx.strokeStyle = "white";
       ctx.beginPath();
@@ -44420,12 +46839,15 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
       ctx.lineTo(cmx, cmy);
       ctx.stroke();
 
-      // outer angle
+      // Outer angle
       const squareSize = Brush.size * voxelsize;
+
       ctx.strokeStyle = "yellow";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / camera.zoom;
+
       const sqDirX = Math.sign(omx - ofx) || 1;
       const sqDirY = Math.sign(omy - ofy) || 1;
+
       ctx.beginPath();
       ctx.moveTo(ofx, ofy);
       ctx.lineTo(ofx + squareSize * sqDirX, ofy);
@@ -44436,52 +46858,92 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
       ctx.lineTo(ofx, ofy + squareSize * sqDirY);
       ctx.closePath();
       ctx.stroke();
+
       ctx.restore();
     }
-    // text
+
+    // -------- TEXT --------
     ctx.save();
-    ctx.font = `${Math.max(12, voxelsize * 0.9)}px monospace`;
+
+    ctx.font = `${Math.max(12 / camera.zoom, voxelsize * 0.9 / camera.zoom)}px monospace`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3 / camera.zoom;
     ctx.strokeStyle = "black";
     ctx.fillStyle = "white";
 
-    const midX = (cfx + cmx) / 2 + 6;
-    const midY = (cfy + cmy) / 2 + 6;
+    const midX = (cfx + cmx) / 2 + 6 / camera.zoom;
+    const midY = (cfy + cmy) / 2 + 6 / camera.zoom;
 
     ctx.strokeText(`D: ${distance}`, midX, midY);
     ctx.fillText(`D: ${distance}`, midX, midY);
 
-    ctx.strokeText(`A: ${angleDeg.toFixed(1)}°`, ofx + 6, ofy + 6);
-    ctx.fillText(`A: ${angleDeg.toFixed(1)}°`, ofx + 6, ofy + 6);
+    ctx.strokeText(`A: ${angleDeg.toFixed(1)}°`, ofx + 6 / camera.zoom, ofy + 6 / camera.zoom);
+    ctx.fillText(`A: ${angleDeg.toFixed(1)}°`, ofx + 6 / camera.zoom, ofy + 6 / camera.zoom);
 
     if (slopeFade > 0.01) {
 
       // Inner dimensions
-      ctx.strokeText(`W: ${width}`, (cfx + cCornerX) / 2 + 4, cCornerY + 4);
-      ctx.fillText(`W: ${width}`, (cfx + cCornerX) / 2 + 4, cCornerY + 4);
+      ctx.strokeText(
+        `W: ${width}`,
+        (cfx + cCornerX) / 2 + 4 / camera.zoom,
+        cCornerY + 4 / camera.zoom
+      );
 
-      ctx.strokeText(`H: ${height}`, cCornerX + 4, (cCornerY + cmy) / 2 + 4);
-      ctx.fillText(`H: ${height}`, cCornerX + 4, (cCornerY + cmy) / 2 + 4);
+      ctx.fillText(
+        `W: ${width}`,
+        (cfx + cCornerX) / 2 + 4 / camera.zoom,
+        cCornerY + 4 / camera.zoom
+      );
+
+      ctx.strokeText(
+        `H: ${height}`,
+        cCornerX + 4 / camera.zoom,
+        (cCornerY + cmy) / 2 + 4 / camera.zoom
+      );
+
+      ctx.fillText(
+        `H: ${height}`,
+        cCornerX + 4 / camera.zoom,
+        (cCornerY + cmy) / 2 + 4 / camera.zoom
+      );
 
       // Outer dimensions
       ctx.globalAlpha = 0.3;
 
-      ctx.strokeText(`OW: ${outerWidth}`, (ofx + oCornerX) / 2 + 4, oCornerY + 4);
-      ctx.fillText(`OW: ${outerWidth}`, (ofx + oCornerX) / 2 + 4, oCornerY + 4);
+      ctx.strokeText(
+        `OW: ${outerWidth}`,
+        (ofx + oCornerX) / 2 + 4 / camera.zoom,
+        oCornerY + 4 / camera.zoom
+      );
 
-      ctx.strokeText(`OH: ${outerHeight}`, oCornerX + 4, (oCornerY + omy) / 2 + 4);
-      ctx.fillText(`OH: ${outerHeight}`, oCornerX + 4, (oCornerY + omy) / 2 + 4);
+      ctx.fillText(
+        `OW: ${outerWidth}`,
+        (ofx + oCornerX) / 2 + 4 / camera.zoom,
+        oCornerY + 4 / camera.zoom
+      );
+
+      ctx.strokeText(
+        `OH: ${outerHeight}`,
+        oCornerX + 4 / camera.zoom,
+        (oCornerY + omy) / 2 + 4 / camera.zoom
+      );
+
+      ctx.fillText(
+        `OH: ${outerHeight}`,
+        oCornerX + 4 / camera.zoom,
+        (oCornerY + omy) / 2 + 4 / camera.zoom
+      );
     }
 
     ctx.restore();
   }
 
-  // spray preview
+  // -------- SPRAY PREVIEW --------
   else if (Brush.method === "spray") {
     const r = Brush.size;
+
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         if (dx * dx + dy * dy <= r * r) {
@@ -44490,123 +46952,167 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
       }
     }
   }
-// rect preview
+
+  // -------- RECT PREVIEW --------
   else if (Brush.method === "rect") {
     if (firstPoint) {
+
       const minX = Math.min(firstPoint.x, mouse.x);
       const maxX = Math.max(firstPoint.x, mouse.x);
       const minY = Math.min(firstPoint.y, mouse.y);
       const maxY = Math.max(firstPoint.y, mouse.y);
+
       const w = maxX - minX;
       const h = maxY - minY;
       const t = 1 / Math.max(w, h) * (Brush.size + 1);
       const inner = Math.max(0, 1 - t);
+
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
+
           const nx = w > 0 ? (x - minX) / w : 0.5;
           const ny = h > 0 ? (y - minY) / h : 0.5;
+
           const dx = Math.abs(nx * 2 - 1);
           const dy = Math.abs(ny * 2 - 1);
           const d = Math.max(dx, dy);
-          if (d >= inner) mark(x, y);
+
+          if (d >= inner) {
+            mark(x, y);
+          }
         }
       }
+
       ctx.save();
-      ctx.font = "12px monospace";
+
+      ctx.font = `${12 / camera.zoom}px monospace`;
       ctx.fillStyle = "white";
       ctx.strokeStyle = "black";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / camera.zoom;
+
       const px = minX * voxelsize;
-      const py = minY * voxelsize - 4;
+      const py = minY * voxelsize - 4 / camera.zoom;
+
       const wl = Math.abs(mouse.x - firstPoint.x) + 1;
       const hl = Math.abs(mouse.y - firstPoint.y) + 1;
-      ctx.strokeText(`${wl}×${hl}`, px + 2, py);
-      ctx.fillText(`${wl}×${hl}`, px + 2, py);
+
+      ctx.strokeText(`${wl}×${hl}`, px + 2 / camera.zoom, py);
+      ctx.fillText(`${wl}×${hl}`, px + 2 / camera.zoom, py);
+
       ctx.restore();
-    } else {
-      
     }
   }
-  // circle preview
+
+  // -------- CIRCLE PREVIEW --------
   else if (Brush.method === "circle") {
     if (firstPoint) {
+
       const cx = (firstPoint.x + mouse.x) / 2;
       const cy = (firstPoint.y + mouse.y) / 2;
+
       const rx = Math.abs(mouse.x - firstPoint.x) / 2;
       const ry = Math.abs(mouse.y - firstPoint.y) / 2;
+
       const minX = Math.min(firstPoint.x, mouse.x);
       const maxX = Math.max(firstPoint.x, mouse.x);
       const minY = Math.min(firstPoint.y, mouse.y);
       const maxY = Math.max(firstPoint.y, mouse.y);
+
       if (rx < 0.5 || ry < 0.5) {
         mark(Math.round(cx), Math.round(cy));
       } else {
+
         for (let y = minY; y <= maxY; y++) {
           for (let x = minX; x <= maxX; x++) {
+
             const ddx = (x - cx) / rx;
             const ddy = (y - cy) / ry;
-            const d = ddx*ddx + ddy*ddy;
+            const d = ddx * ddx + ddy * ddy;
+
             const t = 1 / Math.max(rx, ry) * (Brush.size + 1);
             const inner = Math.max(0, 1 - t);
-            if (d <= 1 && d >= inner * inner) mark(x, y);
+
+            if (d <= 1 && d >= inner * inner) {
+              mark(x, y);
+            }
           }
         }
       }
+
       ctx.save();
-      ctx.font = "12px monospace";
+
+      ctx.font = `${12 / camera.zoom}px monospace`;
       ctx.fillStyle = "white";
       ctx.strokeStyle = "black";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / camera.zoom;
+
       const px2 = minX * voxelsize;
-      const py2 = minY * voxelsize - 4;
+      const py2 = minY * voxelsize - 4 / camera.zoom;
+
       const w2 = Math.abs(mouse.x - firstPoint.x) + 1;
       const h2 = Math.abs(mouse.y - firstPoint.y) + 1;
-      ctx.strokeText(`${w2}×${h2}`, px2 + 2, py2);
-      ctx.fillText(`${w2}×${h2}`, px2 + 2, py2);
+
+      ctx.strokeText(`${w2}×${h2}`, px2 + 2 / camera.zoom, py2);
+      ctx.fillText(`${w2}×${h2}`, px2 + 2 / camera.zoom, py2);
+
       ctx.restore();
-    } else {
-      
     }
   }
+
+  // -------- ERASE --------
   else if (Brush.method === "erase") {
     addBrush(mouse.x, mouse.y);
   }
-  else if(Brush.method === "measure" || Brush.method === "fill" || Brush.method === "select" || Brush.method === "transform"){
 
+  // -------- NO PREVIEW --------
+  else if (
+    Brush.method === "measure" ||
+    Brush.method === "fill" ||
+    Brush.method === "select" ||
+    Brush.method === "transform"
+  ) {
   }
+
+  // -------- NORMAL BRUSH --------
   else {
     addBrush(mouse.x, mouse.y);
   }
 
-  // Border preview
+  // -------- BORDER PREVIEW --------
   ctx.save();
-  ctx.lineWidth = 1;
+
+  ctx.lineWidth = 1 / camera.zoom;
   ctx.strokeStyle = Brush.method === "erase" ? "#ff4444" : "white";
+
   ctx.beginPath();
 
   for (const key of mask.keys()) {
+
     const [x, y] = key.split(",").map(Number);
 
     const px = x * voxelsize;
     const py = y * voxelsize;
 
-    const nTop    = mask.has(x + "," + (y - 1));
-    const nRight  = mask.has((x + 1) + "," + y);
+    const nTop = mask.has(x + "," + (y - 1));
+    const nRight = mask.has((x + 1) + "," + y);
     const nBottom = mask.has(x + "," + (y + 1));
-    const nLeft   = mask.has((x - 1) + "," + y);
+    const nLeft = mask.has((x - 1) + "," + y);
 
     if (!nTop) {
       ctx.moveTo(px, py);
       ctx.lineTo(px + voxelsize, py);
     }
+
     if (!nRight) {
       ctx.moveTo(px + voxelsize, py);
       ctx.lineTo(px + voxelsize, py + voxelsize);
     }
+
     if (!nBottom) {
       ctx.moveTo(px, py + voxelsize);
       ctx.lineTo(px + voxelsize, py + voxelsize);
     }
+
     if (!nLeft) {
       ctx.moveTo(px, py);
       ctx.lineTo(px, py + voxelsize);
@@ -44616,27 +47122,33 @@ slopeFade = Math.max(0, Math.min(1, slopeFade));
   ctx.stroke();
   ctx.restore();
 
-  // make new cursor
-    if(Brush.size > 0){
- 
-  const cx = mouse.x * voxelsize + voxelsize / 2;
-  const cy = mouse.y * voxelsize + voxelsize / 2;
-  ctx.save();
-   ctx.lineWidth = 1;
-  ctx.strokeStyle = Brush.method === "erase" ? "#ff4444" : "white";
+  // -------- CURSOR CROSSHAIR --------
+  if (Brush.size > 0) {
 
-  ctx.beginPath();
-  ctx.moveTo(cx,cy - 3);
-  ctx.lineTo(cx, cy + 3);
-   ctx.moveTo(cx - 3,cy);
-  ctx.lineTo(cx + 3, cy);
-  ctx.stroke();
-  ctx.restore();
+    const cx = mouse.x * voxelsize + voxelsize / 2;
+    const cy = mouse.y * voxelsize + voxelsize / 2;
 
+    ctx.save();
+
+    ctx.lineWidth = 1 / camera.zoom;
+    ctx.strokeStyle = Brush.method === "erase" ? "#ff4444" : "white";
+
+    ctx.beginPath();
+
+    ctx.moveTo(cx, cy - 3 / camera.zoom);
+    ctx.lineTo(cx, cy + 3 / camera.zoom);
+
+    ctx.moveTo(cx - 3 / camera.zoom, cy);
+    ctx.lineTo(cx + 3 / camera.zoom, cy);
+
+    ctx.stroke();
+    ctx.restore();
   }
 
-} catch (err) { }
-  // DEBUG OVERLAY
+  ctx.restore();
+
+} catch (err) {
+} // DEBUG OVERLAY
   try {
     const pauseIcon = document.getElementById("pauseBtnIcon");
     if (pauseIcon && pauseIcon.dataset.paused !== String(paused)) {
