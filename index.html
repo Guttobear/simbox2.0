@@ -5,7 +5,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-icons-font@v16/font/simple-icons.min.css">
-
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
   
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -4729,6 +4730,34 @@ for (const [dx, dy] of directions) {
   },
   (grid, x, y) => {
     const cell = grid.get(x, y);
+    if(cell.furrow){
+      if (cell.seed) {
+  const seed = cell.seed;
+
+  if (
+    seed.properties &&
+    typeof seed.properties.growth === "function"
+  ) {
+    seed.properties.growth(grid,x,y);
+  }
+}
+      const s = cell.seed?.color;
+     cell.seedY ??= Math.floor(Math.random() * 4);
+
+cell.subGrid = [
+  ["#2b180b", 0, 0, 0],
+  ["#2b180b", 0, 0, 0],
+  ["#2b180b", 0, 0, 0],
+  ["#2b180b", 0, 0, 0]
+];
+
+cell.subGrid[cell.seedY][0] = s ? s : "#2b180b";
+       if(grid.get(x,y-1)?.element !== ELEMENTS.empty && grid.get(x,y-1)?.element.properties.seed !== true){
+         cell.furrow = false;
+         cell.subGrid = null;
+      }
+
+    }
     // temp 
     if(cell.temperature > 1300){
   if(Math.random() < 0.5){
@@ -40395,6 +40424,7 @@ energy_drink: new Element(
     liquidPhysics(grid,x,y);
   }
 ),
+
 worm: new Element(
   "worm",
   "#421a09",
@@ -40403,8 +40433,7 @@ worm: new Element(
   (grid, x, y) => {
     const cell = grid.get(x, y);
 
-    if (!cell) return;
-    if (!cell.main) return;
+    if (!cell || !cell.main) return;
 
     cell.wormId ??= `${x}:${y}:${Math.random()}`;
     cell.dir ??= Math.random() < 0.5 ? -1 : 1;
@@ -40418,7 +40447,6 @@ worm: new Element(
 
       for (let i = 0; i < count; i++) {
         const px = x - i * 0.48 * cell.dir;
-
         segments.push({
           x: px,
           y,
@@ -40439,7 +40467,8 @@ worm: new Element(
         dir: cell.dir,
         phase: Math.random() * Math.PI * 2,
         climbing: false,
-        crawl: Math.random() * Math.PI * 2
+        crawl: Math.random() * Math.PI * 2,
+        dead: false
       };
     }
 
@@ -40447,27 +40476,31 @@ worm: new Element(
     const segments = state.segments;
     const head = segments[0];
 
-    state.time += 0.18;
-    state.crawl += 0.18;
+    // --- CARRIED OVERRIDE ---
+    if (cell.isCarried) {
+      head.x = x + 0.5;
+      head.y = y + 0.5;
+      head.vx = 0;
+      head.vy = 0;
+
+      // Make trailing body segments dangle under gravity
+      for (let i = 1; i < segments.length; i++) {
+        segments[i].vy += 0.05;
+      }
+    } else {
+      if (!state.dead) {
+        state.time += 0.18;
+        state.crawl += 0.18;
+      }
+    }
+
     state.think--;
 
     function isEmpty(px, py) {
-      const c = grid.get(
-        Math.floor(px),
-        Math.floor(py)
-      );
-
+      const c = grid.get(Math.floor(px), Math.floor(py));
       if (!c) return false;
-
       if (c.element === ELEMENTS.empty) return true;
-
-      if (
-        c.element === ELEMENTS.worm &&
-        c.wormId === wormId
-      ) {
-        return true;
-      }
-
+      if (c.element === ELEMENTS.worm && c.wormId === wormId) return true;
       return false;
     }
 
@@ -40476,45 +40509,19 @@ worm: new Element(
     }
 
     /*
-     * =========================================================
-     * HEAD / SURFACE DETECTION
-     * =========================================================
+     * SURFACE & GROUND DETECTION
      */
-
-    const belowFree = isEmpty(
-      head.x,
-      head.y + 0.55
-    );
-
-    const frontFree = isEmpty(
-      head.x + state.dir * 0.7,
-      head.y
-    );
-
-    const frontBelowSolid = isSolid(
-      head.x + state.dir * 0.7,
-      head.y + 0.65
-    );
-
-    const frontAboveFree = isEmpty(
-      head.x + state.dir * 0.7,
-      head.y - 0.7
-    );
-
-    const grounded =
-      !belowFree ||
-      frontBelowSolid;
+    const belowFree = isEmpty(head.x, head.y + 0.55);
+    const frontFree = isEmpty(head.x + state.dir * 0.7, head.y);
+    const frontBelowSolid = isSolid(head.x + state.dir * 0.7, head.y + 0.65);
+    const frontAboveFree = isEmpty(head.x + state.dir * 0.7, head.y - 0.7);
+    const grounded = !belowFree || frontBelowSolid;
 
     /*
-     * =========================================================
-     * AI
-     * =========================================================
+     * AI DIRECTION & DECISION MAKING (ALIVE & NOT CARRIED)
      */
-
-    if (state.think <= 0) {
-      state.think =
-        8 +
-        Math.random() * 18;
+    if (!state.dead && !cell.isCarried && state.think <= 0) {
+      state.think = 8 + Math.random() * 18;
 
       if (!frontFree) {
         if (frontAboveFree) {
@@ -40525,651 +40532,270 @@ worm: new Element(
         }
       }
 
-      if (
-        belowFree &&
-        !frontBelowSolid
-      ) {
+      if (belowFree && !frontBelowSolid) {
         state.climbing = false;
       }
 
-      if (
-        grounded &&
-        Math.random() < 0.04
-      ) {
+      if (grounded && Math.random() < 0.04) {
         state.dir *= -1;
       }
     }
 
     /*
-     * =========================================================
-     * CONTRACTION WAVE
-     * =========================================================
-     *
-     * The wave travels from the head toward the tail.
-     *
-     * High contraction = segment bunches up.
-     * Low contraction = segment stretches out.
+     * CONTRACTION & TRACTION WAVES
      */
-
-    for (
-      let i = 0;
-      i < segments.length;
-      i++
-    ) {
+    for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
+      const phase = state.crawl - i * 0.68 + state.phase;
+      const contraction = (state.dead || cell.isCarried) ? 0 : 0.5 + 0.5 * Math.sin(phase);
 
-      const phase =
-        state.crawl -
-        i * 0.68 +
-        state.phase;
+      seg.contraction = contraction;
+      const touchingGround = !isEmpty(seg.x, seg.y + 0.5);
+      seg.grip = (touchingGround && !state.dead && !cell.isCarried) ? contraction * contraction : 0;
+    }
 
-      const contraction =
-        0.5 +
-        0.5 *
-        Math.sin(phase);
+    /*
+     * PROPULSION TRANSFER (ALIVE & NOT CARRIED)
+     */
+    if (!state.dead && !cell.isCarried) {
+      for (let i = 1; i < segments.length; i++) {
+        const seg = segments[i];
+        const prev = segments[i - 1];
 
-      seg.contraction =
-        contraction;
+        const phase = state.crawl - i * 0.68 + state.phase;
+        const contraction = 0.5 + 0.5 * Math.sin(phase);
 
-      const touchingGround =
-        !isEmpty(
-          seg.x,
-          seg.y + 0.5
-        );
+        const previousPhase = state.crawl - (i - 1) * 0.68 + state.phase;
+        const previousContraction = 0.5 + 0.5 * Math.sin(previousPhase);
+        const contractionDifference = contraction - previousContraction;
 
-      /*
-       * Contracted segments grip the ground.
-       */
+        if (seg.grip > 0.15) {
+          prev.vx += state.dir * contractionDifference * 0.065 * seg.grip;
+        }
 
-      if (touchingGround) {
-        seg.grip =
-          contraction *
-          contraction;
+        if (contraction > 0.7 && seg.grip > 0.35) {
+          prev.vx += state.dir * contraction * 0.025;
+        }
+      }
+    }
+
+    /*
+     * HEAD STEERING & GRAVITY
+     */
+    if (!cell.isCarried) {
+      const desiredSpeed = (!state.dead && grounded) ? 0.055 : 0;
+      const desiredVelocity = state.dir * desiredSpeed;
+
+      if (grounded && !state.dead) {
+        head.vx += (desiredVelocity - head.vx) * 0.025;
       } else {
-        seg.grip = 0;
+        head.vx *= 0.94;
+      }
+
+      head.vy += 0.025;
+
+      if (state.climbing && !state.dead) {
+        if (frontAboveFree) {
+          head.vy -= 0.05;
+        } else {
+          state.climbing = false;
+        }
       }
     }
 
     /*
-     * =========================================================
-     * PROPULSION
-     * =========================================================
-     *
-     * The worm moves because different sections contract
-     * against sections that are gripping the ground.
+     * BODY FRICTION & GRAVITY
      */
-
-    for (
-      let i = 1;
-      i < segments.length;
-      i++
-    ) {
-      const seg = segments[i];
-      const prev = segments[i - 1];
-
-      const phase =
-        state.crawl -
-        i * 0.68 +
-        state.phase;
-
-      const contraction =
-        0.5 +
-        0.5 *
-        Math.sin(phase);
-
-      const previousPhase =
-        state.crawl -
-        (i - 1) * 0.68 +
-        state.phase;
-
-      const previousContraction =
-        0.5 +
-        0.5 *
-        Math.sin(previousPhase);
-
-      const contractionDifference =
-        contraction -
-        previousContraction;
-
-      /*
-       * A contracting segment pushes the segment in front
-       * of it when it has traction.
-       */
-
-      if (seg.grip > 0.15) {
-        prev.vx +=
-          state.dir *
-          contractionDifference *
-          0.065 *
-          seg.grip;
-      }
-
-      /*
-       * Extra push during strong contraction.
-       */
-
-      if (
-        contraction > 0.7 &&
-        seg.grip > 0.35
-      ) {
-        prev.vx +=
-          state.dir *
-          contraction *
-          0.025;
-      }
-    }
-
-    /*
-     * =========================================================
-     * HEAD MOVEMENT
-     * =========================================================
-     *
-     * Direct movement is intentionally low.
-     * The body contraction supplies most of the locomotion.
-     */
-
-    const desiredSpeed =
-      grounded
-        ? 0.055
-        : 0.012;
-
-    const desiredVelocity =
-      state.dir *
-      desiredSpeed;
-
-    if (grounded) {
-      head.vx +=
-        (desiredVelocity - head.vx) *
-        0.025;
-    } else {
-      head.vx *= 0.94;
-    }
-
-    /*
-     * Gravity.
-     */
-
-    head.vy += 0.025;
-
-    /*
-     * Climbing.
-     */
-
-    if (state.climbing) {
-      if (frontAboveFree) {
-        head.vy -= 0.05;
-      } else {
-        state.climbing = false;
-      }
-    }
-
-    /*
-     * =========================================================
-     * BODY FRICTION
-     * =========================================================
-     */
-
-    for (
-      let i = 0;
-      i < segments.length;
-      i++
-    ) {
+    for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
 
       if (seg.grip > 0.35) {
-        /*
-         * Strong traction while contracted.
-         */
-
         seg.vx *= 0.68;
       } else {
-        /*
-         * Release and allow the body to slide forward.
-         */
-
         seg.vx *= 0.94;
       }
 
       seg.vy *= 0.96;
 
-      const phase =
-        state.crawl -
-        i * 0.68 +
-        state.phase;
+      const phase = state.crawl - i * 0.68 + state.phase;
+      const bend = Math.sin(phase) * 0.018 * (1 - i / segments.length);
 
-      /*
-       * Small sideways wave.
-       */
-
-      const bend =
-        Math.sin(phase) *
-        0.018 *
-        (1 - i / segments.length);
-
-      if (
-        grounded ||
-        state.climbing
-      ) {
+      if ((grounded || state.climbing) && !state.dead && !cell.isCarried) {
         seg.vy += bend;
       }
     }
 
-    /*
-     * =========================================================
-     * BODY GRAVITY
-     * =========================================================
-     */
-
-    for (
-      let i = 1;
-      i < segments.length;
-      i++
-    ) {
+    for (let i = 1; i < segments.length; i++) {
       const seg = segments[i];
-
       seg.vy += 0.02;
 
-      if (
-        !isEmpty(
-          seg.x,
-          seg.y + 0.5
-        )
-      ) {
+      if (!isEmpty(seg.x, seg.y + 0.5)) {
         seg.vy *= 0.25;
       }
     }
 
     /*
-     * =========================================================
-     * HEAD SPEED LIMIT
-     * =========================================================
+     * SPEED LIMITS
      */
-
-    head.vx = Math.max(
-      -0.13,
-      Math.min(
-        0.13,
-        head.vx
-      )
-    );
-
-    head.vy = Math.max(
-      -0.12,
-      Math.min(
-        0.18,
-        head.vy
-      )
-    );
+    if (!cell.isCarried) {
+      head.vx = Math.max(-0.13, Math.min(0.13, head.vx));
+      head.vy = Math.max(-0.12, Math.min(0.18, head.vy));
+    }
 
     /*
-     * =========================================================
-     * MOVE HEAD
-     * =========================================================
+     * MOVE HEAD AND BODY SEGMENTS
      */
-
     const oldHeadX = head.x;
     const oldHeadY = head.y;
 
-    head.x += head.vx;
-    head.y += head.vy;
+    if (!cell.isCarried) {
+      head.x += head.vx;
+      head.y += head.vy;
+    }
+
+    for (let i = 1; i < segments.length; i++) {
+      const seg = segments[i];
+      seg.x += seg.vx;
+      seg.y += seg.vy;
+    }
 
     /*
-     * =========================================================
      * HEAD COLLISION
-     * =========================================================
      */
-
-    if (!isEmpty(head.x, head.y)) {
+    if (!cell.isCarried && !isEmpty(head.x, head.y)) {
       head.x = oldHeadX;
       head.y = oldHeadY;
-
       head.vx *= 0.05;
       head.vy *= 0.05;
 
-      if (
-        isEmpty(
-          head.x + state.dir,
-          head.y - 1
-        )
-      ) {
-        state.climbing = true;
-      } else {
-        state.dir *= -1;
-        state.climbing = false;
+      if (!state.dead) {
+        if (isEmpty(head.x + state.dir, head.y - 1)) {
+          state.climbing = true;
+        } else {
+          state.dir *= -1;
+          state.climbing = false;
+        }
       }
     }
 
-    /*
-     * Ground collision.
-     */
-
-    if (
-      !isEmpty(
-        head.x,
-        head.y + 0.45
-      ) &&
-      head.vy > 0
-    ) {
-      head.y =
-        Math.floor(head.y) +
-        0.35;
-
+    if (!cell.isCarried && !isEmpty(head.x, head.y + 0.45) && head.vy > 0) {
+      head.y = Math.floor(head.y) + 0.35;
       head.vy = 0;
     }
 
-    /*
-     * =========================================================
-     * RAGDOLL BODY
-     * =========================================================
-     *
-     * The spacing changes with the contraction wave.
-     * This is what makes the body physically shorten/lengthen.
-     */
+   /*
+ * RAGDOLL SPACING CONSTRAINTS
+ */
+const baseSpacing = 0.48;
 
-    const baseSpacing = 0.48;
+for (let iteration = 0; iteration < 8; iteration++) {
+  // Keep head anchored to bird while carried
+  if (cell.isCarried) {
+    head.x = x + 0.5;
+    head.y = y + 0.5;
+  }
 
-    for (
-      let iteration = 0;
-      iteration < 8;
-      iteration++
-    ) {
-      for (
-        let i = 1;
-        i < segments.length;
-        i++
-      ) {
-        const prev =
-          segments[i - 1];
+  for (let i = 1; i < segments.length; i++) {
+    const prev = segments[i - 1];
+    const seg = segments[i];
 
-        const seg =
-          segments[i];
+    let dx = seg.x - prev.x;
+    let dy = seg.y - prev.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
 
-        let dx =
-          seg.x -
-          prev.x;
-
-        let dy =
-          seg.y -
-          prev.y;
-
-        let distance =
-          Math.sqrt(
-            dx * dx +
-            dy * dy
-          );
-
-        if (distance < 0.0001) {
-          dx = -state.dir;
-          dy = 0;
-          distance = 1;
-        }
-
-        const phase =
-          state.crawl -
-          i * 0.68 +
-          state.phase;
-
-        const contraction =
-          0.5 +
-          0.5 *
-          Math.sin(phase);
-
-        /*
-         * Large difference between compressed and extended
-         * spacing so the movement is clearly visible.
-         */
-
-        const desiredSpacing =
-          baseSpacing *
-          (
-            1.15 -
-            contraction *
-            0.62
-          );
-
-        const difference =
-          (distance - desiredSpacing) /
-          distance;
-
-        /*
-         * Contracted sections pull together harder.
-         */
-
-        if (contraction > 0.5) {
-          seg.x -=
-            dx *
-            difference *
-            0.92;
-
-          seg.y -=
-            dy *
-            difference *
-            0.92;
-        } else {
-          /*
-           * Extended sections are looser.
-           */
-
-          seg.x -=
-            dx *
-            difference *
-            0.72;
-
-          seg.y -=
-            dy *
-            difference *
-            0.72;
-        }
-
-        /*
-         * The contraction physically pushes the section
-         * ahead of it.
-         */
-
-        if (
-          contraction > 0.65 &&
-          i > 1
-        ) {
-          prev.x +=
-            state.dir *
-            contraction *
-            0.015;
-
-          prev.y +=
-            Math.sin(phase) *
-            0.009;
-        }
-      }
+    if (distance < 0.0001) {
+      dx = -state.dir;
+      dy = 0;
+      distance = 1;
     }
 
-    /*
-     * =========================================================
-     * EXTRA BODY WAVE
-     * =========================================================
-     *
-     * Makes the worm bend instead of remaining a straight
-     * compressed chain.
-     */
+    const phase = state.crawl - i * 0.68 + state.phase;
+    const contraction = (state.dead || cell.isCarried) ? 0 : (0.5 + 0.5 * Math.sin(phase));
 
-    for (
-      let i = 1;
-      i < segments.length;
-      i++
-    ) {
-      const seg =
-        segments[i];
+    const desiredSpacing = baseSpacing * (1.15 - contraction * 0.62);
+    const difference = (distance - desiredSpacing) / distance;
+    const pullFactor = (contraction > 0.5 && !state.dead && !cell.isCarried) ? 0.92 : 0.72;
 
-      const phase =
-        state.crawl -
-        i * 0.68 +
-        state.phase;
+    seg.x -= dx * difference * pullFactor;
+    seg.y -= dy * difference * pullFactor;
 
-      const bend =
-        Math.sin(phase) *
-        0.035 *
-        (1 - i / segments.length);
-
-      seg.y += bend;
+    if (!state.dead && !cell.isCarried && contraction > 0.65 && i > 1) {
+      prev.x += state.dir * contraction * 0.015;
+      prev.y += Math.sin(phase) * 0.009;
     }
+  }
+}
 
+// Final anchor check after solver pass
+if (cell.isCarried) {
+  head.x = x + 0.5;
+  head.y = y + 0.5;
+}
     /*
-     * =========================================================
-     * BODY COLLISION
-     * =========================================================
+     * BODY COLLISION & GROUNDING
      */
+    for (let i = 1; i < segments.length; i++) {
+      const seg = segments[i];
+      const gx = Math.floor(seg.x);
+      const gy = Math.floor(seg.y);
+      const c = grid.get(gx, gy);
 
-    for (
-      let i = 1;
-      i < segments.length;
-      i++
-    ) {
-      const seg =
-        segments[i];
-
-      const gx =
-        Math.floor(seg.x);
-
-      const gy =
-        Math.floor(seg.y);
-
-      const c =
-        grid.get(gx, gy);
-
-      if (!c) {
+      if (!c || (c.element !== ELEMENTS.empty && !(c.element === ELEMENTS.worm && c.wormId === wormId))) {
         seg.x = seg.ox;
         seg.y = seg.oy;
-
-        seg.vx *= 0.05;
-        seg.vy *= 0.05;
-
-        continue;
-      }
-
-      if (
-        c.element !== ELEMENTS.empty &&
-        !(
-          c.element === ELEMENTS.worm &&
-          c.wormId === wormId
-        )
-      ) {
-        seg.x = seg.ox;
-        seg.y = seg.oy;
-
         seg.vx *= 0.05;
         seg.vy *= 0.05;
       }
 
-      /*
-       * Ground contact.
-       */
-
-      if (
-        !isEmpty(
-          seg.x,
-          seg.y + 0.48
-        )
-      ) {
+      if (!isEmpty(seg.x, seg.y + 0.48)) {
         seg.vy = 0;
+        seg.vx *= seg.grip > 0.25 ? 0.3 : 0.8;
+      }
+    }
 
-        if (seg.grip > 0.25) {
-          seg.vx *= 0.3;
-        } else {
-          seg.vx *= 0.8;
+    /*
+     * CLEAN OLD GRID CELLS
+     */
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+
+    for (const seg of segments) {
+      minX = Math.min(minX, Math.floor(seg.ox), Math.floor(seg.x));
+      maxX = Math.max(maxX, Math.floor(seg.ox), Math.floor(seg.x));
+      minY = Math.min(minY, Math.floor(seg.oy), Math.floor(seg.y));
+      maxY = Math.max(maxY, Math.floor(seg.oy), Math.floor(seg.y));
+    }
+
+    for (let gx = minX - 1; gx <= maxX + 1; gx++) {
+      for (let gy = minY - 1; gy <= maxY + 1; gy++) {
+        const old = grid.get(gx, gy);
+        if (old && old.element === ELEMENTS.worm && old.wormId === wormId) {
+          grid.set(gx, gy, ELEMENTS.empty);
         }
       }
     }
 
     /*
-     * =========================================================
-     * BUILD USED CELLS
-     * =========================================================
+     * MAP SEGMENTS TO CELLS & GENERATE SUBGRIDS
      */
-
     const used = new Map();
 
-    function addSegment(seg, index) {
-      const gx =
-        Math.floor(seg.x);
-
-      const gy =
-        Math.floor(seg.y);
-
-      const key =
-        `${gx},${gy}`;
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const gx = Math.floor(seg.x);
+      const gy = Math.floor(seg.y);
+      const key = `${gx},${gy}`;
 
       if (!used.has(key)) {
-        used.set(key, {
-          x: gx,
-          y: gy,
-          parts: []
-        });
+        used.set(key, { x: gx, y: gy, parts: [] });
       }
 
       used.get(key).parts.push({
         x: seg.x - gx,
         y: seg.y - gy,
-        index
+        index: i
       });
     }
-
-    for (
-      let i = 0;
-      i < segments.length;
-      i++
-    ) {
-      addSegment(
-        segments[i],
-        i
-      );
-    }
-
-    /*
-     * =========================================================
-     * CLEAN OLD WORM CELLS
-     * =========================================================
-     */
-
-    const headGX =
-      Math.floor(head.x);
-
-    const headGY =
-      Math.floor(head.y);
-
-    for (
-      let gx = headGX - 12;
-      gx <= headGX + 12;
-      gx++
-    ) {
-      for (
-        let gy = headGY - 8;
-        gy <= headGY + 8;
-        gy++
-      ) {
-        const old =
-          grid.get(gx, gy);
-
-        if (
-          old &&
-          old.element === ELEMENTS.worm &&
-          old.wormId === wormId
-        ) {
-          grid.set(
-            gx,
-            gy,
-            ELEMENTS.empty
-          );
-        }
-      }
-    }
-
-    /*
-     * =========================================================
-     * SUBGRID
-     * =========================================================
-     *
-     * Keep the body thin while allowing multiple segments
-     * inside the same grid cell.
-     */
 
     function makeSubGrid(parts) {
       const subGrid = [
@@ -41179,187 +40805,96 @@ worm: new Element(
         [1, 1, 1, 1]
       ];
 
-      for (
-        const part of parts
-      ) {
-        const px =
-          part.x * 4;
+      for (const part of parts) {
+        const px = part.x * 4;
+        const py = part.y * 4;
+        const radius = 0.24;
 
-        const py =
-          part.y * 4;
+        for (let sx = 0; sx < 4; sx++) {
+          for (let sy = 0; sy < 4; sy++) {
+            const cx = sx + 0.5;
+            const cy = sy + 0.5;
+            const dx = (cx - px) / 4;
+            const dy = (cy - py) / 4;
 
-        const radius =
-          0.24;
-
-        for (
-          let sx = 0;
-          sx < 4;
-          sx++
-        ) {
-          for (
-            let sy = 0;
-            sy < 4;
-            sy++
-          ) {
-            const cx =
-              sx + 0.5;
-
-            const cy =
-              sy + 0.5;
-
-            const dx =
-              (cx - px) / 4;
-
-            const dy =
-              (cy - py) / 4;
-
-            if (
-              dx * dx +
-              dy * dy <=
-              radius * radius
-            ) {
+            if (dx * dx + dy * dy <= radius * radius) {
               subGrid[sx][sy] = 0;
             }
           }
         }
       }
-
       return subGrid;
     }
 
     /*
-     * =========================================================
-     * WRITE BODY CELLS
-     * =========================================================
+     * RE-WRITE UPDATED BODY CELLS TO GRID
      */
-
-    for (
-      const entry of used.values()
-    ) {
+    for (const entry of used.values()) {
       const gx = entry.x;
       const gy = entry.y;
-
-      let target =
-        grid.get(gx, gy);
+      let target = grid.get(gx, gy);
 
       if (!target) continue;
-
-      if (
-        target.element !== ELEMENTS.empty &&
-        !(
-          target.element === ELEMENTS.worm &&
-          target.wormId === wormId
-        )
-      ) {
+      if (target.element !== ELEMENTS.empty && !(target.element === ELEMENTS.worm && target.wormId === wormId)) {
         continue;
       }
 
-      if (
-        target.element ===
-        ELEMENTS.empty
-      ) {
-        grid.set(
-          gx,
-          gy,
-          ELEMENTS.worm
-        );
+      if (target.element === ELEMENTS.empty) {
+        grid.set(gx, gy, ELEMENTS.worm);
       }
 
-      target =
-        grid.get(gx, gy);
-
+      target = grid.get(gx, gy);
       if (!target) continue;
 
-      target.element =
-        ELEMENTS.worm;
-
-      target.wormId =
-        wormId;
-
+      target.element = ELEMENTS.worm;
+      target.wormId = wormId;
       target.main = false;
-      target.dir =
-        state.dir;
-
-      target.subGrid =
-        makeSubGrid(
-          entry.parts
-        );
+      target.dir = state.dir;
+      target.subGrid = makeSubGrid(entry.parts);
     }
 
     /*
-     * =========================================================
-     * HEAD CELL
-     * =========================================================
+     * ASSIGN MAIN CONTROLLER TO HEAD CELL
      */
+    const newHeadX = Math.floor(head.x);
+    const newHeadY = Math.floor(head.y);
+    let newHead = grid.get(newHeadX, newHeadY);
 
-    const newHeadX =
-      Math.floor(head.x);
+    if (!newHead || newHead.element === ELEMENTS.empty) {
+      grid.set(newHeadX, newHeadY, ELEMENTS.worm);
+      newHead = grid.get(newHeadX, newHeadY);
+    }
 
-    const newHeadY =
-      Math.floor(head.y);
-
-    const newHead =
-      grid.get(
-        newHeadX,
-        newHeadY
-      );
-
-    if (
-      newHead &&
-      newHead.element === ELEMENTS.worm &&
-      newHead.wormId === wormId
-    ) {
+    if (newHead) {
+      newHead.element = ELEMENTS.worm;
+      newHead.wormId = wormId;
       newHead.main = true;
-      newHead.wormState =
-        state;
-
-      newHead.dir =
-        state.dir;
-
-      newHead.subX =
-        head.x;
+      newHead.wormState = state;
+      newHead.isCarried = cell.isCarried;
+      newHead.dir = state.dir;
+      newHead.subX = head.x;
+      newHead.subY = head.y;
     }
 
     /*
-     * Store previous positions.
+     * SAVE PREVIOUS POSITIONS FOR NEXT FRAME
      */
-
-    for (
-      const seg of segments
-    ) {
+    for (const seg of segments) {
       seg.ox = seg.x;
       seg.oy = seg.y;
     }
   },
   (grid, x, y) => {
-    const cell =
-      grid.get(x, y);
-
+    const cell = grid.get(x, y);
     if (!cell) return;
 
     cell.main = true;
-
-    cell.dir ??=
-      Math.random() < 0.5
-        ? -1
-        : 1;
-
-    cell.wormId ??=
-      `${x}:${y}:${Math.random()}`;
+    cell.dir ??= Math.random() < 0.5 ? -1 : 1;
+    cell.wormId ??= `${x}:${y}:${Math.random()}`;
 
     const segments = [];
-
-    for (
-      let i = 0;
-      i < 14;
-      i++
-    ) {
-      const px =
-        x -
-        i *
-        0.48 *
-        cell.dir;
-
+    for (let i = 0; i < 14; i++) {
+      const px = x - i * 0.48 * cell.dir;
       segments.push({
         x: px,
         y,
@@ -41375,28 +40910,2611 @@ worm: new Element(
 
     cell.wormState = {
       segments,
-      time:
-        Math.random() * 100,
-
-      think:
-        8 +
-        Math.random() * 18,
-
-      dir:
-        cell.dir,
-
-      phase:
-        Math.random() *
-        Math.PI *
-        2,
-
+      time: Math.random() * 100,
+      think: 8 + Math.random() * 18,
+      dir: cell.dir,
+      phase: Math.random() * Math.PI * 2,
       climbing: false,
-
-      crawl:
-        Math.random() *
-        Math.PI *
-        2
+      crawl: Math.random() * Math.PI * 2,
+      dead: false
     };
+  }
+),
+bird: new Element(
+  "bird",
+  "#8c6130",
+  "Life",
+  {},
+  (grid, x, y) => {
+    const cell = grid.get(x, y);
+    if (!cell) return;
+
+    const WANDER_RADIUS = 24;
+    const TARGET_ATTEMPTS = 30;
+    const MAX_SPEED = 0.55;
+    const TURN_STRENGTH = 0.1;
+    const AVOID_DISTANCE = 4;
+    const BOB_STRENGTH = 0.1;
+    const FIRST_FLIGHT_TIME = 80;
+    const MIN_FLIGHT_TIME = 100;
+    const REST_INTERVAL = 180;
+    const LAND_SEARCH_RADIUS = 22;
+    const LANDED_TIME = 160;
+    const WALK_CHANCE = 0.025;
+    const HUNT_RADIUS = 20;
+    const CARRY_DURATION = 60;
+
+    const isInBounds = (bx, by) => {
+      if (grid.width !== undefined && grid.height !== undefined) {
+        return bx >= 0 && bx < grid.width && by >= 0 && by < grid.height;
+      }
+
+      return grid.get(bx, by) !== undefined && grid.get(bx, by) !== null;
+    };
+
+    const isEmpty = c => c && (
+      c.element === ELEMENTS.empty ||
+      c.element === ELEMENTS.vfx
+    );
+
+    const isSolid = c => !c || !isEmpty(c);
+
+    cell.state ??= "flying";
+    cell.target ??= null;
+    cell.flightX ??= x;
+    cell.flightY ??= y;
+    cell.vx ??= 0;
+    cell.vy ??= 0;
+    cell.tick ??= 0;
+    cell.wanderTimer ??= 0;
+    cell.landTimer ??= 0;
+    cell.flightTimer ??= 0;
+    cell.steerX ??= 0;
+    cell.steerY ??= 0;
+    cell.hasRested ??= false;
+    cell.wantsToLand ??= false;
+
+    // Worm holding.
+    cell.main ??= null;
+    cell.carryTimer ??= 0;
+
+    cell.tick++;
+    cell.flightTimer++;
+
+    // Temperature.
+    if (cell.temperature > 41) {
+      const chance = Math.pow(cell.temperature / 72, 20);
+      if (Math.random() < chance) cell.state = "dead";
+    }
+
+    if (cell.temperature < -7) {
+      const chance = Math.abs(Math.pow(cell.temperature / 17, 20));
+      if (Math.random() < chance) cell.state = "dead";
+    }
+
+    if (cell.temperature > 140) {
+      grid.set(x, y, ELEMENTS.fire);
+      return;
+    }
+
+    if (cell.state === "dead") return;
+
+    // ============================================================
+    // HOLDING / EATING WORM
+    // ============================================================
+
+    if (cell.main) {
+      const headCell = cell.main;
+
+      const wormX = typeof headCell.x === "number"
+        ? Math.floor(headCell.x)
+        : x;
+
+      const wormY = typeof headCell.y === "number"
+        ? Math.floor(headCell.y)
+        : y + 1;
+
+      const currentAtPos = grid.get(wormX, wormY);
+
+      if (
+        currentAtPos &&
+        currentAtPos.element === ELEMENTS.worm &&
+        currentAtPos.wormId === headCell.wormId
+      ) {
+        cell.carryTimer++;
+        headCell.isCarried = true;
+
+        if (
+          headCell.wormState &&
+          Array.isArray(headCell.wormState.segments) &&
+          headCell.wormState.segments[0]
+        ) {
+          headCell.wormState.segments[0].x = wormX + 0.5;
+          headCell.wormState.segments[0].y = wormY + 0.5;
+        }
+
+        // Eat the entire worm after carrying it.
+        if (cell.carryTimer >= CARRY_DURATION) {
+          const wormId = headCell.wormId;
+
+          // Scan the entire grid so long worms are fully removed.
+          if (
+            grid.width !== undefined &&
+            grid.height !== undefined
+          ) {
+            for (let sy = 0; sy < grid.height; sy++) {
+              for (let sx = 0; sx < grid.width; sx++) {
+                const wormCell = grid.get(sx, sy);
+
+                if (
+                  wormCell &&
+                  wormCell.element === ELEMENTS.worm &&
+                  wormCell.wormId === wormId
+                ) {
+                  grid.set(sx, sy, ELEMENTS.empty);
+                }
+              }
+            }
+          } else {
+            // Fallback to the worm's segment positions.
+            if (
+              headCell.wormState &&
+              Array.isArray(headCell.wormState.segments)
+            ) {
+              for (const seg of headCell.wormState.segments) {
+                if (
+                  !seg ||
+                  typeof seg.x !== "number" ||
+                  typeof seg.y !== "number"
+                ) {
+                  continue;
+                }
+
+                const sx = Math.floor(seg.x);
+                const sy = Math.floor(seg.y);
+                const segCell = grid.get(sx, sy);
+
+                if (
+                  segCell &&
+                  segCell.element === ELEMENTS.worm &&
+                  segCell.wormId === wormId
+                ) {
+                  grid.set(sx, sy, ELEMENTS.empty);
+                }
+              }
+            }
+          }
+
+          headCell.isCarried = false;
+          cell.main = null;
+          cell.carryTimer = 0;
+
+          // Immediately resume flying.
+          cell.target = null;
+          cell.wanderTimer = 101;
+        }
+      } else {
+        headCell.isCarried = false;
+        cell.main = null;
+        cell.carryTimer = 0;
+      }
+    }
+
+    // ============================================================
+    // HUNTING TARGET
+    // ============================================================
+
+    let isHuntingWorm = false;
+
+    if (!cell.main && cell.state === "flying") {
+      const wormSpot = findWormTarget(x, y);
+
+      if (wormSpot) {
+        isHuntingWorm = true;
+
+        cell.target = {
+          x: wormSpot.x,
+          y: wormSpot.y
+        };
+
+        cell.wantsToLand = false;
+
+        cell.flightX = wormSpot.x;
+        cell.flightY = wormSpot.y;
+
+        cell.steerX = 0;
+        cell.steerY = 0;
+
+        const distToWorm = distance(
+          x,
+          y,
+          wormSpot.x,
+          wormSpot.y
+        );
+
+        if (distToWorm <= 1.8) {
+          const targetCell = grid.get(
+            wormSpot.x,
+            wormSpot.y
+          );
+
+          if (
+            targetCell &&
+            targetCell.element === ELEMENTS.worm
+          ) {
+            const headCell = findWormHeadCell(
+              targetCell,
+              wormSpot.x,
+              wormSpot.y
+            );
+
+            if (headCell) {
+              const headX =
+                typeof headCell.x === "number"
+                  ? Math.floor(headCell.x)
+                  : wormSpot.x;
+
+              const headY =
+                typeof headCell.y === "number"
+                  ? Math.floor(headCell.y)
+                  : wormSpot.y;
+
+              const targetBelowX = x;
+              const targetBelowY = y + 1;
+
+              const belowCell = isInBounds(
+                targetBelowX,
+                targetBelowY
+              )
+                ? grid.get(
+                    targetBelowX,
+                    targetBelowY
+                  )
+                : null;
+
+              if (
+                belowCell &&
+                (
+                  isEmpty(belowCell) ||
+                  belowCell === headCell
+                )
+              ) {
+                if (
+                  headX !== targetBelowX ||
+                  headY !== targetBelowY
+                ) {
+                  grid.swap(
+                    headX,
+                    headY,
+                    targetBelowX,
+                    targetBelowY
+                  );
+                }
+
+                headCell.x = targetBelowX;
+                headCell.y = targetBelowY;
+              } else {
+                headCell.x = headX;
+                headCell.y = headY;
+              }
+
+              headCell.isCarried = true;
+
+              if (
+                headCell.wormState &&
+                Array.isArray(headCell.wormState.segments) &&
+                headCell.wormState.segments[0]
+              ) {
+                headCell.wormState.segments[0].x =
+                  headCell.x + 0.5;
+
+                headCell.wormState.segments[0].y =
+                  headCell.y + 0.5;
+              }
+
+              cell.main = headCell;
+              cell.carryTimer = 0;
+
+              // Give the bird a forward flight target.
+              const carryDirection =
+                cell.vx < -0.05 ? -1 : 1;
+
+              cell.target = {
+                x: x + carryDirection * 10,
+                y: y + (Math.random() - 0.5) * 5
+              };
+
+              cell.flightX = x;
+              cell.flightY = y;
+
+              cell.steerX =
+                carryDirection * 0.6;
+
+              cell.steerY = 0;
+
+              cell.wanderTimer = 0;
+
+              isHuntingWorm = false;
+            }
+          }
+        }
+      }
+    }
+
+    // ============================================================
+    // LANDED
+    // ============================================================
+
+    if (cell.state === "landed") {
+      cell.vx *= 0.6;
+      cell.vy *= 0.6;
+      cell.landTimer++;
+
+      const below = isInBounds(x, y + 1)
+        ? grid.get(x, y + 1)
+        : null;
+
+      if (!isSolid(below)) {
+        cell.state = "falling";
+        cell.vy = 0.2;
+        return;
+      }
+
+      if (
+        Math.random() < WALK_CHANCE &&
+        cell.landTimer > 20
+      ) {
+        const direction =
+          Math.random() < 0.5 ? -1 : 1;
+
+        const nx = x + direction;
+        const ny = y;
+
+        if (
+          isInBounds(nx, ny) &&
+          isInBounds(nx, ny + 1)
+        ) {
+          const next = grid.get(nx, ny);
+          const nextBelow = grid.get(
+            nx,
+            ny + 1
+          );
+
+          if (
+            isEmpty(next) &&
+            isSolid(nextBelow)
+          ) {
+            moveBirdWithWorm(
+              x,
+              y,
+              nx,
+              ny
+            );
+
+            return;
+          }
+        }
+      }
+
+      if (cell.landTimer >= LANDED_TIME) {
+        cell.state = "flying";
+        cell.landTimer = 0;
+        cell.flightTimer = 0;
+        cell.wantsToLand = false;
+        cell.target = null;
+        cell.flightX = x;
+        cell.flightY = y;
+        cell.vx = 0;
+        cell.vy = -0.25;
+        cell.steerX =
+          (Math.random() - 0.5) * 4;
+        cell.steerY =
+          (Math.random() - 0.5) * 4;
+      }
+
+      return;
+    }
+
+    // ============================================================
+    // FALLING
+    // ============================================================
+
+    if (cell.state === "falling") {
+      const below = isInBounds(x, y + 1)
+        ? grid.get(x, y + 1)
+        : null;
+
+      if (isEmpty(below)) {
+        cell.vy += 0.08;
+
+        if (cell.vy > 0.7) {
+          cell.vy = 0.7;
+        }
+
+        if (
+          Math.random() <
+          Math.min(cell.vy, 1)
+        ) {
+          moveBirdWithWorm(
+            x,
+            y,
+            x,
+            y + 1
+          );
+        }
+
+        return;
+      }
+
+      if (isSolid(below)) {
+        cell.state = "landed";
+        cell.hasRested = true;
+        cell.wantsToLand = false;
+        cell.landTimer = 0;
+        cell.flightTimer = 0;
+        cell.vx = 0;
+        cell.vy = 0;
+
+        return;
+      }
+    }
+
+    // ============================================================
+    // DECIDE WHEN TO REST
+    // ============================================================
+
+    if (
+      cell.state === "flying" &&
+      !isHuntingWorm &&
+      !cell.main
+    ) {
+      if (
+        !cell.hasRested &&
+        cell.flightTimer >= FIRST_FLIGHT_TIME
+      ) {
+        cell.wantsToLand = true;
+      }
+
+      if (
+        cell.hasRested &&
+        cell.flightTimer >= REST_INTERVAL
+      ) {
+        cell.wantsToLand = true;
+      }
+
+      if (
+        cell.flightTimer >= MIN_FLIGHT_TIME &&
+        Math.random() < 0.002
+      ) {
+        cell.wantsToLand = true;
+      }
+    }
+
+    // ============================================================
+    // LANDING SEARCH
+    // ============================================================
+
+    if (
+      cell.state === "flying" &&
+      cell.wantsToLand &&
+      !cell.main &&
+      !isHuntingWorm
+    ) {
+      cell.target = null;
+
+      const landing = findLandingSpot(x, y);
+
+      if (landing) {
+        cell.target = {
+          x: landing.x,
+          y: landing.y
+        };
+
+        cell.landingX = landing.x;
+        cell.landingY = landing.y;
+
+        cell.state = "landing";
+        cell.wanderTimer = 0;
+      }
+    }
+
+    // ============================================================
+    // NORMAL FLYING TARGET
+    // ============================================================
+
+    if (
+      cell.state === "flying" &&
+      !cell.target
+    ) {
+      cell.wanderTimer++;
+
+      if (
+        !cell.target ||
+        cell.wanderTimer > 100 ||
+        distance(
+          x,
+          y,
+          cell.target.x,
+          cell.target.y
+        ) < 3
+      ) {
+        const target = findAirTarget(x, y);
+
+        if (target) {
+          cell.target = target;
+          cell.wanderTimer = 0;
+          cell.flightX = x;
+          cell.flightY = y;
+          cell.steerX =
+            (Math.random() - 0.5) * 8;
+          cell.steerY =
+            (Math.random() - 0.5) * 8;
+        }
+      }
+    }
+
+    // ============================================================
+    // LANDING
+    // ============================================================
+
+    if (cell.state === "landing") {
+      const below = isInBounds(x, y + 1)
+        ? grid.get(x, y + 1)
+        : null;
+
+      if (
+        isSolid(below) &&
+        distance(
+          x,
+          y,
+          cell.landingX,
+          cell.landingY
+        ) <= 1
+      ) {
+        cell.state = "landed";
+        cell.hasRested = true;
+        cell.wantsToLand = false;
+        cell.landTimer = 0;
+        cell.flightTimer = 0;
+        cell.target = null;
+        cell.vx = 0;
+        cell.vy = 0;
+
+        return;
+      }
+
+      const landingDistance = distance(
+        x,
+        y,
+        cell.landingX,
+        cell.landingY
+      );
+
+      if (
+        landingDistance > 8 &&
+        isSolid(below)
+      ) {
+        cell.state = "landed";
+        cell.hasRested = true;
+        cell.wantsToLand = false;
+        cell.landTimer = 0;
+        cell.flightTimer = 0;
+        cell.target = null;
+        cell.vx = 0;
+        cell.vy = 0;
+
+        return;
+      }
+    }
+
+    // ============================================================
+    // CARRYING WORM
+    // KEEP MOVING FORWARD
+    // ============================================================
+
+    if (
+      cell.main &&
+      !cell.target
+    ) {
+      const direction =
+        cell.vx < -0.05 ? -1 : 1;
+
+      cell.target = {
+        x: x + direction * 10,
+        y: y + (Math.random() - 0.5) * 5
+      };
+
+      cell.flightX = x;
+      cell.flightY = y;
+
+      cell.wanderTimer = 0;
+
+      cell.steerX =
+        direction * 0.6;
+
+      cell.steerY = 0;
+    }
+
+    // ============================================================
+    // NO TARGET
+    // ============================================================
+
+    if (!cell.target) {
+      cell.vx *= 0.96;
+      cell.vy *= 0.96;
+      return;
+    }
+
+    // ============================================================
+    // DESTINATION
+    // ============================================================
+
+    let targetX = cell.target.x;
+    let targetY = cell.target.y;
+
+    if (cell.state === "landing") {
+      targetX = cell.landingX;
+      targetY = cell.landingY;
+    }
+
+    const targetDX =
+      targetX - cell.flightX;
+
+    const targetDY =
+      targetY - cell.flightY;
+
+    cell.flightX +=
+      targetDX * 0.035;
+
+    cell.flightY +=
+      targetDY * 0.035;
+
+    // Keep the bird's normal wandering.
+    // While carrying, only use a very small
+    // steering amount so it doesn't constantly
+    // reverse direction.
+    if (
+      cell.state === "flying" &&
+      !isHuntingWorm &&
+      !cell.main
+    ) {
+      cell.steerX +=
+        (Math.random() - 0.5) * 0.1;
+
+      cell.steerY +=
+        (Math.random() - 0.5) * 0.1;
+
+      cell.steerX *= 0.97;
+      cell.steerY *= 0.97;
+    }
+
+    if (cell.main) {
+      cell.steerX *= 0.98;
+      cell.steerY *= 0.98;
+    }
+
+    const desiredX =
+      cell.flightX +
+      cell.steerX;
+
+    const desiredY =
+      cell.flightY +
+      cell.steerY +
+      (
+        isHuntingWorm
+          ? 0
+          : Math.sin(
+              cell.flightTimer * 0.08
+            ) * BOB_STRENGTH
+      );
+
+    const dx = desiredX - x;
+    const dy = desiredY - y;
+
+    const dist = Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+    if (dist < 0.1) return;
+
+    let dirX = dx / dist;
+    let dirY = dy / dist;
+
+    if (cell.state === "landing") {
+      const landingDX =
+        cell.landingX - x;
+
+      const landingDY =
+        cell.landingY - y;
+
+      const landingDist =
+        Math.sqrt(
+          landingDX * landingDX +
+          landingDY * landingDY
+        );
+
+      if (landingDist < 8) {
+        dirX =
+          landingDX /
+          Math.max(landingDist, 1);
+
+        dirY =
+          landingDY /
+          Math.max(landingDist, 1);
+      }
+    }
+
+    const activeMaxSpeed =
+      isHuntingWorm
+        ? 0.8
+        : MAX_SPEED;
+
+    const activeTurnStrength =
+      isHuntingWorm
+        ? 0.35
+        : TURN_STRENGTH;
+
+    let wantedSpeed =
+      activeMaxSpeed;
+
+    if (dist < 8) {
+      wantedSpeed *= Math.max(
+        0.2,
+        dist / 8
+      );
+    }
+
+    const avoidance =
+      isHuntingWorm || cell.main
+        ? { x: 0, y: 0 }
+        : getAvoidance(x, y);
+
+    dirX +=
+      avoidance.x * 0.8;
+
+    dirY +=
+      avoidance.y * 0.8;
+
+    const dirLength =
+      Math.sqrt(
+        dirX * dirX +
+        dirY * dirY
+      );
+
+    if (dirLength > 0) {
+      dirX /= dirLength;
+      dirY /= dirLength;
+    }
+
+    // Carrying uses a weaker vertical steering
+    // response and stronger forward persistence.
+    if (cell.main) {
+      dirX =
+        cell.vx < -0.05
+          ? Math.min(dirX, -0.15)
+          : Math.max(dirX, 0.15);
+
+      dirY *= 0.65;
+
+      const carryLength =
+        Math.sqrt(
+          dirX * dirX +
+          dirY * dirY
+        );
+
+      if (carryLength > 0) {
+        dirX /= carryLength;
+        dirY /= carryLength;
+      }
+    }
+
+    cell.vx += (
+      dirX * wantedSpeed -
+      cell.vx
+    ) * activeTurnStrength;
+
+    cell.vy += (
+      dirY * wantedSpeed -
+      cell.vy
+    ) * activeTurnStrength;
+
+    const speed =
+      Math.sqrt(
+        cell.vx * cell.vx +
+        cell.vy * cell.vy
+      );
+
+    if (speed > activeMaxSpeed) {
+      cell.vx =
+        (cell.vx / speed) *
+        activeMaxSpeed;
+
+      cell.vy =
+        (cell.vy / speed) *
+        activeMaxSpeed;
+    }
+
+    const moveChanceX =
+      Math.abs(cell.vx);
+
+    const moveChanceY =
+      Math.abs(cell.vy);
+
+    let moveX = 0;
+    let moveY = 0;
+
+    if (
+      Math.random() <
+      moveChanceX
+    ) {
+      moveX =
+        Math.sign(cell.vx);
+    }
+
+    if (
+      Math.random() <
+      moveChanceY
+    ) {
+      moveY =
+        Math.sign(cell.vy);
+    }
+
+    if (!moveX && !moveY) return;
+
+    let nx = x + moveX;
+    let ny = y + moveY;
+
+    if (moveX && moveY) {
+      const horizontalClear =
+        canFlyInto(
+          x + moveX,
+          y
+        );
+
+      const verticalClear =
+        canFlyInto(
+          x,
+          y + moveY
+        );
+
+      if (
+        !horizontalClear ||
+        !verticalClear
+      ) {
+        if (horizontalClear) {
+          ny = y;
+        } else if (verticalClear) {
+          nx = x;
+        } else {
+          moveX = 0;
+          moveY = 0;
+        }
+      }
+    }
+
+    if (!moveX && !moveY) return;
+
+    if (!canFlyInto(nx, ny)) {
+      const alternatives = [
+        { x: moveX, y: 0 },
+        { x: 0, y: moveY },
+        { x: -moveY, y: moveX },
+        { x: moveY, y: -moveX },
+        { x: -moveX, y: 0 },
+        { x: 0, y: -moveY }
+      ];
+
+      let found = false;
+
+      for (const direction of alternatives) {
+        if (
+          !direction.x &&
+          !direction.y
+        ) {
+          continue;
+        }
+
+        const ax =
+          x + direction.x;
+
+        const ay =
+          y + direction.y;
+
+        if (!canFlyInto(ax, ay)) {
+          continue;
+        }
+
+        nx = ax;
+        ny = ay;
+
+        found = true;
+        break;
+      }
+
+      if (!found) {
+        cell.vx *= 0.5;
+        cell.vy *= 0.5;
+        return;
+      }
+    }
+
+    moveBirdWithWorm(
+      x,
+      y,
+      nx,
+      ny
+    );
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+
+    function moveBirdWithWorm(
+      currX,
+      currY,
+      targetX,
+      targetY
+    ) {
+      if (!canFlyInto(targetX, targetY)) {
+        return;
+      }
+
+      const headCell = cell.main;
+
+      grid.swap(
+        currX,
+        currY,
+        targetX,
+        targetY
+      );
+
+      if (!headCell) return;
+
+      const wormCurrX =
+        typeof headCell.x === "number"
+          ? Math.floor(headCell.x)
+          : currX;
+
+      const wormCurrY =
+        typeof headCell.y === "number"
+          ? Math.floor(headCell.y)
+          : currY + 1;
+
+      const wormTargetX = targetX;
+      const wormTargetY = targetY + 1;
+
+      if (
+        !isInBounds(
+          wormTargetX,
+          wormTargetY
+        )
+      ) {
+        return;
+      }
+
+      const destCell =
+        grid.get(
+          wormTargetX,
+          wormTargetY
+        );
+
+      if (
+        !isEmpty(destCell) &&
+        destCell !== headCell
+      ) {
+        return;
+      }
+
+      if (
+        grid.get(
+          wormCurrX,
+          wormCurrY
+        ) === headCell
+      ) {
+        grid.set(
+          wormCurrX,
+          wormCurrY,
+          ELEMENTS.empty
+        );
+      }
+
+      grid.set(
+        wormTargetX,
+        wormTargetY,
+        headCell
+      );
+
+      headCell.x =
+        wormTargetX;
+
+      headCell.y =
+        wormTargetY;
+
+      headCell.isCarried = true;
+
+      if (
+        headCell.wormState &&
+        Array.isArray(
+          headCell.wormState.segments
+        ) &&
+        headCell.wormState.segments[0]
+      ) {
+        headCell.wormState.segments[0].x =
+          wormTargetX + 0.5;
+
+        headCell.wormState.segments[0].y =
+          wormTargetY + 0.5;
+      }
+    }
+
+    function findWormHeadCell(
+      targetCell,
+      tx,
+      ty
+    ) {
+      if (
+        !targetCell ||
+        targetCell.element !== ELEMENTS.worm
+      ) {
+        return null;
+      }
+
+      if (
+        targetCell.main === true &&
+        targetCell.wormState
+      ) {
+        return targetCell;
+      }
+
+      const wId =
+        targetCell.wormId;
+
+      for (let oy = -5; oy <= 5; oy++) {
+        for (let ox = -5; ox <= 5; ox++) {
+          const cx = tx + ox;
+          const cy = ty + oy;
+
+          if (!isInBounds(cx, cy)) {
+            continue;
+          }
+
+          const c = grid.get(
+            cx,
+            cy
+          );
+
+          if (
+            c &&
+            c.element === ELEMENTS.worm &&
+            c.wormId === wId &&
+            c.main === true
+          ) {
+            c.x = cx;
+            c.y = cy;
+
+            return c;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function findWormTarget(
+      sx,
+      sy
+    ) {
+      let closestWorm = null;
+      let minDistance =
+        HUNT_RADIUS;
+
+      for (
+        let oy = -HUNT_RADIUS;
+        oy <= HUNT_RADIUS;
+        oy++
+      ) {
+        for (
+          let ox = -HUNT_RADIUS;
+          ox <= HUNT_RADIUS;
+          ox++
+        ) {
+          const tx = sx + ox;
+          const ty = sy + oy;
+
+          if (
+            !isInBounds(tx, ty)
+          ) {
+            continue;
+          }
+
+          const target =
+            grid.get(tx, ty);
+
+          if (
+            target &&
+            target.element === ELEMENTS.worm
+          ) {
+            const headCell =
+              findWormHeadCell(
+                target,
+                tx,
+                ty
+              );
+
+            if (!headCell) {
+              continue;
+            }
+
+            const headX =
+              typeof headCell.x === "number"
+                ? headCell.x
+                : tx;
+
+            const headY =
+              typeof headCell.y === "number"
+                ? headCell.y
+                : ty;
+
+            const d =
+              distance(
+                sx,
+                sy,
+                headX,
+                headY
+              );
+
+            if (d < minDistance) {
+              minDistance = d;
+
+              closestWorm = {
+                x: headX,
+                y: headY
+              };
+            }
+          }
+        }
+      }
+
+      return closestWorm;
+    }
+
+    function distance(
+      ax,
+      ay,
+      bx,
+      by
+    ) {
+      const dx = bx - ax;
+      const dy = by - ay;
+
+      return Math.sqrt(
+        dx * dx +
+        dy * dy
+      );
+    }
+
+    function canFlyInto(
+      nx,
+      ny
+    ) {
+      if (
+        !isInBounds(nx, ny)
+      ) {
+        return false;
+      }
+
+      const target =
+        grid.get(nx, ny);
+
+      if (!target) {
+        return false;
+      }
+
+      return isEmpty(target);
+    }
+
+    function findAirTarget(
+      sx,
+      sy
+    ) {
+      const maxW =
+        grid.width
+          ? grid.width - 1
+          : Infinity;
+
+      const maxH =
+        grid.height
+          ? grid.height - 1
+          : Infinity;
+
+      for (
+        let attempt = 0;
+        attempt < TARGET_ATTEMPTS;
+        attempt++
+      ) {
+        const angle =
+          Math.random() *
+          Math.PI *
+          2;
+
+        const radius =
+          6 +
+          Math.random() *
+          WANDER_RADIUS;
+
+        let tx = Math.round(
+          sx +
+          Math.cos(angle) *
+          radius
+        );
+
+        let ty = Math.round(
+          sy +
+          Math.sin(angle) *
+          radius
+        );
+
+        if (grid.width) {
+          tx = Math.max(
+            0,
+            Math.min(maxW, tx)
+          );
+        }
+
+        if (grid.height) {
+          ty = Math.max(
+            0,
+            Math.min(maxH, ty)
+          );
+        }
+
+        if (
+          !isInBounds(tx, ty)
+        ) {
+          continue;
+        }
+
+        const target =
+          grid.get(tx, ty);
+
+        if (
+          !target ||
+          !isEmpty(target)
+        ) {
+          continue;
+        }
+
+        let open = 0;
+
+        for (let oy = -2; oy <= 2; oy++) {
+          for (let ox = -2; ox <= 2; ox++) {
+            if (
+              isInBounds(
+                tx + ox,
+                ty + oy
+              ) &&
+              isEmpty(
+                grid.get(
+                  tx + ox,
+                  ty + oy
+                )
+              )
+            ) {
+              open++;
+            }
+          }
+        }
+
+        if (open < 12) {
+          continue;
+        }
+
+        return {
+          x: tx,
+          y: ty
+        };
+      }
+
+      return null;
+    }
+
+    function findLandingSpot(
+      sx,
+      sy
+    ) {
+      let best = null;
+      let bestScore = Infinity;
+
+      const maxW =
+        grid.width
+          ? grid.width - 1
+          : Infinity;
+
+      const maxH =
+        grid.height
+          ? grid.height - 1
+          : Infinity;
+
+      for (
+        let attempt = 0;
+        attempt < TARGET_ATTEMPTS;
+        attempt++
+      ) {
+        const angle =
+          Math.random() *
+          Math.PI *
+          2;
+
+        const radius =
+          3 +
+          Math.random() *
+          LAND_SEARCH_RADIUS;
+
+        let tx = Math.round(
+          sx +
+          Math.cos(angle) *
+          radius
+        );
+
+        let ty = Math.round(
+          sy +
+          Math.sin(angle) *
+          radius
+        );
+
+        if (grid.width) {
+          tx = Math.max(
+            0,
+            Math.min(maxW, tx)
+          );
+        }
+
+        if (grid.height) {
+          ty = Math.max(
+            0,
+            Math.min(maxH, ty)
+          );
+        }
+
+        if (
+          !isInBounds(tx, ty) ||
+          !isInBounds(tx, ty + 1)
+        ) {
+          continue;
+        }
+
+        const spot =
+          grid.get(tx, ty);
+
+        const below =
+          grid.get(
+            tx,
+            ty + 1
+          );
+
+        if (!spot || !below) {
+          continue;
+        }
+
+        if (!isEmpty(spot)) {
+          continue;
+        }
+
+        if (!isSolid(below)) {
+          continue;
+        }
+
+        let open = 0;
+
+        for (let oy = -3; oy <= 0; oy++) {
+          for (let ox = -2; ox <= 2; ox++) {
+            if (
+              isInBounds(
+                tx + ox,
+                ty + oy
+              ) &&
+              isEmpty(
+                grid.get(
+                  tx + ox,
+                  ty + oy
+                )
+              )
+            ) {
+              open++;
+            }
+          }
+        }
+
+        if (open < 8) {
+          continue;
+        }
+
+        const d =
+          distance(
+            sx,
+            sy,
+            tx,
+            ty
+          );
+
+        const score =
+          d +
+          Math.random() * 8;
+
+        if (score < bestScore) {
+          bestScore = score;
+
+          best = {
+            x: tx,
+            y: ty
+          };
+        }
+      }
+
+      return best;
+    }
+
+    function getAvoidance(
+      cx,
+      cy
+    ) {
+      let ax = 0;
+      let ay = 0;
+
+      for (
+        let oy = -AVOID_DISTANCE;
+        oy <= AVOID_DISTANCE;
+        oy++
+      ) {
+        for (
+          let ox = -AVOID_DISTANCE;
+          ox <= AVOID_DISTANCE;
+          ox++
+        ) {
+          if (!ox && !oy) {
+            continue;
+          }
+
+          const checkX =
+            cx + ox;
+
+          const checkY =
+            cy + oy;
+
+          if (
+            !isInBounds(
+              checkX,
+              checkY
+            )
+          ) {
+            continue;
+          }
+
+          const nearby =
+            grid.get(
+              checkX,
+              checkY
+            );
+
+          if (isEmpty(nearby)) {
+            continue;
+          }
+
+          const d2 =
+            ox * ox +
+            oy * oy;
+
+          if (
+            d2 >
+            AVOID_DISTANCE *
+            AVOID_DISTANCE
+          ) {
+            continue;
+          }
+
+          const d =
+            Math.sqrt(d2);
+
+          ax -=
+            ox /
+            Math.max(d, 1);
+
+          ay -=
+            oy /
+            Math.max(d, 1);
+        }
+      }
+
+      return {
+        x: ax,
+        y: ay
+      };
+    }
+  }
+),
+fish: new Element(
+  "fish",
+  "#ad2000",
+  "Life",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if (!cell) return;
+
+    const blue = "#1e90ff";
+
+    const isWater = (x,y) => {
+      const c = grid.get(x,y);
+      return c?.element?.name === "water";
+    };
+
+    const isEmpty = c => c && (c.element === ELEMENTS.empty || c.element === ELEMENTS.vfx);
+
+    const isFish = (x,y) => {
+      const c = grid.get(x,y);
+      return c?.element?.name === "fish";
+    };
+
+    const isWorm = (x,y) => {
+      const c = grid.get(x,y);
+      return c?.element?.name === "worm";
+    };
+
+    const canSwimInto = (x,y) => {
+      const c = grid.get(x,y);
+
+      if (!c) return false;
+      if (isWater(x,y)) return true;
+      if (isFish(x,y)) return false;
+
+      return false;
+    };
+
+    const findNearestWorm = (maxDistance = 8) => {
+      let nearest = null;
+      let nearestDist = Infinity;
+
+      for (let dy = -maxDistance; dy <= maxDistance; dy++) {
+        for (let dx = -maxDistance; dx <= maxDistance; dx++) {
+          if (dx === 0 && dy === 0) continue;
+
+          const wx = x + dx;
+          const wy = y + dy;
+
+          if (!isWorm(wx,wy)) continue;
+
+          const dist = dx * dx + dy * dy;
+
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearest = {x:wx,y:wy};
+          }
+        }
+      }
+
+      return nearest;
+    };
+
+ const eatWorm = (wx,wy) => {
+  const visited = new Set();
+  const queue = [[wx,wy]];
+  let deleted = 0;
+
+  while (queue.length > 0 && deleted < 4) {
+    const [cx,cy] = queue.shift();
+    const key = `${cx},${cy}`;
+
+    if (visited.has(key)) continue;
+
+    visited.add(key);
+
+    if (!isWorm(cx,cy)) continue;
+
+    const neighbors = [
+      [cx+1,cy],
+      [cx-1,cy],
+      [cx,cy+1],
+      [cx,cy-1],
+      [cx+1,cy+1],
+      [cx-1,cy+1],
+      [cx+1,cy-1],
+      [cx-1,cy-1]
+    ];
+
+    grid.set(cx,cy,ELEMENTS.empty);
+    deleted++;
+
+    for (const [nx,ny] of neighbors) {
+      if (isWorm(nx,ny)) {
+        queue.push([nx,ny]);
+      }
+    }
+  }
+};
+    const waterUp = isWater(x,y-1);
+    const waterDown = isWater(x,y+1);
+    const waterLeft = isWater(x-1,y);
+    const waterRight = isWater(x+1,y);
+
+    const waterUL = isWater(x-1,y-1);
+    const waterUR = isWater(x+1,y-1);
+    const waterDL = isWater(x-1,y+1);
+    const waterDR = isWater(x+1,y+1);
+
+    const waterCount =
+      waterUp +
+      waterDown +
+      waterLeft +
+      waterRight +
+      waterUL +
+      waterUR +
+      waterDL +
+      waterDR;
+
+    const inWater =
+      waterCount >= 2;
+
+    cell.subGrid = inWater
+      ? [
+          [blue,blue,"#a02f18","#e37964"],
+          [blue,blue,0,"#e37964"],
+          [blue,blue,"#7a1f0b","#d7735f"],
+          [blue,blue,0,"#d7735f"]
+        ]
+      : [
+          [1,1,"#a02f18","#e37964"],
+          [1,1,0,"#e37964"],
+          [1,1,"#7a1f0b","#d7735f"],
+          [1,1,0,"#d7735f"]
+        ];
+
+    cell.tick ??= 0;
+    cell.tick++;
+
+    cell.vx ??= 0;
+    cell.vy ??= 0;
+
+    cell.target ??= null;
+    cell.changeTimer ??= 0;
+    cell.moveTimer ??= 0;
+    cell.directionTimer ??= 0;
+    cell.air ??= 1;
+
+    // Temperature
+
+    if (cell.temperature > 41) {
+      const chance = Math.pow(cell.temperature / 72,20);
+
+      if (Math.random() < chance) cell.state = "dead";
+    }
+
+    if (cell.temperature < -7) {
+      const chance = Math.abs(Math.pow(cell.temperature / 17,20));
+
+      if (Math.random() < chance) cell.state = "dead";
+    }
+
+    if (cell.temperature > 140) {
+      grid.set(x,y,ELEMENTS.fire);
+      return;
+    }
+
+    if (cell.air <= 0) cell.state = "dead";
+
+    if (cell.state === "dead") return;
+
+    // Out of water
+
+    if (!inWater) {
+      cell.air -= 0.005;
+
+      const above = grid.get(x,y-1);
+      const below = grid.get(x,y+1);
+      const left = grid.get(x-1,y);
+      const right = grid.get(x+1,y);
+
+      if (cell.vy === undefined) cell.vy = 0;
+      if (cell.vx === undefined) cell.vx = 0;
+      if (cell.justJumped === undefined) cell.justJumped = false;
+
+      const jumpGravity = 0.06;
+      const fallGravity = 0.3;
+      const jumpSpeed = -0.18;
+      const flopSpeed = 0.08;
+      const friction = 0.8;
+
+      if (isEmpty(below)) {
+        if (cell.justJumped) {
+          cell.vy += jumpGravity;
+        } else {
+          cell.vy += fallGravity;
+        }
+      } else {
+        cell.vy = 0;
+        cell.vx *= 0.5;
+        cell.justJumped = false;
+      }
+
+      if (cell.tick % 12 === 0 && isEmpty(above) && !isEmpty(below)) {
+        cell.vy = jumpSpeed;
+        cell.vx = Math.random() < 0.5 ? -flopSpeed : flopSpeed;
+        cell.justJumped = true;
+      }
+
+      cell.vx *= friction;
+
+      let moveX = 0;
+      let moveY = 0;
+
+      if (cell.vx > 0.035 && isEmpty(right)) {
+        moveX = 1;
+      } else if (cell.vx < -0.035 && isEmpty(left)) {
+        moveX = -1;
+      }
+
+      if (cell.vy < -0.04 && isEmpty(above)) {
+        moveY = -1;
+      } else if (cell.vy > 0.04 && isEmpty(below)) {
+        moveY = 1;
+      }
+
+      if (moveX !== 0 && moveY !== 0 && isEmpty(grid.get(x+moveX,y+moveY))) {
+        grid.swap(x,y,x+moveX,y+moveY);
+
+        if (cell.justJumped) {
+          cell.vy += jumpGravity;
+        } else {
+          cell.vy -= fallGravity;
+        }
+
+        return;
+      }
+
+      if (moveY !== 0) {
+        grid.swap(x,y,x,y+moveY);
+
+        if (cell.justJumped) {
+          cell.vy += jumpGravity;
+        } else {
+          cell.vy -= fallGravity;
+        }
+
+        return;
+      }
+
+      if (moveX !== 0) {
+        grid.swap(x,y,x+moveX,y);
+        return;
+      }
+
+      if (!isEmpty(below)) {
+        cell.vy = 0;
+        cell.vx = 0;
+        cell.justJumped = false;
+      }
+
+    } else if (cell.air < 1) {
+      cell.air += 0.01;
+    }
+
+    // Worm hunting
+
+    cell.moveTimer--;
+
+    if (cell.moveTimer > 0) return;
+
+    const worm = findNearestWorm(8);
+
+    if (worm) {
+      const dx = Math.sign(worm.x - x);
+      const dy = Math.sign(worm.y - y);
+
+      const distance = Math.max(
+        Math.abs(worm.x - x),
+        Math.abs(worm.y - y)
+      );
+
+      if (distance <= 1) {
+        eatWorm(worm.x,worm.y);
+
+        cell.vx = 0;
+        cell.vy = 0;
+        cell.moveTimer = 3;
+
+        return;
+      }
+
+      const targetX = x + dx;
+      const targetY = y + dy;
+
+      if (canSwimInto(targetX,targetY)) {
+        cell.vx = dx;
+        cell.vy = dy;
+
+        grid.swap(x,y,targetX,targetY);
+
+        cell.moveTimer = 1 + Math.floor(Math.random() * 2);
+
+        return;
+      }
+
+      // Try moving horizontally or vertically toward worm
+
+      const alternatives = [
+        [dx,0],
+        [0,dy],
+        [dx,-dy],
+        [-dx,dy],
+        [-dx,0],
+        [0,-dy]
+      ];
+
+      for (const [moveX,moveY] of alternatives) {
+        if (moveX === 0 && moveY === 0) continue;
+
+        const nx = x + moveX;
+        const ny = y + moveY;
+
+        if (!canSwimInto(nx,ny)) continue;
+
+        cell.vx = moveX;
+        cell.vy = moveY;
+
+        grid.swap(x,y,nx,ny);
+
+        cell.moveTimer = 1 + Math.floor(Math.random() * 2);
+
+        return;
+      }
+    }
+
+    // Normal swimming AI
+
+    cell.directionTimer--;
+
+    if (
+      cell.directionTimer <= 0 ||
+      Math.random() < 0.08 ||
+      !cell.target
+    ) {
+      const directions = [
+        [1,0],
+        [-1,0],
+        [0,1],
+        [0,-1],
+        [1,1],
+        [-1,1],
+        [1,-1],
+        [-1,-1]
+      ];
+
+      let bestDirections = [];
+      let bestScore = -Infinity;
+
+      for (const [dx,dy] of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+
+        if (!canSwimInto(nx,ny)) continue;
+
+        let score = 0;
+
+        if (isWater(nx+1,ny)) score += 2;
+        if (isWater(nx-1,ny)) score += 2;
+        if (isWater(nx,ny+1)) score += 2;
+        if (isWater(nx,ny-1)) score += 2;
+
+        if (isWater(nx+1,ny+1)) score++;
+        if (isWater(nx-1,ny+1)) score++;
+        if (isWater(nx+1,ny-1)) score++;
+        if (isWater(nx-1,ny-1)) score++;
+
+        if (dx === Math.sign(cell.vx)) score += 3;
+        if (dy === Math.sign(cell.vy)) score += 3;
+
+        score += Math.random() * 4;
+
+        if (dy === 1) score += 1;
+
+        if (dy === -1 && !isWater(nx,ny-1)) score -= 5;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestDirections = [[dx,dy]];
+        } else if (score === bestScore) {
+          bestDirections.push([dx,dy]);
+        }
+      }
+
+      if (bestDirections.length > 0) {
+        const chosen =
+          bestDirections[Math.floor(Math.random() * bestDirections.length)];
+
+        cell.vx = chosen[0];
+        cell.vy = chosen[1];
+
+      } else {
+        cell.vx = 0;
+        cell.vy = 0;
+      }
+
+      cell.directionTimer =
+        8 + Math.floor(Math.random() * 18);
+    }
+
+    // Random directional change
+
+    if (Math.random() < 0.04) {
+      const randomDirections = [
+        [1,0],
+        [-1,0],
+        [0,1],
+        [0,-1],
+        [1,1],
+        [-1,1],
+        [1,-1],
+        [-1,-1]
+      ];
+
+      const d =
+        randomDirections[
+          Math.floor(Math.random() * randomDirections.length)
+        ];
+
+      if (canSwimInto(x+d[0],y+d[1])) {
+        cell.vx = d[0];
+        cell.vy = d[1];
+      }
+    }
+
+    // Try current direction first
+
+    let moveX = Math.sign(cell.vx);
+    let moveY = Math.sign(cell.vy);
+
+    let nx = x + moveX;
+    let ny = y + moveY;
+
+    if (!canSwimInto(nx,ny)) {
+      const alternatives = [
+        [moveX,0],
+        [0,moveY],
+        [moveX,-moveY],
+        [-moveX,moveY],
+        [-moveX,0],
+        [0,-moveY]
+      ];
+
+      let moved = false;
+
+      for (const [dx,dy] of alternatives) {
+        if (dx === 0 && dy === 0) continue;
+
+        const ax = x + dx;
+        const ay = y + dy;
+
+        if (!canSwimInto(ax,ay)) continue;
+
+        cell.vx = dx;
+        cell.vy = dy;
+
+        grid.swap(x,y,ax,ay);
+
+        moved = true;
+        break;
+      }
+
+      cell.moveTimer =
+        2 + Math.floor(Math.random() * 3);
+
+      return;
+    }
+
+    grid.swap(x,y,nx,ny);
+
+    cell.moveTimer =
+      1 + Math.floor(Math.random() * 3);
+  }
+),
+wheat_seed: new Element(
+  "wheat_seed",
+  "#76d914",
+  "Life",
+  { seed: true,
+    growth: (grid,x,y) => {
+      const cell = grid.get(x,y);
+
+      if (!cell) return;
+
+      
+      cell.growth ??= 0;
+     if(cell.element.hasTag("wet")) cell.growth++;
+
+      if (cell.growth < 100) return;
+
+      cell.growth = 0;
+
+      const above = grid.get(x,y - 1);
+      
+      if (!above || above.element === ELEMENTS.empty) {
+        grid.set(x,y - 1,ELEMENTS.wheat);
+
+        const newCell = grid.get(x,y - 1);
+
+        if (newCell) {
+          newCell.growth = 1;
+        }
+
+        cell.seed = null;
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if (!cell) return;
+
+    cell.wheatSeeds ??= [];
+
+    function makeSubGrid(seeds) {
+      const subGrid = [
+        [1,1,1,1],
+        [1,1,1,1],
+        [1,1,1,1],
+        [1,1,1,1]
+      ];
+
+      for (const seed of seeds) {
+        if (seed.subX < 0 || seed.subX > 3) continue;
+        if (seed.subY < 0 || seed.subY > 3) continue;
+
+        subGrid[seed.subX][seed.subY] = 0;
+      }
+
+      return subGrid;
+    }
+
+    function isSubEmpty(target,sx,sy) {
+      if (!target) return false;
+
+      if (target.element === ELEMENTS.empty) return true;
+
+      if (target.element !== ELEMENTS.wheat_seed) return false;
+
+      target.wheatSeeds ??= [];
+
+      return !target.wheatSeeds.some(
+        seed => seed.subX === sx && seed.subY === sy
+      );
+    }
+
+    if (cell.wheatSeeds.length === 0) {
+      cell.wheatSeeds.push({
+        subX: Math.floor(Math.random() * 4),
+        subY: 0,
+        tick: 0
+      });
+    }
+
+    for (let i = cell.wheatSeeds.length - 1; i >= 0; i--) {
+      const seed = cell.wheatSeeds[i];
+
+      seed.tick++;
+
+      if (seed.tick < 2) continue;
+
+      seed.tick = 0;
+
+      if (seed.subY === 3) {
+        const below = grid.get(x,y + 1);
+
+        if (
+          below &&
+          (below.element === ELEMENTS.dirt ||
+          below.element.hasTag("wet")) &&
+          below.furrow
+        ) {
+          below.seed = ELEMENTS.wheat_seed;
+
+          cell.wheatSeeds.splice(i,1);
+
+          continue;
+        }
+      }
+
+      const nextY = seed.subY + 1;
+
+      if (nextY < 4) {
+        const occupied = cell.wheatSeeds.some(
+          (other,j) =>
+            j !== i &&
+            other.subX === seed.subX &&
+            other.subY === nextY
+        );
+
+        if (!occupied) {
+          seed.subY = nextY;
+        }
+
+        continue;
+      }
+
+      const below = grid.get(x,y + 1);
+
+      if (!below) continue;
+
+      if (below.element === ELEMENTS.empty) {
+        grid.set(x,y + 1,ELEMENTS.wheat_seed);
+
+        const newCell = grid.get(x,y + 1);
+
+        if (!newCell) continue;
+
+        newCell.wheatSeeds = [
+          {
+            subX: seed.subX,
+            subY: 0,
+            tick: 0
+          }
+        ];
+
+        newCell.subGrid = makeSubGrid(newCell.wheatSeeds);
+
+        cell.wheatSeeds.splice(i,1);
+
+        continue;
+      }
+
+      if (below.element === ELEMENTS.wheat_seed) {
+        below.wheatSeeds ??= [];
+
+        const occupied = below.wheatSeeds.some(
+          other =>
+            other.subX === seed.subX &&
+            other.subY === 0
+        );
+
+        if (!occupied) {
+          below.wheatSeeds.push({
+            subX: seed.subX,
+            subY: 0,
+            tick: 0
+          });
+
+          below.subGrid = makeSubGrid(below.wheatSeeds);
+
+          cell.wheatSeeds.splice(i,1);
+        }
+
+        continue;
+      }
+    }
+
+    cell.subGrid = makeSubGrid(cell.wheatSeeds);
+
+    if (cell.wheatSeeds.length === 0) {
+      grid.set(x,y,ELEMENTS.empty);
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if (!cell) return;
+
+    const subX = Math.floor(Math.random() * 4);
+
+    cell.wheatSeeds = [
+      {
+        subX: subX,
+        subY: 0,
+        tick: 0
+      }
+    ];
+
+    cell.subGrid = [
+      [1,1,1,1],
+      [1,1,1,1],
+      [1,1,1,1],
+      [1,1,1,1]
+    ];
+
+    cell.subGrid[subX][0] = 0;
+  }
+),
+hoe: new Element(
+  "hoe",
+  "#808080",
+  "Tool",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if(cell?.element?.name === "dirt"){
+      cell.furrow = true;
+    }
+  }
+),
+wheat: new Element(
+  "wheat",
+  "#ffd857",
+  "Life",
+  {flammable: true,
+    conductivity: 4,
+    variants: {
+      burnt: {
+        color: "#1a1919",
+        hidden: true
+      }
+    }, seed: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    cell.growth ??= 5;
+
+    if(cell.growth < 4 && Math.random() < 0.005){
+      cell.growth += 0.5;
+    }
+
+    if(cell.growth === 1){
+      cell.subGrid = [
+        [1, 1, 1, "#a1c414"],
+        [1, 1, 1, "#bbe612"],
+        [1, 1, 1, "#a1c414"],
+        [1, 1, 1, "#bbe612"]
+      ];
+    } else if(cell.growth === 1.5){
+      cell.subGrid = [
+        [1, 1, 1, "#a1c414"],
+        [1, 1, "#a1c414", "#bbe612"],
+        [1, 1, 1, "#a1c414"],
+        [1, 1, 1, "#bbe612"]
+      ];
+    } else if(cell.growth === 2){
+      cell.subGrid = [
+        [1, 1, "#a1c414", "#8fb812"],
+        [1, 1, "#bbe612", "#a1c414"],
+        [1, 1, "#a1c414", "#bbe612"],
+        [1, 1, 1, "#8fb812"]
+      ];
+    } else if(cell.growth === 2.5){
+      cell.subGrid = [
+        [1, "#a1c414", "#8fb812", "#8fb812"],
+        [1, 1, "#bbe612", "#a1c414"],
+        [1, 1, "#a1c414", "#bbe612"],
+        [1, 1, 1, "#8fb812"]
+      ];
+    } else if(cell.growth === 3){
+      cell.subGrid = [
+        [1, "#a1c414", "#d2e52b", "#d2e52b"],
+        [1, 1, "#bbe612", "#a1c414"],
+        [1, 1, "#a1c414", "#bbe612"],
+        [1, 1, 1, "#8fb812"]
+      ];
+    } else if(cell.growth === 3.5){
+      cell.subGrid = [
+        ["#a1c414", "#d2e52b", "#d2e52b", "#d2e52b"],
+        [1, "#bbe612", "#a1c414", "#d2e52b"],
+        [1, 1, "#a1c414", "#bbe612"],
+        [1, 1, 1, "#8fb812"]
+      ];
+    } else if(cell.growth === 4){
+      const seed = Math.abs(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+      const variant = Math.floor((seed % 1) * 6);
+
+      const shapes = [
+        [
+          ["#e5bd3b", "#ffd857", "#ffd857", "#e5bd3b"],
+          [1, "#d9b53b", "#c9a632", "#9b8b22"],
+          [1, "#ffd857", "#d9b53b", "#8b7b1c"],
+          [1, "#e5bd3b", "#ffd857", "#9b8b22"]
+        ],
+        [
+          [1, "#ffd857", "#e5bd3b", "#c9a632"],
+          ["#e5bd3b", "#d9b53b", "#ffd857", "#9b8b22"],
+          [1, "#e5bd3b", "#d9b53b", "#8b7b1c"],
+          [1, "#ffd857", "#e5bd3b", "#9b8b22"]
+        ],
+        [
+          ["#e5bd3b", "#d9b53b", "#ffd857", 1],
+          [1, "#ffd857", "#c9a632", "#9b8b22"],
+          [1, "#d9b53b", "#ffd857", "#8b7b1c"],
+          [1, "#e5bd3b", "#ffd857", "#9b8b22"]
+        ],
+        [
+          ["#ffd857", "#e5bd3b", 1, 1],
+          ["#d9b53b", "#ffd857", "#c9a632", "#9b8b22"],
+          [1, "#e5bd3b", "#d9b53b", "#8b7b1c"],
+          [1, "#ffd857", "#e5bd3b", "#9b8b22"]
+        ],
+        [
+          [1, "#e5bd3b", "#ffd857", "#e5bd3b"],
+          [1, "#d9b53b", "#ffd857", "#9b8b22"],
+          ["#e5bd3b", "#c9a632", "#d9b53b", "#8b7b1c"],
+          [1, "#ffd857", "#e5bd3b", "#9b8b22"]
+        ],
+        [
+          ["#e5bd3b", "#ffd857", "#e5bd3b", 1],
+          [1, "#c9a632", "#ffd857", "#9b8b22"],
+          [1, "#ffd857", "#d9b53b", "#8b7b1c"],
+          ["#e5bd3b", "#ffd857", 1, "#9b8b22"]
+        ]
+      ];
+
+      cell.subGrid = shapes[variant];
+    }
+     firePhysics(grid,x,y, {minTemp: 60, burnTemp: 350, catchChance: 0.8 });
+    powderPhysics(grid,x,y);
+  }
+),
+carrot_seed: new Element(
+  "carrot_seed",
+  "#9c7d59",
+  "Life",
+  { seed: true, 
+    growth: (grid,x,y) => {
+      const cell = grid.get(x,y);
+
+      if (!cell) return;
+
+      
+      cell.growth ??= 0;
+     if(cell.element.hasTag("wet")) cell.growth++;
+
+      if (cell.growth < 100) return;
+
+      cell.growth = 0;
+
+      const above = grid.get(x,y - 1);
+      
+      if (!above || above.element === ELEMENTS.empty) {
+        grid.set(x,y - 1,ELEMENTS.carrot_plant);
+
+        const newCell = grid.get(x,y - 1);
+
+        if (newCell) {
+          newCell.growth = 1;
+        }
+
+        cell.seed = null;
+      }
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if (!cell) return;
+
+    cell.carrotSeeds ??= [];
+
+    function makeSubGrid(seeds) {
+      const subGrid = [
+        [1,1,1,1],
+        [1,1,1,1],
+        [1,1,1,1],
+        [1,1,1,1]
+      ];
+
+      for (const seed of seeds) {
+        if (seed.subX < 0 || seed.subX > 3) continue;
+        if (seed.subY < 0 || seed.subY > 3) continue;
+
+        subGrid[seed.subX][seed.subY] = 0;
+      }
+
+      return subGrid;
+    }
+
+    function isSubEmpty(target,sx,sy) {
+      if (!target) return false;
+
+      if (target.element === ELEMENTS.empty) return true;
+
+      if (target.element !== ELEMENTS.carrot_seed) return false;
+
+      target.carrotSeeds ??= [];
+
+      return !target.carrotSeeds.some(
+        seed => seed.subX === sx && seed.subY === sy
+      );
+    }
+
+    if (cell.carrotSeeds.length === 0) {
+      cell.carrotSeeds.push({
+        subX: Math.floor(Math.random() * 4),
+        subY: 0,
+        tick: 0
+      });
+    }
+
+    for (let i = cell.carrotSeeds.length - 1; i >= 0; i--) {
+      const seed = cell.carrotSeeds[i];
+
+      seed.tick++;
+
+      if (seed.tick < 2) continue;
+
+      seed.tick = 0;
+
+      if (seed.subY === 3) {
+        const below = grid.get(x,y + 1);
+
+        if (
+          below &&
+          (below.element === ELEMENTS.dirt ||
+          below.element.hasTag("wet")) &&
+          below.furrow
+        ) {
+          below.seed = ELEMENTS.carrot_seed;
+
+          cell.carrotSeeds.splice(i,1);
+
+          continue;
+        }
+      }
+
+      const nextY = seed.subY + 1;
+
+      if (nextY < 4) {
+        const occupied = cell.carrotSeeds.some(
+          (other,j) =>
+            j !== i &&
+            other.subX === seed.subX &&
+            other.subY === nextY
+        );
+
+        if (!occupied) {
+          seed.subY = nextY;
+        }
+
+        continue;
+      }
+
+      const below = grid.get(x,y + 1);
+
+      if (!below) continue;
+
+      if (below.element === ELEMENTS.empty) {
+        grid.set(x,y + 1,ELEMENTS.carrot_seed);
+
+        const newCell = grid.get(x,y + 1);
+
+        if (!newCell) continue;
+
+        newCell.carrotSeeds = [
+          {
+            subX: seed.subX,
+            subY: 0,
+            tick: 0
+          }
+        ];
+
+        newCell.subGrid = makeSubGrid(newCell.carrotSeeds);
+
+        cell.carrotSeeds.splice(i,1);
+
+        continue;
+      }
+
+      if (below.element === ELEMENTS.carrot_seed) {
+        below.carrotSeeds ??= [];
+
+        const occupied = below.carrotSeeds.some(
+          other =>
+            other.subX === seed.subX &&
+            other.subY === 0
+        );
+
+        if (!occupied) {
+          below.carrotSeeds.push({
+            subX: seed.subX,
+            subY: 0,
+            tick: 0
+          });
+
+          below.subGrid = makeSubGrid(below.carrotSeeds);
+
+          cell.carrotSeeds.splice(i,1);
+        }
+
+        continue;
+      }
+    }
+
+    cell.subGrid = makeSubGrid(cell.carrotSeeds);
+
+    if (cell.carrotSeeds.length === 0) {
+      grid.set(x,y,ELEMENTS.empty);
+    }
+  },
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+    if (!cell) return;
+
+    const subX = Math.floor(Math.random() * 4);
+
+    cell.carrotSeeds = [
+      {
+        subX: subX,
+        subY: 0,
+        tick: 0
+      }
+    ];
+
+    cell.subGrid = [
+      [1,1,1,1],
+      [1,1,1,1],
+      [1,1,1,1],
+      [1,1,1,1]
+    ];
+
+    cell.subGrid[subX][0] = 0;
+  }
+),
+carrot_plant: new Element(
+  "carrot_plant",
+  "#f58700",
+  "Life",
+  {seed: true, hidden: true},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+
+cell.growth ??= 1;
+cell.age ??=0;
+cell.age++;
+if(cell.growth < 4 && Math.random() < 0.002 && cell.age>70){
+  cell.growth += 1;
+  cell.age = 0;
+}
+
+if(cell.growth === 1){
+ cell.subGrid = [
+  [1, 1, 1, 1],
+  [1, 1, 1, "#389410"],
+  [1, 1, 1, "#389410"],
+  [1, 1, 1, 1]
+ ];
+} else if(cell.growth === 2){
+ cell.subGrid = [
+  [1, 1, 1, 1],
+  [1, 1, "#389410", "#2d750d"],
+  [1, 1, "#389410", "#2d750d"],
+  [1, 1, 1, 1]
+ ];
+}  else if(cell.growth === 3){
+ cell.subGrid = [
+  [1, "#389410", 1, 1],
+  [1, "#389410", "#389410", "#2d750d"],
+  [1, 1, "#389410", "#2d750d"],
+  [1, "#389410", 1, 1]
+ ];
+}  else if(cell.growth === 4){
+cell.subGrid = [
+  [ "#389410", 1, 1, 1],
+[ "#389410", "#389410", "#2d750d", "#ed8200"],
+[1, "#389410", "#2d750d", "#ed8200"],
+[ "#389410", 1, 1, 1]
+ ];
+}
+    
+  }
+),
+carrot: new Element(
+  "carrot",
+  "#f58700",
+  "Food",
+  {},
+  (grid,x,y) => {
+    const cell = grid.get(x,y);
+    
+
+
+    if(grid.get(x,y+1)?.element === ELEMENTS.empty){
+      grid.swap(x,y,x,y+1);
+    }
+
   }
 )
 
@@ -47176,7 +49294,9 @@ try {
 
 requestAnimationFrame(tick);
 
-
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js");
+}
   </script>
 <script>
 (function () {
@@ -47400,6 +49520,7 @@ requestAnimationFrame(tick);
 
   requestAnimationFrame(tick);
 })();
+
 </script>
 </body>
 </html>
