@@ -1,4 +1,4 @@
-const CACHE_NAME = "simbox-va09_01_2026_3";
+const CACHE_NAME = "simbox-va09_01_2026_4";
 
 const FILES = [
   "./",
@@ -7,6 +7,7 @@ const FILES = [
 ];
 
 self.addEventListener("install", event => {
+  self.skipWaiting(); // activate new SW immediately instead of waiting for old tabs to close
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))
   );
@@ -22,7 +23,7 @@ self.addEventListener("activate", event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // take control of already-open pages right away
   );
 });
 
