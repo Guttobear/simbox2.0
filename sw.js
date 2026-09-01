@@ -1,4 +1,4 @@
-const CACHE_NAME = "simbox-Va09_01_2026";
+const CACHE_NAME = "simbox-va09_01_2026_2";
 
 const FILES = [
   "./",
@@ -12,14 +12,6 @@ self.addEventListener("install", event => {
   );
 });
 
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
-  );
-});
-
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys => {
@@ -30,6 +22,25 @@ self.addEventListener("activate", event => {
           }
         })
       );
+    })
+  );
+});
+
+self.addEventListener("fetch", event => {
+  if(event.request.mode === "navigate"){
+    event.respondWith(
+      fetch(event.request, {cache: "no-store"})
+        .then(response => {
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
     })
   );
 });
