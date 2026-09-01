@@ -1,4 +1,4 @@
-const CACHE_NAME = "simbox-va09_01_2026_2";
+const CACHE_NAME = "simbox-va09_01_2026_3";
 
 const FILES = [
   "./",
