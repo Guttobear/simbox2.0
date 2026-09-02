@@ -54550,6 +54550,7 @@ let hideHidden = true;
 const elementButtonCache = new Map();
 let elementButtonsInitialized = false;
 
+
 function updateElementButtons() {
   const query = searchInput.value.toLowerCase();
 
@@ -54603,25 +54604,15 @@ function updateElementButtons() {
     const g = parseInt(fullHex.substring(2, 4), 16) / 255;
     const b = parseInt(fullHex.substring(4, 6), 16) / 255;
 
-    const toLinear = c =>
-      c <= 0.03928
-        ? c / 12.92
-        : Math.pow((c + 0.055) / 1.055, 2.4);
+    const toLinear = c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 
-    const luminance =
-      0.2126 * toLinear(r) +
-      0.7152 * toLinear(g) +
-      0.0722 * toLinear(b);
+    const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
 
-    button.style.color = luminance > 0.6
-      ? "#111111"
-      : "#ffffff";
+    button.style.color = luminance > 0.6 ? "#111111" : "#ffffff";
   }
 
   function createButton(elem, key, variantName = null, variantData = null) {
-    const cacheKey = variantName === null
-      ? key
-      : `${key}::${variantName}`;
+    const cacheKey = variantName === null ? key : `${key}::${variantName}`;
 
     if (elementButtonCache.has(cacheKey)) {
       return elementButtonCache.get(cacheKey);
@@ -54681,10 +54672,7 @@ function updateElementButtons() {
         btn.style.color = "#ffffff";
         btn.style.backgroundColor = "#ededed";
 
-        const borderOverlay = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "svg"
-        );
+        const borderOverlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
         borderOverlay.setAttribute("viewBox", "0 0 65 65");
 
@@ -54742,13 +54730,9 @@ function updateElementButtons() {
           animation: "kingChickenPulseGlow 3s ease-in-out infinite"
         });
 
-        const crestSvg = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "svg"
-        );
+        const crestSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
         crestSvg.setAttribute("viewBox", "0 0 48 26");
-
         crestSvg.style.width = "100%";
         crestSvg.style.height = "100%";
 
@@ -54838,8 +54822,7 @@ function updateElementButtons() {
     } else {
       const bg = variantData.color || elem.color;
 
-      btn.textContent =
-        `${variantName.charAt(0).toUpperCase() + variantName.slice(1)} - ${elem.name.charAt(0).toUpperCase() + elem.name.slice(1)}`;
+      btn.textContent = `${variantName.charAt(0).toUpperCase() + variantName.slice(1)} - ${elem.name.charAt(0).toUpperCase() + elem.name.slice(1)}`;
 
       btn.className = "elem-btn";
 
@@ -54864,20 +54847,16 @@ function updateElementButtons() {
     return btn;
   }
 
-  if (!elementButtonsInitialized) {
-    for (const key in ELEMENTS) {
-      const elem = ELEMENTS[key];
+  for (const key in ELEMENTS) {
+    const elem = ELEMENTS[key];
 
-      createButton(elem, key);
+    createButton(elem, key);
 
-      if (elem.variants) {
-        for (const [variantName, variantData] of Object.entries(elem.variants)) {
-          createButton(elem, key, variantName, variantData);
-        }
+    if (elem.variants) {
+      for (const [variantName, variantData] of Object.entries(elem.variants)) {
+        createButton(elem, key, variantName, variantData);
       }
     }
-
-    elementButtonsInitialized = true;
   }
 
   const fragment = document.createDocumentFragment();
@@ -54885,17 +54864,11 @@ function updateElementButtons() {
   for (const key in ELEMENTS) {
     const elem = ELEMENTS[key];
 
-    if (
-      hideHidden &&
-      (elem.category === "hidden" || elem.properties?.hidden === true)
-    ) {
+    if (hideHidden && (elem.category === "hidden" || elem.properties?.hidden === true)) {
       continue;
     }
 
-    if (
-      currentCategory !== "All" &&
-      elem.category !== currentCategory
-    ) {
+    if (currentCategory !== "All" && elem.category !== currentCategory) {
       continue;
     }
 
@@ -54926,6 +54899,7 @@ function updateElementButtons() {
 
   elementsDiv.replaceChildren(fragment);
 }
+
 
 const brushModeSelect = document.getElementById("brushMode");
 
